@@ -1,5 +1,5 @@
 ---
-status: draft
+status: in-progress
 ---
 
 # Accessibility (WCAG 2.2 AA)
