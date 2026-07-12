@@ -10,9 +10,20 @@ Use this flow instead of committing straight to main.
 
 ## Steps
 
-1. **Check current branch.** Run `git branch --show-current`. If it's `main` or
-   `master`, you need to create a new branch (step 2). If already on a
-   feature branch, skip to step 3.
+1. **Is this a new task, or continuing the current one?** If you're still
+   working on the same change as your current branch/PR, stay put and
+   skip to step 3. If this is a *new*, unrelated task -- even if you're
+   currently sitting on another feature branch -- always start from a
+   fresh, up-to-date `main`, not from whatever branch you happen to be
+   on:
+
+   ```
+   git checkout main
+   git pull --ff-only
+   ```
+
+   Then go to step 2. (If already on a feature branch for *this* task,
+   skip straight to step 3.)
 
 2. **Create a branch.** Name it `<type>/<kebab-case-summary>`, where `<type>`
    is one of the Conventional Commits types this repo's commitlint config
