@@ -2,5 +2,6 @@ packages:
   - "_frontend"
   - "_backend"
 allowBuilds:
+  '@swc/core': true
   sharp: true
   unrs-resolver: true
