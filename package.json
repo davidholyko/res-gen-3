@@ -8,6 +8,8 @@
   "packageManager": "pnpm@11.12.0",
   "scripts": {
     "dev": "turbo run dev",
+    "front": "pnpm --filter @res-gen-3/frontend dev",
+    "back": "pnpm --filter @res-gen-3/backend dev",
     "build": "turbo run build",
     "lint": "turbo run lint",
     "format": "turbo run format",
