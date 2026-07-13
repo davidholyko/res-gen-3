@@ -13,7 +13,8 @@ export default function ContactMacro(props: ContactMacroProps) {
   return (
     <BaseMacro {...props}>
       <h1 className="text-3xl font-bold text-center">{name}</h1>
-      {title && <h4 className="text-center">{title}</h4>}
+      {/* h2, not h4: no h3 exists in between to skip down from (WCAG 1.3.1). */}
+      {title && <h2 className="text-center">{title}</h2>}
       <div className="flex flex-row justify-center text-center mr-2 flex-wrap">
         {phone && (
           <div className="flex flex-row items-center mr-2">
