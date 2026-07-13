@@ -1,11 +1,14 @@
 name: E2E
 
-# Runs on push to main only, not on pull_request, and isn't added as a
-# required status check -- a workflow that only ever fires post-merge
-# can't gate any PR's merge button, so this satisfies "non-blocking" by
-# construction rather than by remembering to leave a check unrequired.
-# See specs/end-to-end-testing.md for the full reasoning.
+# Runs on PRs targeting main (so results show up during review) and on
+# push to main itself. Not added as a required status check -- `main` has
+# no branch protection rules, so a red check here can never block a
+# merge; this workflow existing at all is what makes it "visible", not
+# "blocking". See specs/end-to-end-testing.md for the full reasoning.
 on:
+  pull_request:
+    branches:
+      - main
   push:
     branches:
       - main

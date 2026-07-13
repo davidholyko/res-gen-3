@@ -113,11 +113,13 @@ end-to-end/
 Separate workflow, `.github/workflows/e2e.yml` — different trigger from
 `ci.yml`, so a separate file rather than folding in:
 
-- **Trigger: `push` to `main` only**, not `pull_request`. Runs after a PR
-  merges, not before — since a workflow that only ever runs post-merge
-  can't gate any PR's merge button, this satisfies "not blocking" by
-  construction rather than by leaving a check unrequired (nothing to
-  forget to mark non-required).
+- **Trigger: `pull_request` targeting `main`, and `push` to `main`.**
+  Originally `push`-to-`main` only (so a workflow that only ever ran
+  post-merge couldn't gate any PR's merge button "by construction");
+  changed to also run on PRs so results are visible during review. Still
+  not blocking, but now because `main` has no branch protection rules at
+  all (confirmed via `gh api repos/.../branches/main/protection` — 404,
+  "Branch not protected"), not because of when the workflow fires.
 - Not added to branch protection / required checks.
 - Steps: install deps, install Playwright + Chromium
   (`playwright install --with-deps chromium`), build `_frontend`, run
@@ -205,9 +207,10 @@ that neither jsdom component tests nor manual spot-checks had caught:
 - [x] Spec files cover every flow listed under "Coverage scope" above
       (33 tests across 9 spec files)
 - [x] `pnpm test:e2e` works from the repo root
-- [x] `.github/workflows/e2e.yml` runs the suite on `push` to `main`
-      (not `pull_request`, not a required check) and uploads the HTML
-      report as a build artifact
+- [x] `.github/workflows/e2e.yml` runs the suite on `pull_request` targeting
+      `main` and on `push` to `main` (not a required check, and `main` has
+      no branch protection rules) and uploads the HTML report as a build
+      artifact
 - [x] Trace and video capture are on locally, off in CI
 - [x] `end-to-end/README.md` documents how to run it locally and add a
       new spec
