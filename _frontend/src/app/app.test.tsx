@@ -42,7 +42,7 @@ describe('App', () => {
       </div>,
     );
 
-    expect(getByText('ResGen 2.0')).not.toBeNull();
+    expect(getByText('Res Gen 3')).not.toBeNull();
     expect(container.querySelector('#editor-manager')).not.toBeNull();
     expect(container.querySelector('.layout-single')).not.toBeNull();
     // ResumeModal is closed by default, so it doesn't portal any content.

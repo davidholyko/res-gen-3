@@ -11,7 +11,7 @@ test.describe('page load', () => {
     // resolved -- it waits on window.document.styleSheets before
     // rendering the real app.
     await expect(page.getByText('Loading...')).toHaveCount(0);
-    await expect(page.getByText('ResGen 2.0')).toBeVisible();
+    await expect(page.getByText('Res Gen 3')).toBeVisible();
     expect(errors).toEqual([]);
   });
 
@@ -33,6 +33,6 @@ test.describe('page load', () => {
   });
 
   test('has the correct document title', async ({ page }) => {
-    await expect(page).toHaveTitle('ResGenie 2.0');
+    await expect(page).toHaveTitle('Res Gen 3');
   });
 });

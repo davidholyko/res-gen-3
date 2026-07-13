@@ -42,6 +42,6 @@ describe('Page', () => {
 
     expect(screen.queryByText('Loading...')).toBeNull();
     expect(document.querySelector('#res-gen')).not.toBeNull();
-    expect(screen.getByText('ResGen 2.0')).not.toBeNull();
+    expect(screen.getByText('Res Gen 3')).not.toBeNull();
   });
 });
