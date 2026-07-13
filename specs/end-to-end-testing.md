@@ -80,7 +80,7 @@ end-to-end/
   `Error: "next start" does not work with "output: export" configuration`
   (`_frontend/next.config.ts` sets `output: "export"` for GitHub Pages).
   The suggested `serve out` alternative serves the static export at the
-  filesystem root, not at the `/res-gen-3` `basePath` the app's own asset
+  filesystem root, not at the `/app` `basePath` the app's own asset
   references expect, so it 404s on every `_next/*` asset without a
   path-prefixing proxy in front of it — extra infrastructure not worth
   building just to shave the gap between dev and prod server behavior.
@@ -89,7 +89,7 @@ end-to-end/
   gated) in `ci.yml`/`deploy-pages.yml`, so production-bundle correctness
   is verified elsewhere — this suite's job is real-browser *behavior*,
   which `next dev` exercises faithfully (same React tree, same DOM).
-  `baseURL` is `http://localhost:3330/res-gen-3/` (the app's `basePath`).
+  `baseURL` is `http://localhost:3330/app/` (the app's `basePath`).
 - Chromium only, installed via `playwright install --with-deps chromium`.
 - **Trace and video: on locally, off in CI** (`process.env.CI` gates it).
   Locally this gives a developer the full interactive trace viewer and a
@@ -201,7 +201,7 @@ that neither jsdom component tests nor manual spot-checks had caught:
       browser installed
 - [x] `playwright.config.ts` boots the frontend itself via `webServer`
       (`next dev -p 3330`, same in CI and locally), targets
-      `http://localhost:3330/res-gen-3/`
+      `http://localhost:3330/app/`
 - [x] Spec files cover every flow listed under "Coverage scope" above
       (33 tests across 9 spec files)
 - [x] `pnpm test:e2e` works from the repo root
