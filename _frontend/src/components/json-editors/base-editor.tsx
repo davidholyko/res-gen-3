@@ -202,8 +202,14 @@ export default function BaseEditor(props: BaseEditorProps) {
         isOpen={isOpen}
         setIsOpen={setIsOpen}
       />
+      {/*
+        react-collapse's Collapse doesn't forward arbitrary props (like
+        `id`) to its rendered div despite its types claiming to extend
+        React.HTMLProps -- the id EditorTopBar's aria-controls needs has
+        to live on the form inside instead.
+      */}
       <Collapse isOpened={isOpen}>
-        <form className="flex">
+        <form id={`editor-collapse-${formId}`} className="flex">
           <textarea
             id={`editor-textarea-${formId}`}
             className={textAreaClassName}
@@ -214,7 +220,10 @@ export default function BaseEditor(props: BaseEditorProps) {
             value={text}
             ref={textAreaRef}
             tabIndex={0}
-            aria-describedby="error-message"
+            aria-invalid={!!errorMessage}
+            aria-describedby={
+              errorMessage ? `error-message-${formId}` : undefined
+            }
           />
         </form>
       </Collapse>

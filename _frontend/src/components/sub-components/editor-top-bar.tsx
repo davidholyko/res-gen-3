@@ -1,9 +1,10 @@
 import c from 'classnames';
-import { forwardRef, Ref, useCallback, useMemo } from 'react';
+import { forwardRef, Ref, useCallback, useMemo, useState } from 'react';
 
 import { CONTENT_TYPES, EDITOR_MODES } from '@/constants';
 import { useAppContext } from '@/context/app-context';
 import { ContentId } from '@/types/content-base-item';
+import { getLayoutDropZones } from '@/utils/layout-drop-zone-util';
 
 import CollapseIcon from '../icons/collapse-icon';
 import DragHandleIcon from '../icons/drag-handle-icon';
@@ -42,25 +43,49 @@ export const EditorTopBar = forwardRef<HTMLDivElement, EditorTopBarProps>(
       [mode],
     );
 
+    // Dragging this editor onto a layout (BaseEditor's useDrag `end`
+    // callback) is the only other way to place new content, and drag
+    // gestures need a single-pointer alternative (WCAG SC 2.5.7). This
+    // picker gives keyboard/non-drag users the same reach: any layout
+    // zone, not just whichever was created last.
+    const zones = useMemo(() => getLayoutDropZones(layouts), [layouts]);
+    const [selectedZoneKey, setSelectedZoneKey] = useState('');
+    const selectedZone = useMemo(
+      () =>
+        zones.find((zone) => zone.key === selectedZoneKey) ??
+        zones[zones.length - 1],
+      [zones, selectedZoneKey],
+    );
+
+    const onSelectZone = useCallback(
+      (event: React.ChangeEvent<HTMLSelectElement>) => {
+        setSelectedZoneKey(event.target.value);
+      },
+      [],
+    );
+
     const onAdd = useCallback(
       (event: React.MouseEvent<HTMLButtonElement>) => {
         event.stopPropagation();
 
-        const [layout] = layouts.slice(-1);
+        // Belt-and-suspenders: the button is already `disabled` whenever
+        // selectedZone is falsy (no layouts exist yet), and disabled
+        // buttons never dispatch click events, so this can't actually be
+        // reached by a real click -- only relevant if this handler is ever
+        // wired up elsewhere without that same disabled guard.
+        /* v8 ignore next */
+        if (!selectedZone) return;
 
         onCreate({
           contentId,
           content: { ...JSON.parse(text) },
           contentType,
-          layoutId: layout.layoutId,
-          layoutType: layout.layoutType,
-          // TODO: this could be a bug
-          // because if we click "+" button when last is a double layout
-          // it does have a parent
-          layoutParentId: undefined,
+          layoutId: selectedZone.layoutId,
+          layoutType: selectedZone.layoutType,
+          layoutParentId: selectedZone.layoutParentId,
         });
       },
-      [contentType, layouts, contentId, text, onCreate],
+      [contentType, selectedZone, contentId, text, onCreate],
     );
 
     const onClickTopBar = useCallback(() => {
@@ -94,31 +119,61 @@ export const EditorTopBar = forwardRef<HTMLDivElement, EditorTopBarProps>(
 
     return (
       <>
+        {/*
+          The collapse toggle (role="button") only wraps the drag handle +
+          label -- the select/add/visibility-toggle controls below are
+          siblings, not descendants, of it. Nesting real interactive
+          elements inside a role="button" is an axe-flagged WCAG 4.1.2
+          violation (AT can't sensibly announce a "button" that itself
+          contains a select and two more buttons).
+        */}
         <div
           className={editorDragContainerClassName}
           draggable="true"
-          role="button"
-          tabIndex={0}
-          onClick={onClickTopBar}
-          onKeyDown={onKeyDownTopBar}
           ref={ref} //
         >
-          {isInEditor && <DragHandleIcon className="m-1 p-1" />}
-          <label
-            className={labelClassName}
-            htmlFor={`editor-textarea-${formId}`}
+          <div
+            className="flex grow items-center"
+            role="button"
+            tabIndex={0}
+            onClick={onClickTopBar}
+            onKeyDown={onKeyDownTopBar}
+            aria-expanded={isOpen}
+            aria-controls={`editor-collapse-${formId}`}
           >
-            {macro} {!isInEditor && '(Edit Mode)'}
-          </label>
+            {isInEditor && <DragHandleIcon className="m-1 p-1" />}
+            <label
+              className={labelClassName}
+              htmlFor={`editor-textarea-${formId}`}
+            >
+              {macro} {!isInEditor && '(Edit Mode)'}
+            </label>
+          </div>
 
           {isInEditor && (
             <>
+              <label className="sr-only" htmlFor={`add-target-${formId}`}>
+                Add to layout
+              </label>
+              <select
+                id={`add-target-${formId}`}
+                className="mx-1 rounded text-black"
+                value={selectedZone?.key ?? ''}
+                onChange={onSelectZone}
+                disabled={!zones.length}
+              >
+                {zones.map((zone) => (
+                  <option key={zone.key} value={zone.key}>
+                    {zone.label}
+                  </option>
+                ))}
+              </select>
               <button
                 className="mx-4 p-1 bg-green-300 hover:bg-green-500 rounded"
                 aria-label="Add Macro Button"
                 type="button"
                 onClick={onAdd}
-                disabled={!!errorMessage}
+                disabled={!!errorMessage || !selectedZone}
               >
                 <PlusIcon />
               </button>
@@ -132,8 +187,15 @@ export const EditorTopBar = forwardRef<HTMLDivElement, EditorTopBarProps>(
           )}
         </div>
         {errorMessage && (
-          <p className="text-white bg-red-400 rounded p-2">
-            <span className="border-black border-2 rounded bg-white p-1 m-1">
+          <p
+            id={`error-message-${formId}`}
+            className="text-white bg-red-400 rounded p-2"
+            role="alert"
+          >
+            <span
+              className="border-black border-2 rounded bg-white p-1 m-1"
+              aria-hidden="true"
+            >
               ❗
             </span>
             {errorMessage}

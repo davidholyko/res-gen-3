@@ -1,4 +1,5 @@
 import { render } from '@testing-library/react';
+import axe from 'axe-core';
 import { describe, expect, it } from 'vitest';
 
 import { AllProviders } from '@/test-providers';
@@ -19,5 +20,15 @@ describe('ControlPanel', () => {
     expect(getByText('Edit')).not.toBeNull();
     expect(getByText('View')).not.toBeNull();
     expect(getByText(`v${pkg.version}`)).not.toBeNull();
+  });
+
+  it('has no automatically detectable accessibility violations', async () => {
+    const { container } = render(
+      <AllProviders>
+        <ControlPanel />
+      </AllProviders>,
+    );
+
+    expect((await axe.run(container)).violations).toEqual([]);
   });
 });

@@ -1,4 +1,5 @@
 import { fireEvent, render } from '@testing-library/react';
+import axe from 'axe-core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const { togglePdfModalMock } = vi.hoisted(() => ({
@@ -25,5 +26,11 @@ describe('PdfModalTopBar', () => {
     fireEvent.click(getByLabelText('Exit PDF View Button'));
 
     expect(togglePdfModalMock).toHaveBeenCalledWith();
+  });
+
+  it('has no automatically detectable accessibility violations', async () => {
+    const { container } = render(<PdfModalTopBar />);
+
+    expect((await axe.run(container)).violations).toEqual([]);
   });
 });

@@ -1,4 +1,5 @@
 import { fireEvent, render } from '@testing-library/react';
+import axe from 'axe-core';
 import type { DragSourceHookSpec } from 'react-dnd';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { object, string } from 'zod';
@@ -75,6 +76,15 @@ describe('BaseEditor', () => {
     expect(textarea.value).toBe(JSON.stringify({ name: 'Ada' }, null, 2));
   });
 
+  it("the collapsible trigger's aria-controls resolves to the actual collapse region", () => {
+    const { container } = render(<BaseEditor {...baseProps()} />);
+
+    const trigger = container.querySelector('[role="button"]');
+    const controlsId = trigger?.getAttribute('aria-controls');
+    expect(controlsId).toBeTruthy();
+    expect(container.querySelector(`#${controlsId}`)).not.toBeNull();
+  });
+
   it('sets an error message for invalid JSON and clears it once fixed', () => {
     const { container } = render(<BaseEditor {...baseProps()} />);
     const textarea = container.querySelector('textarea') as HTMLTextAreaElement;
@@ -84,6 +94,23 @@ describe('BaseEditor', () => {
 
     fireEvent.change(textarea, { target: { value: '{"name": "Grace"}' } });
     expect(container.querySelector('p')).toBeNull();
+  });
+
+  it('marks the textarea invalid and points aria-describedby at the error text', () => {
+    const { container } = render(<BaseEditor {...baseProps()} />);
+    const textarea = container.querySelector('textarea') as HTMLTextAreaElement;
+
+    expect(textarea).toHaveAttribute('aria-invalid', 'false');
+    expect(textarea).not.toHaveAttribute('aria-describedby');
+
+    fireEvent.change(textarea, { target: { value: '{ not valid json' } });
+
+    expect(textarea).toHaveAttribute('aria-invalid', 'true');
+    const describedById = textarea.getAttribute('aria-describedby');
+    expect(describedById).toBeTruthy();
+    expect(container.querySelector(`#${describedById}`)?.textContent).toMatch(
+      /JSON/i,
+    );
   });
 
   it('sets an error message when the value fails schema validation', () => {
@@ -271,5 +298,15 @@ describe('BaseEditor', () => {
     } as never);
 
     expect(onCreateMock).not.toHaveBeenCalled();
+  });
+
+  it('has no automatically detectable accessibility violations, including with an error shown', async () => {
+    const { container, rerender } = render(<BaseEditor {...baseProps()} />);
+    expect((await axe.run(container)).violations).toEqual([]);
+
+    const textarea = container.querySelector('textarea') as HTMLTextAreaElement;
+    fireEvent.change(textarea, { target: { value: '{ nope' } });
+    rerender(<BaseEditor {...baseProps()} />);
+    expect((await axe.run(container)).violations).toEqual([]);
   });
 });

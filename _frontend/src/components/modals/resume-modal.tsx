@@ -24,6 +24,15 @@ export default function ResumeModal({ children }: ResumeModalProps) {
   };
 
   useEffect(() => {
+    // Registers the real app root so react-modal can mark it aria-hidden
+    // while the modal is open, keeping screen reader users from tabbing
+    // into background content. `#res-gen` (rendered by src/app/page.tsx)
+    // is always mounted by the time this component mounts, since
+    // ResumeModal only ever renders inside it.
+    Modal.setAppElement('#res-gen');
+  }, []);
+
+  useEffect(() => {
     const handleKeyPress = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         togglePdfModal(false);
@@ -47,7 +56,6 @@ export default function ResumeModal({ children }: ResumeModalProps) {
       onRequestClose={onClose}
       style={customStyles}
       contentLabel="Resume PDF Preview Modal"
-      ariaHideApp={false}
     >
       <PdfModalTopBar />
       {children}

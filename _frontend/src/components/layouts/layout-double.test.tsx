@@ -1,4 +1,5 @@
 import { render } from '@testing-library/react';
+import axe from 'axe-core';
 import { describe, expect, it } from 'vitest';
 
 import { AllProviders } from '@/test-providers';
@@ -16,5 +17,15 @@ describe('LayoutDouble', () => {
     const wrapper = container.querySelector('.layout-double');
     expect(wrapper).toHaveAttribute('data-layout-id', 'a');
     expect(wrapper?.querySelectorAll('.layout-single')).toHaveLength(2);
+  });
+
+  it('has no automatically detectable accessibility violations', async () => {
+    const { container } = render(
+      <AllProviders>
+        <LayoutDouble layoutId="a" layoutLeftId="l" layoutRightId="r" />
+      </AllProviders>,
+    );
+
+    expect((await axe.run(container)).violations).toEqual([]);
   });
 });

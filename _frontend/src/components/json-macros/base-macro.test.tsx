@@ -1,4 +1,5 @@
 import { fireEvent, render } from '@testing-library/react';
+import axe from 'axe-core';
 import { afterEach, describe, expect, it } from 'vitest';
 
 import { CONTENT_TYPES } from '@/constants';
@@ -68,6 +69,67 @@ describe('BaseMacro', () => {
 
     expect(container.querySelector('.border-2')).not.toBeNull();
     expect(container.querySelector('textarea')).not.toBeNull();
+  });
+
+  it('focuses via keyboard (Tab) and shows the top bar and inline editor', () => {
+    // The reveal used to be driven only by a mouse-click listener, which
+    // left keyboard-only users with no way to ever open the controls
+    // (WCAG 2.1.1). This exercises the focus-event based path instead.
+    seedLocalStorage();
+    const { container } = render(
+      <AllProviders>
+        <BaseMacro {...props}>
+          <p>child content</p>
+        </BaseMacro>
+      </AllProviders>,
+    );
+    const wrapper = container.firstElementChild as HTMLElement;
+
+    fireEvent.focus(wrapper);
+
+    expect(container.querySelector('.border-2')).not.toBeNull();
+    expect(container.querySelector('textarea')).not.toBeNull();
+  });
+
+  it('stays focused when focus moves to a child control (e.g. the revealed top bar)', () => {
+    seedLocalStorage();
+    const { container } = render(
+      <AllProviders>
+        <BaseMacro {...props}>
+          <p>child content</p>
+        </BaseMacro>
+      </AllProviders>,
+    );
+    const wrapper = container.firstElementChild as HTMLElement;
+
+    fireEvent.focus(wrapper);
+    const child = wrapper.querySelector('button') as HTMLElement;
+    fireEvent.blur(wrapper, { relatedTarget: child });
+
+    expect(container.querySelector('.border-2')).not.toBeNull();
+  });
+
+  it('unfocuses when focus moves outside the macro entirely', () => {
+    seedLocalStorage();
+    const { container } = render(
+      <AllProviders>
+        <div>
+          <BaseMacro {...props}>
+            <p>child content</p>
+          </BaseMacro>
+          <button type="button">outside</button>
+        </div>
+      </AllProviders>,
+    );
+    const wrapper = container.querySelector('[tabindex="0"]') as HTMLElement;
+    const outside = container.querySelector(
+      'button[type="button"]',
+    ) as HTMLElement;
+
+    fireEvent.focus(wrapper);
+    fireEvent.blur(wrapper, { relatedTarget: outside });
+
+    expect(container.querySelector('.border-2')).toBeNull();
   });
 
   it('unfocuses on click outside', () => {
@@ -159,5 +221,21 @@ describe('BaseMacro', () => {
     expect(readStoredItems().some((item) => item.contentId === 'm1')).toBe(
       true,
     );
+  });
+
+  it('has no automatically detectable accessibility violations, focused or not', async () => {
+    seedLocalStorage();
+    const { container, getByText } = render(
+      <AllProviders>
+        <BaseMacro {...props}>
+          <p>child content</p>
+        </BaseMacro>
+      </AllProviders>,
+    );
+
+    expect((await axe.run(container)).violations).toEqual([]);
+
+    fireEvent.click(getByText('child content'));
+    expect((await axe.run(container)).violations).toEqual([]);
   });
 });

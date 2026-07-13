@@ -1,4 +1,5 @@
 import { fireEvent, render } from '@testing-library/react';
+import axe from 'axe-core';
 import { describe, expect, it } from 'vitest';
 
 import BaseMenu from './control-panel-base-menu';
@@ -123,5 +124,13 @@ describe('BaseMenu', () => {
     const menu = container.querySelector('[role="menu"]') as HTMLElement;
 
     expect(() => fireEvent.keyDown(menu, { key: 'a' })).not.toThrow();
+  });
+
+  it('has no automatically detectable accessibility violations, closed or open', async () => {
+    const { container, getByText } = renderMenu();
+    expect((await axe.run(container)).violations).toEqual([]);
+
+    fireEvent.click(getByText('File'));
+    expect((await axe.run(container)).violations).toEqual([]);
   });
 });

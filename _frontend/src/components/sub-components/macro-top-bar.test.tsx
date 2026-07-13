@@ -1,4 +1,5 @@
 import { fireEvent, render } from '@testing-library/react';
+import axe from 'axe-core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const { onMoveMock, onDeleteMock } = vi.hoisted(() => ({
@@ -22,21 +23,24 @@ beforeEach(() => {
 });
 
 describe('MacroTopBar', () => {
-  it('moves the macro up', () => {
-    const { getByLabelText, container } = render(
+  it('moves the macro up, down, and deletes it, via accessibly-labelled buttons', () => {
+    const { getByLabelText } = render(
       <MacroTopBar contentId={'c1' as never} />,
     );
-    // The up/down buttons have no accessible name of their own beyond the
-    // icon, so grab them positionally.
-    const buttons = container.querySelectorAll('button');
 
-    fireEvent.click(buttons[0]);
+    fireEvent.click(getByLabelText('Move Macro Up Button'));
     expect(onMoveMock).toHaveBeenCalledWith(MOVE_ACTION.MACRO_UP, 'c1');
 
-    fireEvent.click(buttons[1]);
+    fireEvent.click(getByLabelText('Move Macro Down Button'));
     expect(onMoveMock).toHaveBeenCalledWith(MOVE_ACTION.MACRO_DOWN, 'c1');
 
     fireEvent.click(getByLabelText('Delete Macro Button'));
     expect(onDeleteMock).toHaveBeenCalledWith({ contentId: 'c1' });
+  });
+
+  it('has no automatically detectable accessibility violations', async () => {
+    const { container } = render(<MacroTopBar contentId={'c1' as never} />);
+
+    expect((await axe.run(container)).violations).toEqual([]);
   });
 });

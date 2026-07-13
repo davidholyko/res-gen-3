@@ -1,4 +1,5 @@
 import { render } from '@testing-library/react';
+import axe from 'axe-core';
 import type { DropTargetHookSpec } from 'react-dnd';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -136,5 +137,16 @@ describe('LayoutSingle', () => {
     expect(container.querySelector('.layout-single')).toHaveClass(
       'bg-emerald-50',
     );
+  });
+
+  it('has no automatically detectable accessibility violations', async () => {
+    seedLocalStorage();
+    const { container } = render(
+      <AllProviders>
+        <LayoutSingle layoutType="SINGLE" layoutId="this-layout" />
+      </AllProviders>,
+    );
+
+    expect((await axe.run(container)).violations).toEqual([]);
   });
 });

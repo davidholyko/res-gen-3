@@ -42,10 +42,18 @@ export const MacroTopBar = forwardRef<HTMLDivElement, MacroTopBarProps>(
 
     return (
       <div className={editorDragContainerClassName} draggable="true">
-        <button onClick={onMoveUp}>
+        <button
+          aria-label="Move Macro Up Button"
+          type="button"
+          onClick={onMoveUp}
+        >
           <ArrowUpIcon className="m-1 p-1" />
         </button>
-        <button onClick={onMoveDown}>
+        <button
+          aria-label="Move Macro Down Button"
+          type="button"
+          onClick={onMoveDown}
+        >
           <ArrowDownIcon className="m-1 p-1" />
         </button>
         <button

@@ -80,17 +80,24 @@ export default function BaseMenu({ children, name }: BaseMenuProps) {
   );
 
   return (
-    <div
-      className="base-menu"
-      role="button"
-      tabIndex={0}
-      onClick={toggleFileMenu}
-      onKeyDown={(e) => e.key === 'Enter' && toggleFileMenu()}
-      aria-haspopup="true"
-      aria-expanded={isMenuOpen}
-      aria-controls={`${name.toLocaleLowerCase()}-menu`}
-    >
-      {name}
+    // The menu popup is a sibling of the trigger, connected only via
+    // aria-haspopup/aria-controls -- nesting role="menu" (and its
+    // role="menuitem" children) inside role="button" is an axe-flagged
+    // WCAG 4.1.2 violation (a focusable menu can't sensibly live inside
+    // another focusable control).
+    <div>
+      <div
+        className="base-menu"
+        role="button"
+        tabIndex={0}
+        onClick={toggleFileMenu}
+        onKeyDown={(e) => e.key === 'Enter' && toggleFileMenu()}
+        aria-haspopup="true"
+        aria-expanded={isMenuOpen}
+        aria-controls={`${name.toLocaleLowerCase()}-menu`}
+      >
+        {name}
+      </div>
       {isMenuOpen && (
         <div
           id={`${name.toLocaleLowerCase()}-menu`}
