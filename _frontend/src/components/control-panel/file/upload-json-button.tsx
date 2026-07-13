@@ -22,6 +22,10 @@ export default function UploadJsonButton({
     (event: React.ChangeEvent<HTMLInputElement>) => {
       event.preventDefault();
 
+      // A file input's `.files` is always a FileList per spec (empty before
+      // any selection), never null/undefined, so this guard can't actually
+      // fail -- it only exists to satisfy the DOM lib's nullable typing.
+      /* v8 ignore next 3 */
       if (!event.target.files) {
         return;
       }

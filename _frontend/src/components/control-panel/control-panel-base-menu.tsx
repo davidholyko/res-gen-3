@@ -42,6 +42,10 @@ export default function BaseMenu({ children, name }: BaseMenuProps) {
 
   const handleKeyDown = useCallback(
     (event: React.KeyboardEvent<HTMLDivElement>) => {
+      // handleKeyDown only ever fires as this same node's own onKeyDown
+      // handler, so menuRef.current is always set by the time it runs;
+      // the `|| []` fallback only exists to satisfy TS's optional chaining.
+      /* v8 ignore next */
       const items = Array.from(
         menuRef.current?.querySelectorAll('.dropdown-item') || [],
       );

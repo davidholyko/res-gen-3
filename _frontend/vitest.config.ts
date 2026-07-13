@@ -31,11 +31,6 @@ export default defineConfig({
         'src/app/app.tsx',
         'src/app/main.tsx',
         'src/app/page.tsx',
-        'src/components/control-panel/**',
-        'src/components/layouts/**',
-        'src/components/modals/**',
-        'src/components/content/**',
-        'src/components/sub-components/**',
       ],
       thresholds: {
         statements: 100,
