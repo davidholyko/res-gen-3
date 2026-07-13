@@ -17,6 +17,18 @@ export default defineConfig({
         // Root layout uses next/font/google, a Next.js build-time compiler
         // macro that only works inside Next's own build, not under Vite/Vitest.
         'src/app/layout.tsx',
+        // res-gen-2 port (PR 1 of specs/port-res-gen-2.md): raw port only,
+        // tests land in PR 2. Remove this whole block once that PR lands --
+        // it is a deliberate, temporary carve-out, not a permanent one.
+        'src/app/app.tsx',
+        'src/app/main.tsx',
+        'src/app/page.tsx',
+        'src/components/**',
+        'src/context/**',
+        'src/managers/**',
+        'src/pdf/**',
+        'src/utils/**',
+        'src/constants.ts',
       ],
       thresholds: {
         statements: 100,

@@ -1,0 +1,6 @@
+/* Styles that only appear for pdf */
+
+/* Add this class to an element to see the element in debug mode in PDF view */
+.debug {
+  /* empty */
+}

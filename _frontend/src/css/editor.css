@@ -1,0 +1,13 @@
+#res-gen .editor-page-container {
+  /* This is an estimation for px value so PDF view looks like a 1:1 comparison */
+  max-width: 725px;
+}
+
+#res-gen .editor-page-container > .layout-single {
+  /* This is an estimation for px value so PDF view looks like a 1:1 comparison */
+  padding: 17px;
+}
+
+.flex-col {
+  flex-direction: column;
+}

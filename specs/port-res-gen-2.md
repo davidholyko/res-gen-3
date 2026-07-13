@@ -68,7 +68,33 @@ directories, removed again once PR 2 lands), rather than dropping the
 gate repo-wide. Called out explicitly so it isn't a silent, permanent
 weakening.
 
-### Known technical risks (resolve during PR 1)
+### Known technical risks (resolved during PR 1)
+
+What actually happened, for anyone starting PR 2/3:
+
+- `@react-pdf/renderer` v4's TS types dropped the ambient `ReactPDF`
+  namespace on default import (`import ReactPDF from ...` → needed
+  `import * as ReactPDF`) and removed `Font.register`'s top-level `format`
+  option (now inferred from the file extension). Both were type/API-only
+  changes; no PDF output behavior changed.
+- `zod` v4 requires an explicit key schema for `record()` (v3 defaulted to
+  `string()` keys implicitly) — one call site (`any-list-editor.tsx`)
+  needed updating.
+- `react-dnd`'s `ConnectDragSource`/`ConnectDropTarget` ref-callback types
+  predate React 19's stricter ref-callback typing (must return `void`, not
+  `ReactElement`) — wrapped in a plain callback at the two call sites that
+  needed it, no behavior change.
+- The font/basePath/static-export risks below all played out as expected
+  and were fixed as anticipated.
+- Not anticipated: several `eslint-plugin-jsx-a11y`/`react-hooks` rules
+  (bundled with the `eslint-config-next` version already in this repo,
+  not something this port introduced) flagged real gaps in res-gen-2's
+  code that had to be fixed to get `pnpm lint` green at all — custom
+  interactive `<div>`s missing keyboard handlers/ARIA roles, a
+  `set-state-in-effect` pattern, an unused `forwardRef` param whose
+  removal broke React's runtime contract (caught by manual verification,
+  not lint/build — see the PR description). These weren't deferrable to
+  PR 3 since they're lint *errors*, not warnings.
 
 - **`@react-pdf/renderer` 3.1.12 → 4.x is a required, breaking upgrade.**
   The pinned v3 only supports React up to 18 (`peerDependencies: react
@@ -129,13 +155,18 @@ Not touched.
 
 ## Acceptance criteria
 
-- [ ] PR 1: app builds, runs, and is manually verified working
+- [x] PR 1: app builds, runs, and is manually verified working
       (drag-and-drop, PDF export, JSON import/export, localStorage) under
-      res-gen-3's stack (React 19, Next 16, static export)
-- [ ] PR 1: `@react-pdf/renderer` on a React-19-compatible version, PDF
-      output manually confirmed to still render correctly
-- [ ] PR 1: fonts load correctly under Turbopack (no dependency on the
-      old Webpack config)
+      res-gen-3's stack (React 19, Next 16, static export) — verified with
+      Playwright against a real running instance, not just build/lint;
+      caught and fixed one real regression (a lint-driven fix that broke
+      `forwardRef`'s runtime contract) that build/lint didn't catch
+- [x] PR 1: `@react-pdf/renderer` on 4.5.1 (React 19 support), PDF output
+      confirmed valid (`%PDF-1.3` header) with the embedded Roboto font
+      actually used (not a Helvetica fallback) by inspecting the raw
+      generated PDF bytes
+- [x] PR 1: fonts load correctly under Turbopack — moved to `public/fonts/`,
+      loaded by `basePath`-prefixed URL instead of a Webpack loader
 - [ ] PR 2: 100% statement/branch/function/line coverage on all ported
       code, coverage carve-out from PR 1 fully removed
 - [ ] PR 3: full WCAG 2.2 AA audit of the ported app (audit table, same
@@ -145,17 +176,17 @@ Not touched.
 
 ## Open questions
 
+Resolved during PR 1 (defaulted to the spec's stated assumptions, per
+"implement the draft"):
+
+- **Branding**: kept as-is — "ResGenie 2.0" / "Make a Resume".
+- **Routing**: resume builder replaced `/` entirely, as assumed.
+- **Example JSON / prepopulated content**: carried over as-is.
+- 3-PR phasing held up fine in practice for PR 1.
+
+Still open:
+
 - **PDF accessibility (PDF/UA)**: is a tagged, screen-reader-readable PDF
   output in scope, or is WCAG-for-the-web-app (this spec's actual scope)
   sufficient? `@react-pdf/renderer`'s tagged-PDF support needs research
   if the answer is yes — not assumed here.
-- **Branding**: res-gen-2's page title/description is "ResGenie 2.0" /
-  "Make a Resume". Keep as-is, or rename to match res-gen-3?
-- **Routing**: does the resume builder become the entire site (replacing
-  `/` outright, as this spec assumes), or should it live at its own route
-  (e.g. `/builder`) alongside something else at `/`?
-- **Example JSON / prepopulated content** (`__example-json/`,
-  `prepopulate-util.ts`): carry over as-is, or is this a chance to
-  update/replace the sample resume content?
-- Is the 3-PR phasing granularity right, or would you rather see it
-  broken down further (e.g. coverage split per subsystem) or collapsed?
