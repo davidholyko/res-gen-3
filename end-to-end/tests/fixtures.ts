@@ -22,6 +22,14 @@ export const test = base.extend({
         window.name = 'e2e-cleared';
       }
     });
+    // Destructive actions (remove layout, delete block, "New") are now
+    // gated behind window.confirm (specs/app-ux-improvements.md, Finding
+    // 4/6). Playwright auto-dismisses native dialogs unless a listener is
+    // registered, which would silently turn every one of those clicks into
+    // a no-op -- accept by default so existing and new happy-path flows
+    // keep working; tests covering the "declined" branch belong in Vitest
+    // component tests, not here.
+    page.on('dialog', (dialog) => dialog.accept());
     // NOT `page.goto('/')`: a leading slash resolves against the origin
     // root, discarding baseURL's own `/app` path entirely (a bare
     // `new URL('/', baseURL)` gotcha). An empty string resolves relative

@@ -5,6 +5,7 @@ import pkg from '../../../package.json';
 import EditMenu from './control-panel-edit-menu';
 import FileMenu from './control-panel-file-menu';
 import ViewMenu from './control-panel-view-menu';
+import SavedIndicator from './saved-indicator';
 
 export default function ControlPanel() {
   const className = useMemo(
@@ -32,7 +33,8 @@ export default function ControlPanel() {
       <FileMenu />
       <EditMenu />
       <ViewMenu />
-      <span className="text-sm ml-auto bg-neutral-200 px-2 py-1 rounded self-center">
+      <SavedIndicator />
+      <span className="text-sm bg-neutral-200 px-2 py-1 rounded self-center">
         v{pkg.version}
       </span>
     </header>

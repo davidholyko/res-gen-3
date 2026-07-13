@@ -25,12 +25,27 @@ beforeEach(() => {
 });
 
 describe('RemoveBottomLayoutButton', () => {
-  it('calls popLayout on click', () => {
+  it('calls popLayout when the confirmation is accepted', () => {
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
     const { getByText } = render(<RemoveBottomLayoutButton />);
 
     fireEvent.click(getByText('Remove Last Layout'));
 
+    expect(confirmSpy).toHaveBeenCalledWith(
+      'Remove the last layout? This will delete any content in it.',
+    );
     expect(popLayoutMock).toHaveBeenCalledTimes(1);
+    confirmSpy.mockRestore();
+  });
+
+  it('does not call popLayout when the confirmation is declined', () => {
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false);
+    const { getByText } = render(<RemoveBottomLayoutButton />);
+
+    fireEvent.click(getByText('Remove Last Layout'));
+
+    expect(popLayoutMock).not.toHaveBeenCalled();
+    confirmSpy.mockRestore();
   });
 
   it('renders nothing while the editor panel is visible', () => {

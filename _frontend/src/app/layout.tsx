@@ -27,7 +27,11 @@ export default function RootLayout({ children }: RootLayoutProps) {
 
   return (
     <html lang="en">
-      <body>
+      {/* bg-gray-100: without it, the margin justify-center leaves on a
+          wide viewport was indistinguishable from a cut-off layout -- this
+          reads it as intentional page background instead
+          (specs/app-ux-improvements.md, Finding 11). */}
+      <body className="bg-gray-100">
         {/* This div is for classnames that will be converted to PDF */}
         <div
           id="pdf-tailwind-bootstrapper"

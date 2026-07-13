@@ -62,12 +62,13 @@ describe('EditorTopBar', () => {
     expect(getByLabelText('Toggle Editor Visibility Button')).not.toBeNull();
   });
 
-  it('shows "(Edit Mode)" and hides drag/action controls outside the editor manager', () => {
+  it('shows an "Editing" badge and hides drag/action controls outside the editor manager', () => {
     const { container, getByText, queryByLabelText } = render(
       <EditorTopBar {...baseProps({ mode: 'IN_LAYOUT_MANAGER' })} />,
     );
 
-    expect(getByText('Contact (Edit Mode)')).not.toBeNull();
+    expect(getByText('Contact')).not.toBeNull();
+    expect(getByText('Editing')).not.toBeNull();
     expect(container.querySelector('svg')).toBeNull();
     expect(queryByLabelText('Add Macro Button')).toBeNull();
   });
@@ -125,7 +126,7 @@ describe('EditorTopBar', () => {
       <EditorTopBar {...baseProps({ setIsOpen, mode: 'IN_LAYOUT_MANAGER' })} />,
     );
 
-    fireEvent.click(getByText('Contact (Edit Mode)'));
+    fireEvent.click(getByText('Contact'));
     expect(setIsOpen).not.toHaveBeenCalled();
   });
 
@@ -150,7 +151,7 @@ describe('EditorTopBar', () => {
       <EditorTopBar {...baseProps({ setIsOpen, mode: 'IN_LAYOUT_MANAGER' })} />,
     );
 
-    fireEvent.keyDown(getByText('Contact (Edit Mode)'), { key: 'Enter' });
+    fireEvent.keyDown(getByText('Contact'), { key: 'Enter' });
     expect(setIsOpen).not.toHaveBeenCalled();
   });
 

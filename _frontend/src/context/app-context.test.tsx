@@ -186,6 +186,35 @@ describe('useAppContext', () => {
       expect(result.current.layouts).toEqual([]);
       expect(result.current.items).toEqual([]);
     });
+
+    it('removeLayout removes a specific layout by id and drops its orphaned items', () => {
+      const { result } = renderAppContext();
+      const secondLayout: LayoutItem = {
+        layoutId: 'layout-2' as LayoutItem['layoutId'],
+        layoutType: LAYOUTS.SINGLE,
+      };
+
+      act(() => {
+        result.current.addLayout(secondLayout);
+      });
+
+      act(() => {
+        result.current.removeLayout(LAYOUT.layoutId);
+      });
+
+      expect(result.current.layouts).toEqual([secondLayout]);
+      expect(result.current.items).toEqual([]);
+    });
+
+    it('removeLayout is a no-op when the id does not match any layout', () => {
+      const { result } = renderAppContext();
+
+      act(() => {
+        result.current.removeLayout('does-not-exist' as LayoutItem['layoutId']);
+      });
+
+      expect(result.current.layouts).toEqual([LAYOUT]);
+    });
   });
 
   describe('visibility toggles', () => {

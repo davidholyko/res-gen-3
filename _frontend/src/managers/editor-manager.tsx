@@ -18,6 +18,13 @@ export default function EditorManager() {
 
   return (
     <div id="editor-manager" className={className}>
+      {/* text-gray-600, not -500: this sits directly on the page's
+          bg-gray-100 background (Finding 11), not a white card -- -500
+          dropped just under 4.5:1 against that background, caught by a
+          real-browser axe scan. */}
+      <span className="block text-xs font-bold text-gray-600 uppercase tracking-wide mb-1">
+        Template
+      </span>
       <ContactEditor />
       <HeaderEditor />
       <ParagraphEditor />

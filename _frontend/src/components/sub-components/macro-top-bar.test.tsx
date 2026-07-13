@@ -23,7 +23,7 @@ beforeEach(() => {
 });
 
 describe('MacroTopBar', () => {
-  it('moves the macro up, down, and deletes it, via accessibly-labelled buttons', () => {
+  it('moves the macro up and down via accessibly-labelled buttons', () => {
     const { getByLabelText } = render(
       <MacroTopBar contentId={'c1' as never} />,
     );
@@ -33,9 +33,33 @@ describe('MacroTopBar', () => {
 
     fireEvent.click(getByLabelText('Move Macro Down Button'));
     expect(onMoveMock).toHaveBeenCalledWith(MOVE_ACTION.MACRO_DOWN, 'c1');
+  });
+
+  it('deletes the macro when the confirmation is accepted', () => {
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
+    const { getByLabelText } = render(
+      <MacroTopBar contentId={'c1' as never} />,
+    );
 
     fireEvent.click(getByLabelText('Delete Macro Button'));
+
+    expect(confirmSpy).toHaveBeenCalledWith(
+      'Delete this block? This cannot be undone.',
+    );
     expect(onDeleteMock).toHaveBeenCalledWith({ contentId: 'c1' });
+    confirmSpy.mockRestore();
+  });
+
+  it('does not delete the macro when the confirmation is declined', () => {
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false);
+    const { getByLabelText } = render(
+      <MacroTopBar contentId={'c1' as never} />,
+    );
+
+    fireEvent.click(getByLabelText('Delete Macro Button'));
+
+    expect(onDeleteMock).not.toHaveBeenCalled();
+    confirmSpy.mockRestore();
   });
 
   it('has no automatically detectable accessibility violations', async () => {
