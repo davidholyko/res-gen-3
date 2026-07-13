@@ -16,8 +16,16 @@ export default function RemoveBottomLayoutButton({
 }: RemoveBottomLayoutButtonProps) {
   const { popLayout, isEditorVisible } = useAppContext();
 
+  // Confirming here: this was previously instant and irreversible, same
+  // as per-block delete (specs/app-ux-improvements.md, Finding 4).
   const handleClick = useCallback(() => {
-    popLayout();
+    if (
+      window.confirm(
+        'Remove the last layout? This will delete any content in it.',
+      )
+    ) {
+      popLayout();
+    }
   }, [popLayout]);
 
   if (isEditorVisible) {

@@ -1,5 +1,5 @@
 ---
-status: draft
+status: implemented
 ---
 
 # App UX improvements (desktop)
@@ -182,44 +182,79 @@ redesign — each is small enough to land independently:
 
 ## Acceptance criteria
 
-- [ ] Empty-state placeholder + CTA shown when there are no layouts
-- [ ] Tooltips (or equivalent) on the drag handle, collapse toggle, and
+- [x] Empty-state placeholder + CTA shown when there are no layouts
+- [x] Tooltips (or equivalent) on the drag handle, collapse toggle, and
       layout-target dropdown on every editor card
-- [ ] Confirmation before deleting a block or removing a layout
-- [ ] Each layout's number/side is visibly labelled on its own canvas box
-- [ ] "New" and "Download PDF" are either implemented or properly
-      disabled (not focusable, not announced as active controls)
-- [ ] The left panel and a focused block's inline editor are visually
+- [x] Confirmation before deleting a block or removing a layout
+- [x] Each layout's number/side is visibly labelled on its own canvas box
+- [x] "New" and "Download PDF" are both implemented (see Decisions)
+- [x] The left panel and a focused block's inline editor are visually
       distinguishable at a glance, not just by a text suffix
-- [ ] A transient "Saved" (or equivalent) indicator appears after changes
+- [x] A transient "Saved" (or equivalent) indicator appears after changes
       persist
-- [ ] Any layout (not just the last) can be removed directly
-- [ ] The PDF preview modal shows a loading state before content renders
-- [ ] Canvas width makes better use of a desktop viewport
-- [ ] All changes keep `_frontend` at 100% coverage and the `axe-core`
+- [x] Any layout (not just the last) can be removed directly
+- [x] The PDF preview modal shows a loading state before content renders
+- [x] Canvas width makes better use of a desktop viewport
+- [x] All changes keep `_frontend` at 100% coverage and the `axe-core`
       component/E2E suites clean; new interactive elements get
       `end-to-end` coverage for their happy path
 
-## Open questions
+## Decisions (resolved before implementation)
 
-- **Undo vs. confirm dialogs** for destructive actions (Finding 4) —
-  which pattern do you want? Confirm dialogs are the cheaper, more
-  standard fix; a toast-based undo is nicer but a bigger build.
-- **Raw-JSON editing (Finding 2)** is almost certainly the highest-impact
-  fix in this whole review, but replacing it with real form fields per
-  content type is a much larger effort than the rest of this list. Worth
-  its own follow-up spec once this pass lands, or should it be pulled
-  into this one despite the size?
-- **"Download PDF"**: the underlying capability already exists (the
-  preview modal already generates a real PDF via `@react-pdf/renderer`'s
-  `pdf()`/`usePDF`) — implementing the File menu's button is likely a
-  small, self-contained addition. Worth doing as part of this pass, or
-  deferred?
-- **Canvas width (Finding 11)**: what should it scale to — a fixed wider
-  max-width, some percentage of viewport, or fully fluid? No specific
-  direction assumed here.
-- **Visual style** for the empty-state placeholder and "Saved" indicator
-  — anything specific, or match the current cyan/gray palette?
-- **Sequencing**: implement all of the above together, or in a specific
-  order (e.g., destructive-action safety first, then discoverability,
-  then layout/space)?
+- **Undo vs. confirm dialogs** (Finding 4): confirm dialogs
+  (`window.confirm`) — cheaper, standard, and enough to stop an
+  accidental click from being destructive. Undo/toast stays a future
+  option if confirm dialogs prove annoying in practice.
+- **Raw-JSON editing** (Finding 2): stays deferred, out of scope for this
+  pass, per the Non-goals section — it's a real-form-fields redesign, not
+  a "little more usable" fix. Tracked as a candidate follow-up spec, not
+  started here.
+- **"Download PDF"**: implementing now — the underlying `pdf()`
+  generation already exists (same mechanism the preview modal uses), so
+  wiring a File-menu download button to it is small and self-contained.
+- **"New"**: also implementing now, alongside "Download PDF" — clearing
+  to the same blank state Finding 1's empty-state placeholder handles,
+  behind a confirm dialog. Removes both of the File menu's two dead
+  entries in one pass instead of one.
+- **Canvas width** (Finding 11): re-examined during implementation —
+  `.editor-page-container`'s `max-width: 725px` turns out to be
+  deliberate (a code comment ties it to matching the actual PDF page's
+  proportions 1:1, not an oversight), so it stays as-is rather than being
+  widened, which would break that WYSIWYG accuracy. The actual fix:
+  center the whole app horizontally with a light neutral page background
+  instead of pinning everything to the top-left, so the unused width
+  reads as intentional margin rather than a cut-off layout.
+- **Visual style**: matches the existing cyan/gray palette already in
+  use (`bg-cyan-100`, `bg-gray-600`, etc.) — no new colors introduced.
+- **Sequencing**: all findings (except Finding 2) implemented together in
+  one pass, given each is individually small.
+
+## Findings from implementation
+
+Real bugs an E2E pass (real browser + real `AppProvider`, not jsdom/mocks)
+caught that unit tests alone missed:
+
+- **Confirm dialogs are auto-dismissed by Playwright unless handled.**
+  Every existing E2E test that clicked "Remove Last Layout" would have
+  silently no-op'd once Finding 4 landed (native dialogs default to
+  Cancel with no listener registered) — fixed with a single
+  `page.on('dialog', accept)` in `fixtures.ts`'s shared `page` fixture,
+  covering both existing and new tests.
+- **`SavedIndicator` flashed on every page load.** Two independent causes,
+  both invisible to a mocked-context unit test:
+  1. `AppProvider`'s items/layouts reconciliation effect always called
+     `setItems` with a freshly-`.filter()`'d array, even when nothing was
+     orphaned — churning `items`'s reference identity on every mount.
+     Fixed by bailing out with the same reference when the filtered
+     result's length is unchanged.
+  2. A boolean "is this the first render" ref doesn't survive React
+     StrictMode's dev-only double-invoke of the mount effect (setup ->
+     cleanup -> setup again, same ref). Replaced with a snapshot-and-compare
+     approach that's correct under double-invoke by construction.
+- **`bg-gray-100` (Finding 11's page background) dropped three existing
+  text/background pairings below 4.5:1**, caught by the real-browser axe
+  scan: `EditorManager`'s "Template" label and `LayoutHeader`'s "Layout N"
+  label (both `text-gray-500` on the new background, now `text-gray-600`),
+  `LayoutHeader`'s "Remove layout" link (`text-red-600`, now `text-red-700`),
+  and `SavedIndicator`'s own text against the header's `bg-cyan-100`
+  (`text-cyan-700` at 4.4:1, now `text-cyan-800`).

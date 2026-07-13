@@ -146,13 +146,31 @@ export const EditorTopBar = forwardRef<HTMLDivElement, EditorTopBarProps>(
             onKeyDown={onKeyDownTopBar}
             aria-expanded={isOpen}
             aria-controls={`editor-collapse-${formId}`}
+            title={
+              isInEditor
+                ? `${isOpen ? 'Collapse' : 'Expand'} ${macro} JSON`
+                : undefined
+            }
           >
-            {isInEditor && <DragHandleIcon className="m-1 p-1" />}
+            {isInEditor && (
+              <span title="Drag onto a layout to add this block">
+                <DragHandleIcon className="m-1 p-1" />
+              </span>
+            )}
             <label
               className={labelClassName}
               htmlFor={`editor-textarea-${formId}`}
             >
-              {macro} {!isInEditor && '(Edit Mode)'}
+              {macro}
+              {!isInEditor && (
+                // A small text suffix ("(Edit Mode)") was easy to miss --
+                // this badge is the stronger visual differentiation
+                // between the left panel's static template cards and a
+                // focused block's live inline editor (Finding 7).
+                <span className="ml-2 text-xs font-bold uppercase bg-cyan-700 text-white rounded px-2 py-0.5 align-middle">
+                  Editing
+                </span>
+              )}
             </label>
           </div>
 
@@ -163,6 +181,7 @@ export const EditorTopBar = forwardRef<HTMLDivElement, EditorTopBarProps>(
               </label>
               <select
                 id={`add-target-${formId}`}
+                title="Choose which layout this block will be added to"
                 // Explicit bg-white: without it the select renders
                 // transparent over this dark toolbar, leaving text-black
                 // at ~2.8:1 contrast against the bg-gray-600 behind it
@@ -182,6 +201,7 @@ export const EditorTopBar = forwardRef<HTMLDivElement, EditorTopBarProps>(
               <button
                 className="mx-4 p-1 bg-green-300 hover:bg-green-500 rounded"
                 aria-label="Add Macro Button"
+                title="Add this block to the selected layout"
                 type="button"
                 onClick={onAdd}
                 disabled={!!errorMessage || !selectedZone}
@@ -190,6 +210,7 @@ export const EditorTopBar = forwardRef<HTMLDivElement, EditorTopBarProps>(
               </button>
               <button
                 aria-label="Toggle Editor Visibility Button"
+                title={`${isOpen ? 'Collapse' : 'Expand'} ${macro} JSON`}
                 type="button"
               >
                 {isOpen ? <CollapseIcon /> : <UncollapseIcon />}

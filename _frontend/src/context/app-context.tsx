@@ -11,7 +11,7 @@ import { v4 as uuidv4 } from 'uuid';
 
 import { CONTENT_TYPES } from '@/constants';
 import type { ContentAll } from '@/types/content-all';
-import { ContentId } from '@/types/content-base-item';
+import { ContentId, LayoutId } from '@/types/content-base-item';
 import type { LayoutItem } from '@/types/layouts';
 import localStorageUtil from '@/utils/localstorage-util';
 import {
@@ -39,6 +39,7 @@ export type AppContextType = {
   layouts: LayoutItem[];
   addLayout: (newLayout: LayoutItem) => void;
   popLayout: () => void;
+  removeLayout: (layoutId: LayoutId) => void;
   onImportFile: ({ items, layouts }: FileDropValue) => void;
   onCreate: (item: ContentAll) => void;
   onUpdate: (item: ContentAll) => void;
@@ -85,11 +86,19 @@ export function AppProvider({ children }: AppProviderProps) {
     // verify a render-time-derivation refactor is safe.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setItems((prevItems) => {
-      return prevItems.filter((item) => {
+      const filtered = prevItems.filter((item) => {
         return layouts.some((layout) => {
           return layout.layoutId === item.layoutId;
         });
       });
+
+      // Bail out with the same reference when nothing was orphaned --
+      // .filter() always allocates a new array, which otherwise churns
+      // `items`'s identity on every mount/layouts change even when
+      // nothing actually changed, spuriously firing anything that treats
+      // an `items` identity change as "a save happened" (SavedIndicator,
+      // Finding 8).
+      return filtered.length === prevItems.length ? prevItems : filtered;
     });
   }, [layouts]);
 
@@ -165,6 +174,16 @@ export function AppProvider({ children }: AppProviderProps) {
     setLayouts((prevLayouts) => [...prevLayouts.slice(0, -1)]);
   }, []);
 
+  // Removes a specific layout by id, not just the last one -- the
+  // canvas-level "remove this layout" affordance next to each layout
+  // (unlike the Edit menu's "Remove Last Layout") needs to target
+  // whichever one the user is actually looking at.
+  const removeLayout = useCallback((layoutId: LayoutId) => {
+    setLayouts((prevLayouts) =>
+      prevLayouts.filter((layout) => layout.layoutId !== layoutId),
+    );
+  }, []);
+
   const toggleEditor = useCallback(
     () => setIsEditorVisible(!isEditorVisible),
     [isEditorVisible],
@@ -207,6 +226,7 @@ export function AppProvider({ children }: AppProviderProps) {
         layouts,
         addLayout,
         popLayout,
+        removeLayout,
         onImportFile,
         onDelete,
         onUpdate,

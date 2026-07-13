@@ -32,6 +32,17 @@ describe('EditorManager', () => {
     expect(container.querySelectorAll('textarea')).toHaveLength(5);
   });
 
+  it('shows a "Template" heading to distinguish it from a focused block\'s inline editor', () => {
+    seedLocalStorage(true);
+    const { getByText } = render(
+      <AllProviders>
+        <EditorManager />
+      </AllProviders>,
+    );
+
+    expect(getByText('Template')).not.toBeNull();
+  });
+
   it('is hidden when isEditorVisible is true (inverted class name)', () => {
     seedLocalStorage(true);
     const { container } = render(

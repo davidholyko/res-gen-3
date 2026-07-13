@@ -36,14 +36,20 @@ export const MacroTopBar = forwardRef<HTMLDivElement, MacroTopBarProps>(
       [contentId, onMove],
     );
 
+    // Confirming here: deleting was previously instant and irreversible --
+    // a stray click on a small icon button lost content permanently with
+    // no way to get it back (specs/app-ux-improvements.md, Finding 4).
     const onDestroy = useCallback(() => {
-      onDelete({ contentId });
+      if (window.confirm('Delete this block? This cannot be undone.')) {
+        onDelete({ contentId });
+      }
     }, [contentId, onDelete]);
 
     return (
       <div className={editorDragContainerClassName} draggable="true">
         <button
           aria-label="Move Macro Up Button"
+          title="Move up"
           type="button"
           onClick={onMoveUp}
         >
@@ -51,6 +57,7 @@ export const MacroTopBar = forwardRef<HTMLDivElement, MacroTopBarProps>(
         </button>
         <button
           aria-label="Move Macro Down Button"
+          title="Move down"
           type="button"
           onClick={onMoveDown}
         >
@@ -59,6 +66,7 @@ export const MacroTopBar = forwardRef<HTMLDivElement, MacroTopBarProps>(
         <button
           className="ml-auto p-1 bg-red-400 hover:bg-red-500 rounded"
           aria-label="Delete Macro Button"
+          title="Delete this block"
           type="button"
           onClick={onDestroy}
         >
