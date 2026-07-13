@@ -17,5 +17,3 @@ export const EDITOR_MODES = {
   IN_EDITOR_MANAGER: 'IN_EDITOR_MANAGER',
   IN_LAYOUT_MANAGER: 'IN_LAYOUT_MANAGER',
 } as const;
-
-export const noop = () => {};

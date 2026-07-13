@@ -48,24 +48,10 @@ export type AppContextType = {
   togglePdfModal: (value?: boolean) => void;
 };
 
-const initialState: AppContextType = Object.freeze({
-  title: '',
-  isEditorVisible: true,
-  isModalOpen: false,
-  items: [],
-  layouts: [],
-  addLayout: () => {},
-  popLayout: () => {},
-  onImportFile: () => {},
-  onCreate: () => {},
-  onDelete: () => {},
-  onUpdate: () => {},
-  onMove: () => {},
-  toggleEditor: () => {},
-  togglePdfModal: () => {},
-});
-
-const AppContext = createContext<AppContextType>(initialState);
+// No default value: createContext(fullDefaultObject) would make the
+// "must be used within a Provider" guard in useAppContext() below
+// permanently unreachable, since useContext() would never see `undefined`.
+const AppContext = createContext<AppContextType | undefined>(undefined);
 
 type AppProviderProps = {
   children: ReactNode;

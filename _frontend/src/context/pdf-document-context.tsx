@@ -29,15 +29,12 @@ type PdfDocumentContextType = {
   ) => Record<string, unknown>;
 };
 
-const initialState: PdfDocumentContextType = {
-  items: [],
-  layouts: [],
-  styles: {},
-  title: '',
-  computeStyle: () => ({}),
-};
-
-const PdfDocumentContext = createContext<PdfDocumentContextType>(initialState);
+// No default value: createContext(fullDefaultObject) would make the
+// "must be used within a Provider" guard in usePdfDocumentContext() below
+// permanently unreachable, since useContext() would never see `undefined`.
+const PdfDocumentContext = createContext<PdfDocumentContextType | undefined>(
+  undefined,
+);
 
 type PdfDocumentProviderProps = Omit<PdfDocumentContextType, 'computeStyle'> & {
   children: ReactNode;

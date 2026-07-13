@@ -11,11 +11,12 @@ type PdfPreviewContextType = {
   styles: ReactPDF.Styles;
 };
 
-const initialState: PdfPreviewContextType = {
-  styles: {},
-};
-
-const PdfPreviewContext = createContext<PdfPreviewContextType>(initialState);
+// No default value: createContext(fullDefaultObject) would make the
+// "must be used within a Provider" guard in usePdfPreviewContext() below
+// permanently unreachable, since useContext() would never see `undefined`.
+const PdfPreviewContext = createContext<PdfPreviewContextType | undefined>(
+  undefined,
+);
 
 type PdfPreviewProps = {
   children: ReactNode;

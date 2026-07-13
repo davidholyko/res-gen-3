@@ -102,7 +102,11 @@ export function toPdfComponents(htmlString: string): ReactNode {
         );
       }
     } else if (childNode.nodeType === 3) {
-      jsxElements.push(childNode.textContent || ''); // Handle text nodes
+      // Handle text nodes. The `|| ''` fallback is unreachable through the
+      // public API: innerHTML parsing never produces a Text node with a
+      // null/empty textContent from a literal HTML string.
+      /* v8 ignore next */
+      jsxElements.push(childNode.textContent || '');
     }
   }
 
