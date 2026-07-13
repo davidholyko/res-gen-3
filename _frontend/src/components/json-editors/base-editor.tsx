@@ -76,6 +76,9 @@ export default function BaseEditor(props: BaseEditorProps) {
   });
 
   const adjustTextareaHeight = () => {
+    // Only ever called from the effect below, which runs post-mount, so
+    // textAreaRef.current is always set by the time this executes.
+    /* v8 ignore next */
     if (!textAreaRef.current) return;
     textAreaRef.current.style.height = `${textAreaRef.current.scrollHeight}px`;
   };

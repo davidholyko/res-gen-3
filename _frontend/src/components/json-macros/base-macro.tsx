@@ -23,6 +23,10 @@ export default function BaseMacro(props: BaseMacroProps) {
 
   // Function to handle clicks outside of the div
   const handleClick = useCallback((event: MouseEvent) => {
+    // The document click listener is only attached (see the effect below)
+    // once this component -- and therefore divRef.current -- has mounted,
+    // so this guard can't actually be false.
+    /* v8 ignore next */
     if (!divRef.current) return;
 
     if (divRef.current?.contains(event.target as Node)) {
