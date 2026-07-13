@@ -1,6 +1,7 @@
 packages:
   - "_frontend"
   - "_backend"
+  - "end-to-end"
 allowBuilds:
   '@swc/core': true
   sharp: true
