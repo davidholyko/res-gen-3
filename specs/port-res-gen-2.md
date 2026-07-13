@@ -38,19 +38,21 @@ so both are net-new work, not a carry-over.
 
 ## Design
 
-Given the size (zero-to-100%-coverage on ~3,400 lines, a real a11y audit,
-and a breaking dependency upgrade — see risks below), this ships as
-**three sequential PRs**, not one, each gated by the existing pipeline:
+Originally scoped as three sequential PRs (raw port, then coverage, then
+a11y), each independently gated. **PR 1 (raw port) shipped as
+[#8](https://github.com/davidholyko/res-gen-3/pull/8).** Per explicit
+direction, coverage and accessibility are being collapsed into that same
+PR/branch rather than split further — the three-part breakdown below is
+now the WORK, not separate PRs:
 
-1. **Raw port + build green.** Get the app running correctly in
-   `_frontend` under res-gen-3's stack, with tests deferred to a
-   `// TODO(port): needs coverage` marker or equivalent, and a11y deferred.
-   Manually verified working (drag-and-drop, PDF export, JSON
-   import/export, localStorage persistence) via the `run`/`verify` skills
-   before moving on.
+1. ~~Raw port + build green.~~ Done in #8: app running correctly in
+   `_frontend` under res-gen-3's stack, manually verified working
+   (drag-and-drop, PDF export, JSON import/export, localStorage
+   persistence) via Playwright against a real running instance.
 2. **Coverage.** Write unit tests for everything ported, to the existing
    100% statement/function/line bar (branches too, unlike `_backend` —
    there's no SWC-decorator-metadata equivalent issue on the frontend).
+   Remove the temporary coverage carve-out added in #8 once done.
 3. **Accessibility.** Audit against `specs/accessibility.md`'s WCAG 2.2 AA
    target and fix findings, same process as that spec used (audit table,
    then fixes). This app has real a11y surface area the scaffold never
@@ -60,13 +62,8 @@ and a breaking dependency upgrade — see risks below), this ships as
    menus/control panel (keyboard operability, roles), forms/editors
    (labels, error identification).
 
-Each PR must independently pass `pnpm build`/`lint`/`test:cov` — PR 1
-won't be at 100% coverage yet, so **the coverage threshold in
-`_frontend/vitest.config.ts` needs a temporary carve-out for the ported
-paths during PR 1** (e.g. scoped `coverage.exclude` for the new
-directories, removed again once PR 2 lands), rather than dropping the
-gate repo-wide. Called out explicitly so it isn't a silent, permanent
-weakening.
+The final PR must pass `pnpm build`/`lint`/`test:cov` with the coverage
+carve-out fully removed.
 
 ### Known technical risks (resolved during PR 1)
 
@@ -167,12 +164,12 @@ Not touched.
       generated PDF bytes
 - [x] PR 1: fonts load correctly under Turbopack — moved to `public/fonts/`,
       loaded by `basePath`-prefixed URL instead of a Webpack loader
-- [ ] PR 2: 100% statement/branch/function/line coverage on all ported
-      code, coverage carve-out from PR 1 fully removed
-- [ ] PR 3: full WCAG 2.2 AA audit of the ported app (audit table, same
-      format as `specs/accessibility.md`), findings fixed or explicitly
-      deferred with reasoning
-- [ ] `pnpm build`/`lint`/`test:cov` green at the end of each PR
+- [ ] 100% statement/branch/function/line coverage on all ported code,
+      coverage carve-out from #8 fully removed
+- [ ] Full WCAG 2.2 AA audit of the ported app (audit table, same format
+      as `specs/accessibility.md`), findings fixed or explicitly deferred
+      with reasoning
+- [ ] `pnpm build`/`lint`/`test:cov` green
 
 ## Open questions
 
@@ -182,7 +179,9 @@ Resolved during PR 1 (defaulted to the spec's stated assumptions, per
 - **Branding**: kept as-is — "ResGenie 2.0" / "Make a Resume".
 - **Routing**: resume builder replaced `/` entirely, as assumed.
 - **Example JSON / prepopulated content**: carried over as-is.
-- 3-PR phasing held up fine in practice for PR 1.
+- 3-PR phasing held up fine for PR 1 itself, but per explicit direction
+  the remaining coverage + a11y work is being collapsed into #8's branch
+  rather than split into further PRs — see Design above.
 
 Still open:
 
