@@ -8,7 +8,7 @@ type RootLayoutProps = {
 };
 
 export const metadata: Metadata = {
-  title: 'ResGenie 2.0',
+  title: 'Res Gen 3',
   description: 'Make a Resume',
 };
 

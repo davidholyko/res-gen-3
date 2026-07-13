@@ -28,7 +28,7 @@ export default function ControlPanel() {
     // (the title, version tag) is no longer orphaned outside any landmark
     // (WCAG 1.3.1 / axe's "region" check).
     <header className={className}>
-      <span className="text-xl bold self-center">ResGen 2.0</span>
+      <span className="text-xl bold self-center">Res Gen 3</span>
       <FileMenu />
       <EditMenu />
       <ViewMenu />

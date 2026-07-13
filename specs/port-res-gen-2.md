@@ -250,7 +250,9 @@ Known gaps, deferred:
 Resolved during PR 1 (defaulted to the spec's stated assumptions, per
 "implement the draft"):
 
-- **Branding**: kept as-is — "ResGenie 2.0" / "Make a Resume".
+- **Branding**: kept as-is — "ResGenie 2.0" / "Make a Resume". (Later
+  updated to "Res Gen 3" in a separate follow-up change, once the app was
+  actually living in the res-gen-3 monorepo — not part of this PR.)
 - **Routing**: resume builder replaced `/` entirely, as assumed.
 - **Example JSON / prepopulated content**: carried over as-is.
 - 3-PR phasing held up fine for PR 1 itself, but per explicit direction

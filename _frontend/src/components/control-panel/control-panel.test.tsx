@@ -15,7 +15,7 @@ describe('ControlPanel', () => {
       </AllProviders>,
     );
 
-    expect(getByText('ResGen 2.0')).not.toBeNull();
+    expect(getByText('Res Gen 3')).not.toBeNull();
     expect(getByText('File')).not.toBeNull();
     expect(getByText('Edit')).not.toBeNull();
     expect(getByText('View')).not.toBeNull();
