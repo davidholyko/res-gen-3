@@ -37,7 +37,7 @@ export default function PdfComponentManager() {
                   })}
                 </Div>
                 <Div
-                  key={layout.layoutLeftId}
+                  key={layout.layoutRightId}
                   style={{ maxWidth: '50%', padding: '5px' }}
                 >
                   {items.map((item) => {

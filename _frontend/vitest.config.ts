@@ -32,7 +32,6 @@ export default defineConfig({
         'src/app/main.tsx',
         'src/app/page.tsx',
         'src/components/**',
-        'src/managers/**',
       ],
       thresholds: {
         statements: 100,
