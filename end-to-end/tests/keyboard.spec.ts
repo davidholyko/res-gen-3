@@ -1,0 +1,120 @@
+import { expect, test } from './fixtures';
+
+type FocusInfo = {
+  tag: string;
+  ariaLabel: string | null;
+  text: string;
+};
+
+async function currentFocus(page: import('@playwright/test').Page) {
+  return page.evaluate<FocusInfo>(() => {
+    const el = document.activeElement as HTMLElement | null;
+    return {
+      tag: el?.tagName ?? '',
+      ariaLabel: el?.getAttribute('aria-label') ?? null,
+      text: (el?.textContent ?? '').trim().slice(0, 40),
+    };
+  });
+}
+
+/**
+ * Tabs until focus lands on an element whose text is `text`, skipping any
+ * leading stops. `next dev`'s error-overlay portal (an empty, focusable
+ * element the production build doesn't have -- this suite always runs
+ * against `next dev`, see specs/end-to-end-testing.md) is one extra stop
+ * before the app's own first control; this makes every test robust to
+ * however many of those precede the real content, rather than hardcoding
+ * a specific count.
+ */
+async function tabUntil(
+  page: import('@playwright/test').Page,
+  text: string,
+  maxTabs = 15,
+) {
+  for (let i = 0; i < maxTabs; i++) {
+    await page.keyboard.press('Tab');
+    if ((await currentFocus(page)).text === text) return;
+  }
+  throw new Error(`Never reached an element with text "${text}"`);
+}
+
+test.describe('keyboard navigation', () => {
+  test('Tab reaches the control panel menus, then the first editor card, in order', async ({
+    page,
+  }) => {
+    await tabUntil(page, 'File');
+
+    const seen: FocusInfo[] = [];
+    for (let i = 0; i < 6; i++) {
+      await page.keyboard.press('Tab');
+      seen.push(await currentFocus(page));
+    }
+
+    expect(seen.map((f) => f.text)).toEqual([
+      'Edit',
+      'View',
+      'Contact', // the Contact editor card's own collapse-toggle trigger
+      'Layout 1', // "Add to layout" <select> -- reports its selected option's text
+      '', // Add Macro Button
+      '', // Toggle Editor Visibility Button -- the Contact editor is
+      // collapsed by default (tabIndex={isOpen ? 0 : -1}), so its
+      // textarea isn't a tab stop at all until expanded; the next Tab
+      // moves straight to the next editor card (Header)'s own trigger.
+    ]);
+  });
+
+  test('no keyboard trap across a long Tab run', async ({ page }) => {
+    let previous: FocusInfo | null = null;
+    let stuckCount = 0;
+
+    for (let i = 0; i < 60; i++) {
+      await page.keyboard.press('Tab');
+      const current = await currentFocus(page);
+      if (
+        previous &&
+        current.tag === previous.tag &&
+        current.text === previous.text &&
+        current.ariaLabel === previous.ariaLabel
+      ) {
+        stuckCount += 1;
+      } else {
+        stuckCount = 0;
+      }
+      // Two consecutive Tab presses landing on the literal same element is
+      // the signature of a trap (focus stuck, unable to advance).
+      expect(stuckCount, `stuck on ${JSON.stringify(current)}`).toBeLessThan(
+        2,
+      );
+      previous = current;
+    }
+  });
+
+  test('Enter opens a control panel menu from the keyboard', async ({
+    page,
+  }) => {
+    await tabUntil(page, 'File');
+    await expect(
+      page.locator('[role="button"]').filter({ hasText: 'File' }),
+    ).toBeFocused();
+
+    await page.keyboard.press('Enter');
+    await expect(page.getByText('Download JSON')).toBeVisible();
+
+    await page.keyboard.press('Escape');
+    await expect(page.getByText('Download JSON')).not.toBeVisible();
+  });
+
+  test('Tab reaches a focused macro\'s revealed controls', async ({
+    page,
+  }) => {
+    const macro = page.locator('.layout-single [role="group"]').first();
+    await macro.focus();
+    await expect(macro).toBeFocused();
+
+    // Reveals MacroTopBar (move up/down/delete) and the inline editor.
+    await expect(macro.getByLabel('Delete Macro Button')).toBeVisible();
+
+    await page.keyboard.press('Tab');
+    await expect(macro.getByLabel('Move Macro Up Button')).toBeFocused();
+  });
+});

@@ -105,9 +105,15 @@ export const EditorTopBar = forwardRef<HTMLDivElement, EditorTopBarProps>(
     );
 
     const editorDragContainerClassName = useMemo(() => {
+      // No `opacity-50` for the error state: compositing a translucent
+      // bg-gray-600 + white text over the page background drops the
+      // already-borderline contrast to ~2.3:1 (needs 4.5:1) -- caught by
+      // a real-browser axe scan, which (unlike jsdom) computes actual
+      // rendered contrast. The error text below (bright red, role="alert")
+      // is already the primary "something's wrong" signal; the cursor
+      // change already covers "you can't drag this right now".
       return c('flex bg-gray-600 rounded text-white justify-between p-2', {
         'cursor-grab': !errorMessage && isInEditor,
-        'opacity-50': !!errorMessage,
       });
     }, [errorMessage, isInEditor]);
 
@@ -194,7 +200,10 @@ export const EditorTopBar = forwardRef<HTMLDivElement, EditorTopBarProps>(
         {errorMessage && (
           <p
             id={`error-message-${formId}`}
-            className="text-white bg-red-400 rounded p-2"
+            // bg-red-600, not bg-red-400: white text on red-400 is ~2.9:1
+            // contrast (needs 4.5:1) -- caught by a real-browser axe scan.
+            // red-600 clears it at ~4.8:1 with the same white text.
+            className="text-white bg-red-600 rounded p-2"
             role="alert"
           >
             <span

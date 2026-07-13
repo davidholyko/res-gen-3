@@ -5,6 +5,9 @@ node_modules/
 
 # testing
 coverage/
+end-to-end/test-results/
+end-to-end/playwright-report/
+end-to-end/playwright/.cache/
 
 # next.js
 _frontend/.next/
