@@ -1,0 +1,38 @@
+import { collectConsoleErrors, expect, test } from './fixtures';
+
+test.describe('page load', () => {
+  test('renders the editor UI with no console errors', async ({ page }) => {
+    const errors = await collectConsoleErrors(page, async () => {
+      await page.reload();
+      await page.waitForSelector('#res-gen', { timeout: 15000 });
+    });
+
+    // The client-side "Loading..." gate (src/app/page.tsx) must have
+    // resolved -- it waits on window.document.styleSheets before
+    // rendering the real app.
+    await expect(page.getByText('Loading...')).toHaveCount(0);
+    await expect(page.getByText('ResGen 2.0')).toBeVisible();
+    expect(errors).toEqual([]);
+  });
+
+  test('shows the JSON editors panel and prepopulated resume content', async ({
+    page,
+  }) => {
+    await expect(page.locator('.contact-editor textarea')).toBeVisible();
+    await expect(page.locator('.header-editor textarea')).toBeVisible();
+    await expect(page.locator('.paragraph-editor textarea')).toBeVisible();
+    await expect(page.locator('.experience-editor textarea')).toBeVisible();
+    await expect(page.locator('.any-list-editor textarea')).toBeVisible();
+
+    // Fresh localStorage falls back to a prepopulated example resume
+    // (src/utils/prepopulate-util.ts) rather than an empty layout area.
+    await expect(page.locator('.layout-single')).toHaveCount(1);
+    await expect(page.locator('.layout-single h1')).toContainText(
+      'Monkey D. Luffy',
+    );
+  });
+
+  test('has the correct document title', async ({ page }) => {
+    await expect(page).toHaveTitle('ResGenie 2.0');
+  });
+});
