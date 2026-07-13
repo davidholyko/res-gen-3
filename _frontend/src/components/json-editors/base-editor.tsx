@@ -219,7 +219,12 @@ export default function BaseEditor(props: BaseEditorProps) {
             onChange={onChange}
             value={text}
             ref={textAreaRef}
-            tabIndex={0}
+            // Collapse marks its wrapper aria-hidden when closed, but only
+            // hides it visually (height 0) -- a focusable descendant left
+            // in the tab order would still be reachable, landing keyboard
+            // users on a control an AT announces as hidden. -1 while
+            // collapsed keeps it out of the tab order until reopened.
+            tabIndex={isOpen ? 0 : -1}
             aria-invalid={!!errorMessage}
             aria-describedby={
               errorMessage ? `error-message-${formId}` : undefined

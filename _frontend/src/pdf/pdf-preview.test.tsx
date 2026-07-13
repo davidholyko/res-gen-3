@@ -20,4 +20,17 @@ describe('PdfPreview', () => {
     expect(iframe).not.toBeNull();
     expect(iframe).toHaveStyle({ height: '100%', width: '100%' });
   });
+
+  it('gives the iframe an accessible title', () => {
+    const { container } = render(
+      <AppProvider>
+        <PdfPreviewProvider>
+          <PdfPreview />
+        </PdfPreviewProvider>
+      </AppProvider>,
+    );
+
+    const iframe = container.querySelector('iframe');
+    expect(iframe?.getAttribute('title')).toMatch(/\.pdf$/);
+  });
 });

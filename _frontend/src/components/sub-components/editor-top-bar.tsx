@@ -157,7 +157,12 @@ export const EditorTopBar = forwardRef<HTMLDivElement, EditorTopBarProps>(
               </label>
               <select
                 id={`add-target-${formId}`}
-                className="mx-1 rounded text-black"
+                // Explicit bg-white: without it the select renders
+                // transparent over this dark toolbar, leaving text-black
+                // at ~2.8:1 contrast against the bg-gray-600 behind it
+                // (needs 4.5:1) -- caught by a real-browser axe scan,
+                // which (unlike jsdom) actually computes rendered contrast.
+                className="mx-1 rounded bg-white text-black"
                 value={selectedZone?.key ?? ''}
                 onChange={onSelectZone}
                 disabled={!zones.length}

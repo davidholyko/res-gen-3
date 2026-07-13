@@ -23,7 +23,11 @@ export default function ControlPanel() {
   );
 
   return (
-    <div className={className}>
+    // <header>, not <div>: it's a sibling of <main> (see src/app/app.tsx),
+    // so this gets the implicit "banner" landmark role, and its content
+    // (the title, version tag) is no longer orphaned outside any landmark
+    // (WCAG 1.3.1 / axe's "region" check).
+    <header className={className}>
       <span className="text-xl bold self-center">ResGen 2.0</span>
       <FileMenu />
       <EditMenu />
@@ -31,6 +35,6 @@ export default function ControlPanel() {
       <span className="text-sm ml-auto bg-neutral-200 px-2 py-1 rounded self-center">
         v{pkg.version}
       </span>
-    </div>
+    </header>
   );
 }
