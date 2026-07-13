@@ -1,33 +1,41 @@
+import '@/css/index.css';
+
+import c from 'classnames';
 import type { Metadata } from 'next';
-import { Geist, Geist_Mono } from 'next/font/google';
-import './globals.css';
 
-const geistSans = Geist({
-  variable: '--font-geist-sans',
-  subsets: ['latin'],
-});
-
-const geistMono = Geist_Mono({
-  variable: '--font-geist-mono',
-  subsets: ['latin'],
-});
-
-export const metadata: Metadata = {
-  title: 'res-gen-3',
-  description: 'res-gen-3 web application',
+type RootLayoutProps = {
+  children: React.ReactNode;
 };
 
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+export const metadata: Metadata = {
+  title: 'ResGenie 2.0',
+  description: 'Make a Resume',
+};
+
+export default function RootLayout({ children }: RootLayoutProps) {
+  const className = c({
+    'ml-1': true,
+    'ml-2': true,
+    'ml-3': true,
+    'ml-4': true,
+    'ml-5': true,
+    'max-w-full': true,
+    'color-blue': true,
+    'border-black': true,
+    'border-1': true,
+  });
+
   return (
-    <html
-      lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
-    >
-      <body className="min-h-full flex flex-col">{children}</body>
+    <html lang="en">
+      <body>
+        {/* This div is for classnames that will be converted to PDF */}
+        <div
+          id="pdf-tailwind-bootstrapper"
+          className={className}
+          style={{ display: 'none' }}
+        />
+        {children}
+      </body>
     </html>
   );
 }

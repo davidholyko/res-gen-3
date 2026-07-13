@@ -4,6 +4,14 @@ import tsconfigPaths from 'vite-tsconfig-paths';
 
 export default defineConfig({
   plugins: [tsconfigPaths(), react()],
+  // jsdom emulates a browser, so packages should resolve their browser
+  // build here, matching what actually runs at runtime -- Vite/Vitest
+  // doesn't infer this from `environment`. @react-pdf/renderer in
+  // particular uses the legacy package.json "browser" field (not modern
+  // "exports" conditions) to swap in a browser-only PDFViewer.
+  resolve: {
+    mainFields: ['browser', 'module', 'main'],
+  },
   test: {
     environment: 'jsdom',
     include: ['src/**/*.test.{ts,tsx}'],

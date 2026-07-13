@@ -1,0 +1,68 @@
+import { render } from '@testing-library/react';
+import axe from 'axe-core';
+import { DndProvider } from 'react-dnd';
+import { HTML5Backend } from 'react-dnd-html5-backend';
+import { afterEach, describe, expect, it } from 'vitest';
+
+import { AppProvider } from '@/context/app-context';
+import { PdfPreviewProvider } from '@/context/pdf-preview-context';
+
+import App from './app';
+
+function seedLocalStorage() {
+  window.localStorage.setItem(
+    'res-gen-data',
+    JSON.stringify({
+      items: [{ contentId: 'placeholder' }],
+      layouts: [{ layoutId: 'a', layoutType: 'SINGLE' }],
+      isEditorVisible: false,
+    }),
+  );
+}
+
+afterEach(() => {
+  window.localStorage.clear();
+});
+
+describe('App', () => {
+  it('renders the resume modal, control panel, and main editor area together', () => {
+    seedLocalStorage();
+    // Mirrors the exact provider nesting (and #res-gen root id, which
+    // ResumeModal's Modal.setAppElement('#res-gen') call depends on)
+    // page.tsx wraps App in.
+    const { container, getByText } = render(
+      <div id="res-gen">
+        <AppProvider>
+          <PdfPreviewProvider>
+            <DndProvider backend={HTML5Backend}>
+              <App />
+            </DndProvider>
+          </PdfPreviewProvider>
+        </AppProvider>
+      </div>,
+    );
+
+    expect(getByText('ResGen 2.0')).not.toBeNull();
+    expect(container.querySelector('#editor-manager')).not.toBeNull();
+    expect(container.querySelector('.layout-single')).not.toBeNull();
+    // ResumeModal is closed by default, so it doesn't portal any content.
+    expect(container.querySelector('iframe')).toBeNull();
+  });
+
+  it('has no automatically detectable accessibility violations across the whole composed app', async () => {
+    seedLocalStorage();
+    const { container } = render(
+      <div id="res-gen">
+        <AppProvider>
+          <PdfPreviewProvider>
+            <DndProvider backend={HTML5Backend}>
+              <App />
+            </DndProvider>
+          </PdfPreviewProvider>
+        </AppProvider>
+      </div>,
+    );
+
+    expect((await axe.run(container)).violations).toEqual([]);
+  });
+});

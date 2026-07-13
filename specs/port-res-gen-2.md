@@ -1,5 +1,5 @@
 ---
-status: draft
+status: implemented
 ---
 
 # Port res-gen-2 into res-gen-3
@@ -38,37 +38,61 @@ so both are net-new work, not a carry-over.
 
 ## Design
 
-Given the size (zero-to-100%-coverage on ~3,400 lines, a real a11y audit,
-and a breaking dependency upgrade — see risks below), this ships as
-**three sequential PRs**, not one, each gated by the existing pipeline:
+Originally scoped as three sequential PRs (raw port, then coverage, then
+a11y), each independently gated. **PR 1 (raw port) shipped as
+[#8](https://github.com/davidholyko/res-gen-3/pull/8).** Per explicit
+direction, coverage and accessibility are being collapsed into that same
+PR/branch rather than split further — the three-part breakdown below is
+now the WORK, not separate PRs:
 
-1. **Raw port + build green.** Get the app running correctly in
-   `_frontend` under res-gen-3's stack, with tests deferred to a
-   `// TODO(port): needs coverage` marker or equivalent, and a11y deferred.
-   Manually verified working (drag-and-drop, PDF export, JSON
-   import/export, localStorage persistence) via the `run`/`verify` skills
-   before moving on.
-2. **Coverage.** Write unit tests for everything ported, to the existing
-   100% statement/function/line bar (branches too, unlike `_backend` —
-   there's no SWC-decorator-metadata equivalent issue on the frontend).
-3. **Accessibility.** Audit against `specs/accessibility.md`'s WCAG 2.2 AA
-   target and fix findings, same process as that spec used (audit table,
-   then fixes). This app has real a11y surface area the scaffold never
-   did: drag-and-drop (SC 2.5.7 needs a non-drag alternative), modals
-   (`react-modal` — focus trap/restore, `Esc` to close, labelled),
-   collapsible sections (`react-collapse` — `aria-expanded`), custom
-   menus/control panel (keyboard operability, roles), forms/editors
-   (labels, error identification).
+1. ~~Raw port + build green.~~ Done in #8: app running correctly in
+   `_frontend` under res-gen-3's stack, manually verified working
+   (drag-and-drop, PDF export, JSON import/export, localStorage
+   persistence) via Playwright against a real running instance.
+2. ~~Coverage.~~ Done: unit tests for everything ported, 100%
+   statement/branch/function/line coverage (branches too, unlike
+   `_backend` — there's no SWC-decorator-metadata equivalent issue on the
+   frontend). The temporary coverage carve-out added in #8 is fully
+   removed from `vitest.config.ts`.
+3. ~~Accessibility.~~ Done: audited against `specs/accessibility.md`'s
+   WCAG 2.2 AA target (see "Audit: ported app" below) and fixed every
+   finding — drag-and-drop now has a non-drag alternative (SC 2.5.7), the
+   PDF preview modal (`react-modal`) hides the app behind it and is
+   labelled, collapsible editor sections (`react-collapse`) expose
+   `aria-expanded`, the control panel's custom menus are keyboard-operable
+   with correct roles, and editor forms have labelled, error-identified
+   inputs.
 
-Each PR must independently pass `pnpm build`/`lint`/`test:cov` — PR 1
-won't be at 100% coverage yet, so **the coverage threshold in
-`_frontend/vitest.config.ts` needs a temporary carve-out for the ported
-paths during PR 1** (e.g. scoped `coverage.exclude` for the new
-directories, removed again once PR 2 lands), rather than dropping the
-gate repo-wide. Called out explicitly so it isn't a silent, permanent
-weakening.
+The final PR passes `pnpm build`/`lint`/`test:cov` with the coverage
+carve-out fully removed.
 
-### Known technical risks (resolve during PR 1)
+### Known technical risks (resolved during PR 1)
+
+What actually happened, for anyone starting PR 2/3:
+
+- `@react-pdf/renderer` v4's TS types dropped the ambient `ReactPDF`
+  namespace on default import (`import ReactPDF from ...` → needed
+  `import * as ReactPDF`) and removed `Font.register`'s top-level `format`
+  option (now inferred from the file extension). Both were type/API-only
+  changes; no PDF output behavior changed.
+- `zod` v4 requires an explicit key schema for `record()` (v3 defaulted to
+  `string()` keys implicitly) — one call site (`any-list-editor.tsx`)
+  needed updating.
+- `react-dnd`'s `ConnectDragSource`/`ConnectDropTarget` ref-callback types
+  predate React 19's stricter ref-callback typing (must return `void`, not
+  `ReactElement`) — wrapped in a plain callback at the two call sites that
+  needed it, no behavior change.
+- The font/basePath/static-export risks below all played out as expected
+  and were fixed as anticipated.
+- Not anticipated: several `eslint-plugin-jsx-a11y`/`react-hooks` rules
+  (bundled with the `eslint-config-next` version already in this repo,
+  not something this port introduced) flagged real gaps in res-gen-2's
+  code that had to be fixed to get `pnpm lint` green at all — custom
+  interactive `<div>`s missing keyboard handlers/ARIA roles, a
+  `set-state-in-effect` pattern, an unused `forwardRef` param whose
+  removal broke React's runtime contract (caught by manual verification,
+  not lint/build — see the PR description). These weren't deferrable to
+  PR 3 since they're lint *errors*, not warnings.
 
 - **`@react-pdf/renderer` 3.1.12 → 4.x is a required, breaking upgrade.**
   The pinned v3 only supports React up to 18 (`peerDependencies: react
@@ -127,35 +151,115 @@ weakening.
 
 Not touched.
 
+## Audit: ported app
+
+Audited the ported `_frontend` app (drag-and-drop editor, JSON editors,
+layout manager, control panel, PDF preview modal) against WCAG 2.2 AA,
+same process as `specs/accessibility.md`'s original audit: automated
+`jsx-a11y`/`axe-core` (in component tests, jsdom) first, then a live
+`axe-core` scan of the app running in a real Chromium browser via
+Playwright (`pnpm front`, http://localhost:3330/res-gen-3/) to catch
+what jsdom can't compute (real rendered contrast, iframe rendering,
+actual tab order) — this is the "page-level scans" gap
+`specs/accessibility.md` left as an open question; doing it here for
+this PR closes that gap for the pages that exist today.
+
+| # | Finding | WCAG SC | Severity | Status |
+|---|---|---|---|---|
+| 1 | BaseMacro's delete/reorder/inline-edit controls only revealed on mouse click (a `document` click listener), never on keyboard focus — a keyboard-only user could not reach them at all once a macro was placed | 2.1.1 Keyboard (A) | Violation | Fixed — added `onFocus`/`onBlur` reveal alongside the existing click listener |
+| 2 | BaseMacro's wrapping `<div>` carried `role="button"` with no activation behavior (no click/Enter/Space action of its own) | 4.1.2 Name, Role, Value (A) | Violation | Fixed — `role="group"` instead |
+| 3 | MacroTopBar's up/down icon buttons had no accessible name (icon-only, no `aria-label`) | 4.1.2 (A), 1.1.1 Non-text Content (A) | Violation | Fixed — `aria-label` added |
+| 4 | ResumeModal used `ariaHideApp={false}`, so background content was never `aria-hidden` while the PDF preview modal was open | Modal dialog best practice / 4.1.2 (A) | Moderate | Fixed — `Modal.setAppElement('#res-gen')` wired up |
+| 5 | EditorTopBar's collapsible trigger had no `aria-expanded`/`aria-controls` despite controlling a collapsible region | 4.1.2 (A) | Violation | Fixed |
+| 6 | BaseEditor's textarea `aria-describedby` pointed at a literal `"error-message"` id that didn't exist anywhere in the DOM (and wasn't unique across the 5 simultaneously-rendered editors); no `aria-invalid`; error text wasn't a live region | 4.1.2 (A), 3.3.1 Error Identification (A), 4.1.3 Status Messages (AA) | Violation | Fixed — unique per-instance id, `aria-invalid`, `role="alert"` |
+| 7 | EditorTopBar (a `<select>` + 2 `<button>`s) and BaseMenu (`role="menu"` + `role="menuitem"` items) both nested real interactive controls inside their own `role="button"` trigger | 4.1.2 (A) | Violation | Fixed — trigger and controls split into siblings |
+| 8 | The only way to place new content into a specific layout was the "Add Macro Button", hardcoded to the *last* layout — no way to target an earlier layout or either side of a DOUBLE layout without dragging (and dragging onto a DOUBLE layout's parent id silently orphaned the item, since no layout zone actually renders `layoutType: 'DOUBLE'`) | 2.5.7 Dragging Movements (AA, new in 2.2) | Violation | Fixed — "Add to layout" picker targets any zone (also fixes the orphaning bug) |
+| 9 | ContactMacro's optional title jumped from h1 to h4; HeaderMacro's section heading was h3 — both skip levels relative to ContactMacro's name, the page's only h1 | 1.3.1 Info and Relationships (A) | Violation | Fixed — both now h2 |
+| 10 | Collapsed editor textareas stayed in the tab order (hardcoded `tabIndex={0}`) despite sitting inside react-collapse's `aria-hidden="true"` wrapper when closed — only caught by the live-browser scan, not jsdom | 4.1.2 (A) | Violation | Fixed — `tabIndex={isOpen ? 0 : -1}` |
+| 11 | The new "Add to layout" `<select>` rendered transparent over the dark toolbar background, leaving `text-black` at ~2.8:1 contrast against it (needs 4.5:1) — only caught by the live-browser scan, since jsdom can't compute rendered contrast | 1.4.3 Contrast (Minimum) (AA) | Violation | Fixed — explicit `bg-white` |
+| 12 | `PDFViewer`'s `<iframe>` had no accessible title — only caught by the live-browser scan, since jsdom doesn't render a real iframe | 4.1.2 (A) / iframe titling | Violation | Fixed — reused the same computed PDF filename already shown to sighted users |
+| 13 | ControlPanel's title/version text sat outside any landmark region — only caught by the live-browser scan | 1.3.1 (A) / landmarks best practice | Moderate | Fixed — `<header>` instead of `<div>` |
+
+Checked and passing:
+
+- Every JSON editor's textarea has a properly associated `<label htmlFor>`
+  (the macro name, e.g. "Contact").
+- `<main>` landmark present (`src/app/main.tsx`).
+- A live `axe-core` scan (real Chromium, not jsdom) returns **0
+  violations** across every state exercised: initial load, after adding
+  content via the new keyboard/non-drag layout picker, with a macro
+  focused (its controls revealed), and with the PDF preview modal open.
+- Keyboard-only pass (Tab through a real running instance): reaches
+  every interactive control in a logical order — control panel menus,
+  each editor's collapse trigger, layout picker, add button,
+  visibility-toggle button, and textarea — with no traps observed.
+- HTML5 drag-and-drop (dragging an editor card onto a layout) still
+  places content correctly after the EditorTopBar/BaseMenu DOM
+  restructuring (verified live, not just via mocked unit tests).
+
+Known gaps, deferred:
+
+- **Moving an *existing* macro to a different layout has no path at
+  all, keyboard or mouse.** Neither this port nor the original res-gen-2
+  ever wired `useDrag` onto placed macros (`BaseMacro`/`MacroItem`) —
+  only the left-panel editor cards are draggable. MacroTopBar's
+  up/down buttons only reorder within the flat items array, they don't
+  change which layout an item belongs to. This is a pre-existing
+  limitation equally inaccessible to mouse and keyboard users, not a
+  regression from this port, and fixing it means designing a new
+  "move to a different layout" interaction (not a markup/ARIA fix) —
+  out of scope for this audit; tracked as a follow-up rather than
+  blocking it.
+- **Screen-reader-specific testing** (VoiceOver/NVDA/JAWS): not
+  performed here, matching `specs/accessibility.md`'s stated scope
+  (automated tooling plus a live-browser `axe-core` scan, not a full AT
+  matrix). Recommended as a manual PR-review step per that spec's
+  existing checklist.
+- **Target size (SC 2.5.8, 24×24px minimum)**: spot-checked, not
+  measured pixel-by-pixel across every control via
+  `getBoundingClientRect()`. Icon buttons use `p-1`/`p-2` padding
+  around ~20px icons, which should clear 24×24 in practice, but this
+  wasn't exhaustively verified.
+- **`prefers-reduced-motion`**: the only motion in the app is
+  react-collapse's CSS height transition; not verified against the
+  reduced-motion media query.
+
 ## Acceptance criteria
 
-- [ ] PR 1: app builds, runs, and is manually verified working
+- [x] PR 1: app builds, runs, and is manually verified working
       (drag-and-drop, PDF export, JSON import/export, localStorage) under
-      res-gen-3's stack (React 19, Next 16, static export)
-- [ ] PR 1: `@react-pdf/renderer` on a React-19-compatible version, PDF
-      output manually confirmed to still render correctly
-- [ ] PR 1: fonts load correctly under Turbopack (no dependency on the
-      old Webpack config)
-- [ ] PR 2: 100% statement/branch/function/line coverage on all ported
-      code, coverage carve-out from PR 1 fully removed
-- [ ] PR 3: full WCAG 2.2 AA audit of the ported app (audit table, same
-      format as `specs/accessibility.md`), findings fixed or explicitly
-      deferred with reasoning
-- [ ] `pnpm build`/`lint`/`test:cov` green at the end of each PR
+      res-gen-3's stack (React 19, Next 16, static export) — verified with
+      Playwright against a real running instance, not just build/lint;
+      caught and fixed one real regression (a lint-driven fix that broke
+      `forwardRef`'s runtime contract) that build/lint didn't catch
+- [x] PR 1: `@react-pdf/renderer` on 4.5.1 (React 19 support), PDF output
+      confirmed valid (`%PDF-1.3` header) with the embedded Roboto font
+      actually used (not a Helvetica fallback) by inspecting the raw
+      generated PDF bytes
+- [x] PR 1: fonts load correctly under Turbopack — moved to `public/fonts/`,
+      loaded by `basePath`-prefixed URL instead of a Webpack loader
+- [x] 100% statement/branch/function/line coverage on all ported code,
+      coverage carve-out from #8 fully removed
+- [x] Full WCAG 2.2 AA audit of the ported app (audit table, same format
+      as `specs/accessibility.md`), findings fixed or explicitly deferred
+      with reasoning
+- [x] `pnpm build`/`lint`/`test:cov` green
 
 ## Open questions
+
+Resolved during PR 1 (defaulted to the spec's stated assumptions, per
+"implement the draft"):
+
+- **Branding**: kept as-is — "ResGenie 2.0" / "Make a Resume".
+- **Routing**: resume builder replaced `/` entirely, as assumed.
+- **Example JSON / prepopulated content**: carried over as-is.
+- 3-PR phasing held up fine for PR 1 itself, but per explicit direction
+  the remaining coverage + a11y work is being collapsed into #8's branch
+  rather than split into further PRs — see Design above.
+
+Still open:
 
 - **PDF accessibility (PDF/UA)**: is a tagged, screen-reader-readable PDF
   output in scope, or is WCAG-for-the-web-app (this spec's actual scope)
   sufficient? `@react-pdf/renderer`'s tagged-PDF support needs research
   if the answer is yes — not assumed here.
-- **Branding**: res-gen-2's page title/description is "ResGenie 2.0" /
-  "Make a Resume". Keep as-is, or rename to match res-gen-3?
-- **Routing**: does the resume builder become the entire site (replacing
-  `/` outright, as this spec assumes), or should it live at its own route
-  (e.g. `/builder`) alongside something else at `/`?
-- **Example JSON / prepopulated content** (`__example-json/`,
-  `prepopulate-util.ts`): carry over as-is, or is this a chance to
-  update/replace the sample resume content?
-- Is the 3-PR phasing granularity right, or would you rather see it
-  broken down further (e.g. coverage split per subsystem) or collapsed?

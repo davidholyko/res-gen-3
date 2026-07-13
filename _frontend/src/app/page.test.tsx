@@ -1,34 +1,47 @@
-import { render, screen } from '@testing-library/react';
-import axe from 'axe-core';
-import { describe, expect, it } from 'vitest';
-import Home from './page';
+import { act, render, screen } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-describe('Home', () => {
-  it('renders the getting-started heading', () => {
-    render(<Home />);
+const { loadFontsMock } = vi.hoisted(() => ({ loadFontsMock: vi.fn() }));
+vi.mock('@/utils/pdf-font-loader-util', () => ({
+  default: loadFontsMock,
+}));
 
-    expect(
-      screen.getByRole('heading', { name: /to get started/i }),
-    ).toBeInTheDocument();
-  });
+const { default: Page } = await import('./page');
 
-  it('has no automatically detectable accessibility violations', async () => {
-    const { container } = render(<Home />);
+beforeEach(() => {
+  loadFontsMock.mockReset();
+  vi.useFakeTimers();
+});
 
-    const results = await axe.run(container);
+afterEach(() => {
+  vi.useRealTimers();
+  window.localStorage.clear();
+  document.head.innerHTML = '';
+});
 
-    expect(results.violations).toEqual([]);
-  });
+describe('Page', () => {
+  it('shows a loading state until stylesheets are available, then renders the app', () => {
+    render(<Page />);
 
-  it('links to the Next.js templates and docs', () => {
-    render(<Home />);
+    expect(screen.getByText('Loading...')).not.toBeNull();
+    expect(loadFontsMock).toHaveBeenCalledTimes(1);
 
-    expect(screen.getByRole('link', { name: /templates/i })).toHaveAttribute(
-      'href',
-      expect.stringContaining('vercel.com/templates'),
-    );
-    expect(
-      screen.getByRole('link', { name: /documentation/i }),
-    ).toHaveAttribute('href', expect.stringContaining('nextjs.org/docs'));
+    // jsdom starts with no stylesheets, so the first poll tick(s) should
+    // find none and keep waiting.
+    act(() => {
+      vi.advanceTimersByTime(10);
+    });
+    expect(screen.getByText('Loading...')).not.toBeNull();
+
+    // Now simulate one becoming available and let the next poll pick it up.
+    document.head.appendChild(document.createElement('style'));
+
+    act(() => {
+      vi.advanceTimersByTime(10);
+    });
+
+    expect(screen.queryByText('Loading...')).toBeNull();
+    expect(document.querySelector('#res-gen')).not.toBeNull();
+    expect(screen.getByText('ResGen 2.0')).not.toBeNull();
   });
 });
