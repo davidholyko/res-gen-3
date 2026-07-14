@@ -8,19 +8,21 @@ import type { ContentId } from '@/types/content-base-item';
 import AnyListEditor from './any-list-editor';
 
 describe('AnyListEditor', () => {
-  it('defaults to the example any-list JSON when no content is given', () => {
-    const { container } = render(
+  it('renders group form fields defaulting to the example any-list, not a JSON textarea', () => {
+    const { container, getByLabelText } = render(
       <AllProviders>
         <AnyListEditor />
       </AllProviders>,
     );
-    const textarea = container.querySelector('textarea') as HTMLTextAreaElement;
 
-    expect(JSON.parse(textarea.value)).toHaveProperty('Gears');
+    expect(container.querySelector('textarea')).toBeNull();
+    expect((getByLabelText('Group 1 name') as HTMLInputElement).value).toBe(
+      'Gears',
+    );
   });
 
   it('renders provided content instead of the example', () => {
-    const { container } = render(
+    const { getByLabelText } = render(
       <AllProviders>
         <AnyListEditor
           contentId={'c1' as ContentId}
@@ -29,10 +31,12 @@ describe('AnyListEditor', () => {
         />
       </AllProviders>,
     );
-    const textarea = container.querySelector('textarea') as HTMLTextAreaElement;
 
-    expect(JSON.parse(textarea.value)).toEqual({
-      Skills: ['TypeScript', 'React'],
-    });
+    expect((getByLabelText('Group 1 name') as HTMLInputElement).value).toBe(
+      'Skills',
+    );
+    expect((getByLabelText('Group 1 entry 2') as HTMLInputElement).value).toBe(
+      'React',
+    );
   });
 });

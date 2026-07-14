@@ -6,6 +6,7 @@ import { EDITOR_MODES } from '@/constants';
 import type { FieldSpec } from '@/types/field-spec';
 
 import ListField from './list-field';
+import RecordOfListsField from './record-of-lists-field';
 import TagsField from './tags-field';
 import { useStopKeydownPropagationRef } from './use-stop-keydown-propagation';
 
@@ -13,6 +14,9 @@ type ContentFormProps = {
   fields: FieldSpec[];
   value: Record<string, unknown>;
   onFieldChange: (name: string, value: string | string[]) => void;
+  // Whole-value replacement, for the one field kind (record-of-lists)
+  // whose keys are themselves user data rather than a fixed field name.
+  onValueChange: (next: Record<string, unknown>) => void;
   formId: string;
   isOpen: boolean;
   mode: keyof typeof EDITOR_MODES;
@@ -26,11 +30,12 @@ type ContentFormProps = {
 // type supplies a declarative field spec instead of BaseEditor rendering
 // a raw-JSON textarea for it. `text`/`textarea` landed in Phase 1
 // (Header/Paragraph, then Contact), `tags`/`list` in Phase 4
-// (Experience); `record-of-lists` lands as AnyList migrates off the JSON
-// editor.
+// (Experience), and `record-of-lists` in Phase 5 (AnyList) -- all 5
+// content types edit through generated forms now.
 export default function ContentForm(props: ContentFormProps) {
   const { fields, value, onFieldChange, formId, isOpen, mode, fieldErrors } =
     props;
+  const { onValueChange } = props;
 
   const onChange = useCallback(
     (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -66,7 +71,20 @@ export default function ContentForm(props: ContentFormProps) {
         const errorId = `${fieldId}-error`;
 
         let control;
-        if (field.kind === 'tags' || field.kind === 'list') {
+        if (field.kind === 'record-of-lists') {
+          control = (
+            <RecordOfListsField
+              fieldId={fieldId}
+              label={field.label}
+              value={value as Record<string, string[]>}
+              isOpen={isOpen}
+              mode={mode}
+              error={error}
+              errorId={errorId}
+              onChange={onValueChange}
+            />
+          );
+        } else if (field.kind === 'tags' || field.kind === 'list') {
           const arrayValue = (value[field.name] as string[] | undefined) ?? [];
           const ArrayField = field.kind === 'tags' ? TagsField : ListField;
           control = (

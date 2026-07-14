@@ -17,6 +17,7 @@ function baseProps(overrides: Record<string, unknown> = {}) {
     fields,
     value: { title: 'Hello', body: 'World' },
     onFieldChange: vi.fn(),
+    onValueChange: vi.fn(),
     formId: 'f1',
     isOpen: true,
     mode: EDITOR_MODES.IN_LAYOUT_MANAGER,
@@ -205,6 +206,29 @@ describe('ContentForm', () => {
     expect(container.querySelector('input[name="tags"]')).not.toBeNull();
     expect(container.querySelectorAll('button')).toHaveLength(1);
     expect(getByLabelText('Add Descriptions entry')).not.toBeNull();
+  });
+
+  it('renders a RecordOfListsField over the whole value and forwards whole-record changes', () => {
+    const onValueChange = vi.fn();
+    const { getByLabelText } = render(
+      <ContentForm
+        {...baseProps({
+          fields: [
+            { kind: 'record-of-lists', name: '', label: 'Groups' },
+          ] as FieldSpec[],
+          value: { Skills: ['React'] },
+          onValueChange,
+        })}
+      />,
+    );
+
+    expect((getByLabelText('Group 1 name') as HTMLInputElement).value).toBe(
+      'Skills',
+    );
+
+    fireEvent.click(getByLabelText('Add entry to group 1'));
+
+    expect(onValueChange).toHaveBeenCalledWith({ Skills: ['React', ''] });
   });
 
   it('shows an inline error under an array field via its errorId', () => {

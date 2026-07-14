@@ -27,5 +27,17 @@ export type ListFieldSpec = FieldSpecBase & {
   kind: 'list';
 };
 
+// Repeating named groups over a whole Record<string, string[]> -- each
+// group is a name input plus its own list of entries (AnyList). The one
+// kind that edits the entire content object rather than a single key,
+// so its `name` is unused ('' by convention).
+export type RecordOfListsFieldSpec = FieldSpecBase & {
+  kind: 'record-of-lists';
+};
+
 export type FieldSpec =
-  TextFieldSpec | TextareaFieldSpec | TagsFieldSpec | ListFieldSpec;
+  | TextFieldSpec
+  | TextareaFieldSpec
+  | TagsFieldSpec
+  | ListFieldSpec
+  | RecordOfListsFieldSpec;

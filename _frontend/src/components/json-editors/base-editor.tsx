@@ -182,13 +182,8 @@ export default function BaseEditor(props: BaseEditorProps) {
     [schema],
   );
 
-  const onFieldChange = useCallback(
-    // `unknown`, not `string`: tags/list field kinds hand back a whole
-    // string[] (and record-of-lists later, a Record<string, string[]>) --
-    // this only ever places the value into the content object; the zod
-    // schema is what vouches for its shape.
-    (name: string, value: unknown) => {
-      const next = { ...formValue, [name]: value };
+  const commitFormValue = useCallback(
+    (next: Record<string, unknown>) => {
       setFormValue(next);
       const isValid = validateContent(next);
 
@@ -213,7 +208,17 @@ export default function BaseEditor(props: BaseEditorProps) {
         } as ContentAll);
       }
     },
-    [formValue, validateContent, mode, contentId, onUpdate, props],
+    [validateContent, mode, contentId, onUpdate, props],
+  );
+
+  const onFieldChange = useCallback(
+    // `unknown`, not `string`: tags/list field kinds hand back a whole
+    // string[] -- this only ever places the value into the content
+    // object; the zod schema is what vouches for its shape.
+    (name: string, value: unknown) => {
+      commitFormValue({ ...formValue, [name]: value });
+    },
+    [formValue, commitFormValue],
   );
 
   useEffect(() => {
@@ -324,6 +329,7 @@ export default function BaseEditor(props: BaseEditorProps) {
               fields={fields}
               value={formValue}
               onFieldChange={onFieldChange}
+              onValueChange={commitFormValue}
               formId={formId}
               isOpen={isOpen}
               mode={mode}
