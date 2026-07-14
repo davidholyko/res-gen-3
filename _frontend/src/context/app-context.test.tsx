@@ -175,6 +175,94 @@ describe('useAppContext', () => {
         });
       }).toThrow('Unsupported move action LAYOUT_NEXT');
     });
+
+    describe('zone awareness (specs/editor-redesign.md, Phase 7)', () => {
+      // Flat order interleaves two zones: [A(z1), X(z2), B(z1)] -- the
+      // adjacent flat index of B is X, but B's nearest same-zone
+      // neighbor is A.
+      const ITEM_A = {
+        ...CONTACT_ITEM,
+        contentId: 'a' as ContentAll['contentId'],
+      };
+      const ITEM_X_OTHER_ZONE = {
+        ...HEADER_ITEM,
+        contentId: 'x' as ContentAll['contentId'],
+        layoutId: 'layout-2' as LayoutItem['layoutId'],
+      };
+      const ITEM_B = {
+        ...HEADER_ITEM,
+        contentId: 'b' as ContentAll['contentId'],
+      };
+      const SECOND_LAYOUT: LayoutItem = {
+        layoutId: 'layout-2' as LayoutItem['layoutId'],
+        layoutType: LAYOUTS.SINGLE,
+      };
+
+      beforeEach(() => {
+        seedLocalStorage(
+          [ITEM_A, ITEM_X_OTHER_ZONE, ITEM_B],
+          [LAYOUT, SECOND_LAYOUT],
+        );
+      });
+
+      it("MACRO_UP swaps with the nearest same-zone item, skipping other zones' items", () => {
+        const { result } = renderAppContext();
+
+        act(() => {
+          result.current.onMove(MOVE_ACTION.MACRO_UP, ITEM_B.contentId);
+        });
+
+        // B swapped with A -- X (a different layout) kept its position.
+        expect(result.current.items).toEqual([
+          ITEM_B,
+          ITEM_X_OTHER_ZONE,
+          ITEM_A,
+        ]);
+      });
+
+      it('MACRO_DOWN skips other zones the same way', () => {
+        const { result } = renderAppContext();
+
+        act(() => {
+          result.current.onMove(MOVE_ACTION.MACRO_DOWN, ITEM_A.contentId);
+        });
+
+        expect(result.current.items).toEqual([
+          ITEM_B,
+          ITEM_X_OTHER_ZONE,
+          ITEM_A,
+        ]);
+      });
+
+      it('is a no-op for the first item of a zone moving up, even mid-array', () => {
+        const { result } = renderAppContext();
+        const before = result.current.items;
+
+        act(() => {
+          // X is mid-array but the only item in its zone.
+          result.current.onMove(
+            MOVE_ACTION.MACRO_UP,
+            ITEM_X_OTHER_ZONE.contentId,
+          );
+        });
+
+        expect(result.current.items).toBe(before);
+      });
+
+      it('is a no-op for the last item of a zone moving down', () => {
+        const { result } = renderAppContext();
+        const before = result.current.items;
+
+        act(() => {
+          result.current.onMove(
+            MOVE_ACTION.MACRO_DOWN,
+            ITEM_X_OTHER_ZONE.contentId,
+          );
+        });
+
+        expect(result.current.items).toBe(before);
+      });
+    });
   });
 
   describe('layouts', () => {

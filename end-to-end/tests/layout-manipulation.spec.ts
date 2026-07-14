@@ -102,3 +102,41 @@ test.describe('layout direct manipulation (specs/editor-redesign.md, Phase 6)', 
     expect(results.violations).toEqual([]);
   });
 });
+
+// Phase 7: move up/down is zone-aware -- an item only ever swaps with
+// the nearest item in its *own* zone, never silently reordering
+// relative to a different layout's content in the flat items array.
+test.describe('zone-aware content reordering (specs/editor-redesign.md, Phase 7)', () => {
+  test("moving a block up skips other layouts' items and swaps within its own zone", async ({
+    page,
+  }) => {
+    // A second layout whose block sits between the first layout's items
+    // in the flat array: [ ...prepopulated (L1), Marker (L2), Mover (L1) ].
+    await addSingleLayout(page);
+    const layout2 = page.locator('.layout-single').last();
+    await layout2.getByRole('button', { name: '+ Add block' }).click();
+    await page.getByRole('menuitem', { name: 'Section heading' }).click();
+    await layout2.locator('input[name="header"]').fill('Marker');
+
+    const layout1 = page.locator('.layout-single').first();
+    await layout1.getByRole('button', { name: '+ Add block' }).click();
+    await page.getByRole('menuitem', { name: 'Section heading' }).click();
+    const mover = layout1.locator('[role="group"]').last();
+    await mover.locator('input[name="header"]').fill('Mover');
+
+    // One press. The flat-adjacent item is Marker (layout 2) -- the old
+    // splice would have swapped with it invisibly, making the first
+    // press appear to do nothing.
+    await mover.getByRole('button', { name: 'Move Macro Up Button' }).click();
+
+    // Mover moved above layout 1's last prepopulated block...
+    await expect(layout1.locator('[role="group"]').last()).toContainText(
+      'Foods:',
+    );
+    await expect(
+      layout1.locator('[role="group"]').nth(-2),
+    ).toContainText('Mover');
+    // ...and layout 2 is untouched.
+    await expect(layout2.locator('[role="group"]')).toContainText('Marker');
+  });
+});

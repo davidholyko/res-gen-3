@@ -124,26 +124,51 @@ export function AppProvider({ children }: AppProviderProps) {
     });
   }, [layouts]);
 
+  // Zone-aware (specs/editor-redesign.md, Phase 7): "move up/down" only
+  // ever swaps an item with the nearest *other* item sharing its zone
+  // (layoutId/layoutType/layoutParentId), never simply the adjacent
+  // flat-array index. The flat `items` array interleaves every zone's
+  // content, so the old adjacent-index splice could silently reorder an
+  // item relative to a *different* layout's content -- invisible on the
+  // canvas (each zone re-filters at render time) until enough presses
+  // finally crossed a same-zone neighbor.
   const onMove = useCallback(
     (action: MOVE_ACTION, contentId: ContentId) => {
       switch (action) {
-        case MOVE_ACTION.MACRO_UP: {
-          const newItems = [...items];
-          const foundIndex = newItems.findIndex(
-            (i) => i.contentId === contentId,
-          );
-          const [item] = newItems.splice(foundIndex, 1);
-          newItems.splice(foundIndex - 1, 0, item);
-          setItems(newItems);
-          break;
-        }
+        case MOVE_ACTION.MACRO_UP:
         case MOVE_ACTION.MACRO_DOWN: {
+          const foundIndex = items.findIndex((i) => i.contentId === contentId);
+          const item = items[foundIndex];
+          const isSameZone = (other: ContentAll) =>
+            other.layoutId === item.layoutId &&
+            other.layoutType === item.layoutType &&
+            other.layoutParentId === item.layoutParentId;
+
+          const step = action === MOVE_ACTION.MACRO_UP ? -1 : 1;
+          let neighborIndex = -1;
+          for (
+            let i = foundIndex + step;
+            i >= 0 && i < items.length;
+            i += step
+          ) {
+            if (isSameZone(items[i])) {
+              neighborIndex = i;
+              break;
+            }
+          }
+
+          // Already first/last within its own zone: nothing to move
+          // past -- a no-op, not a silent cross-zone reorder.
+          if (neighborIndex === -1) break;
+
+          // A positional swap keeps every other zone's relative order
+          // untouched, whereas a splice would shift items between the
+          // two positions.
           const newItems = [...items];
-          const foundIndex = newItems.findIndex(
-            (i) => i.contentId === contentId,
-          );
-          const [item] = newItems.splice(foundIndex, 1);
-          newItems.splice(foundIndex + 1, 0, item);
+          [newItems[foundIndex], newItems[neighborIndex]] = [
+            newItems[neighborIndex],
+            newItems[foundIndex],
+          ];
           setItems(newItems);
           break;
         }
