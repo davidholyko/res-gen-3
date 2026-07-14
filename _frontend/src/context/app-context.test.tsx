@@ -192,15 +192,79 @@ describe('useAppContext', () => {
       expect(result.current.layouts).toEqual([LAYOUT, newLayout]);
     });
 
-    it('popLayout removes the last layout and drops orphaned items', () => {
+    it('addLayoutAt inserts a layout at a specific position, not just the end', () => {
       const { result } = renderAppContext();
+      const newLayout: LayoutItem = {
+        layoutId: 'layout-2' as LayoutItem['layoutId'],
+        layoutType: LAYOUTS.SINGLE,
+      };
 
       act(() => {
-        result.current.popLayout();
+        result.current.addLayoutAt(newLayout, 0);
       });
 
-      expect(result.current.layouts).toEqual([]);
-      expect(result.current.items).toEqual([]);
+      expect(result.current.layouts).toEqual([newLayout, LAYOUT]);
+    });
+
+    describe('moveLayout', () => {
+      const LAYOUT_B: LayoutItem = {
+        layoutId: 'layout-b' as LayoutItem['layoutId'],
+        layoutType: LAYOUTS.SINGLE,
+      };
+      const LAYOUT_C: LayoutItem = {
+        layoutId: 'layout-c' as LayoutItem['layoutId'],
+        layoutType: LAYOUTS.SINGLE,
+      };
+
+      function renderWithThreeLayouts() {
+        const rendered = renderAppContext();
+
+        act(() => {
+          rendered.result.current.addLayout(LAYOUT_B);
+        });
+        act(() => {
+          rendered.result.current.addLayout(LAYOUT_C);
+        });
+
+        return rendered;
+      }
+
+      it('moves a layout down into a later gap', () => {
+        const { result } = renderWithThreeLayouts();
+
+        act(() => {
+          // First layout into the gap below the second.
+          result.current.moveLayout(0, 2);
+        });
+
+        expect(result.current.layouts).toEqual([LAYOUT_B, LAYOUT, LAYOUT_C]);
+      });
+
+      it('moves a layout up into an earlier gap', () => {
+        const { result } = renderWithThreeLayouts();
+
+        act(() => {
+          // Last layout into the gap above the first.
+          result.current.moveLayout(2, 0);
+        });
+
+        expect(result.current.layouts).toEqual([LAYOUT_C, LAYOUT, LAYOUT_B]);
+      });
+
+      it("treats a layout's own adjacent gaps as a no-op, keeping the same array reference", () => {
+        const { result } = renderWithThreeLayouts();
+        const before = result.current.layouts;
+
+        act(() => {
+          result.current.moveLayout(1, 1); // gap directly above itself
+        });
+        expect(result.current.layouts).toBe(before);
+
+        act(() => {
+          result.current.moveLayout(1, 2); // gap directly below itself
+        });
+        expect(result.current.layouts).toBe(before);
+      });
     });
 
     it('removeLayout removes a specific layout by id and drops its orphaned items', () => {

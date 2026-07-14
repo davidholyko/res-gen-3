@@ -7,7 +7,7 @@ import EditMenu from './control-panel-edit-menu';
 
 describe('EditMenu', () => {
   it('opens to reveal the layout edit actions', () => {
-    const { getByText } = render(
+    const { getByText, queryByText } = render(
       <AllProviders>
         <EditMenu />
       </AllProviders>,
@@ -17,6 +17,8 @@ describe('EditMenu', () => {
 
     expect(getByText('Add Single Column Layout')).not.toBeNull();
     expect(getByText('Add Double Column Layout')).not.toBeNull();
-    expect(getByText('Remove Last Layout')).not.toBeNull();
+    // Retired (specs/editor-redesign.md, Phase 6): every layout carries
+    // its own "Remove layout" link on the canvas.
+    expect(queryByText('Remove Last Layout')).toBeNull();
   });
 });

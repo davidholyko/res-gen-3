@@ -39,6 +39,12 @@ export const LAYOUTS = {
   DOUBLE_RIGHT: 'DOUBLE_RIGHT',
 } as const;
 
+// react-dnd item type for dragging a whole layout container to reorder
+// it -- distinct from the CONTENT_TYPES values, which are the item types
+// for dragging content blocks, so layout drags and content drags can
+// never land on each other's drop targets.
+export const LAYOUT_DRAG_TYPE = 'LAYOUT_DRAG';
+
 export const EDITOR_MODES = {
   IN_EDITOR_MANAGER: 'IN_EDITOR_MANAGER',
   IN_LAYOUT_MANAGER: 'IN_LAYOUT_MANAGER',

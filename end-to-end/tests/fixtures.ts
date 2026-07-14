@@ -42,6 +42,17 @@ export const test = base.extend({
 
 export { expect };
 
+/**
+ * Removes the last layout via its own canvas "Remove layout" link -- the
+ * Edit menu's "Remove Last Layout" retired with specs/editor-redesign.md
+ * Phase 6.
+ */
+export async function removeLastLayout(page: Page) {
+  const before = await page.getByText('Remove layout').count();
+  await page.getByText('Remove layout').last().click();
+  await expect(page.getByText('Remove layout')).toHaveCount(before - 1);
+}
+
 /** Adds a SINGLE-column layout via the Edit menu and waits for it to render. */
 export async function addSingleLayout(page: Page) {
   const before = await page.locator('.layout-single').count();

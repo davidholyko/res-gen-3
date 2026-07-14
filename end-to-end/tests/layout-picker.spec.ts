@@ -1,4 +1,4 @@
-import { addSingleLayout, expect, test } from './fixtures';
+import { addSingleLayout, expect, removeLastLayout, test } from './fixtures';
 
 // The "Add to layout" picker is the non-drag alternative WCAG SC 2.5.7
 // requires for the drag-and-drop content-placement flow (see
@@ -65,10 +65,8 @@ test.describe('layout picker (non-drag content placement)', () => {
     page,
   }) => {
     // The prepopulated example resume always has a layout, so remove it
-    // via the Edit menu to reach the true "no layouts" state.
-    await page.getByText('Edit', { exact: true }).click();
-    await page.getByText('Remove Last Layout').click();
-    await page.keyboard.press('Escape');
+    // to reach the true "no layouts" state.
+    await removeLastLayout(page);
     await expect(page.locator('.layout-single')).toHaveCount(0);
 
     const editor = page.locator('.contact-editor');

@@ -44,7 +44,14 @@ export type AppContextType = {
   items: ContentAll[]; // rename to contentItems
   layouts: LayoutItem[];
   addLayout: (newLayout: LayoutItem) => void;
-  popLayout: () => void;
+  addLayoutAt: (newLayout: LayoutItem, index: number) => void;
+  /**
+   * Moves the layout at `fromIndex` into the gap at `toGapIndex` (a gap
+   * index ranges 0..layouts.length: 0 is above the first layout,
+   * layouts.length is below the last). Dropping a layout into either of
+   * its own adjacent gaps is a no-op.
+   */
+  moveLayout: (fromIndex: number, toGapIndex: number) => void;
   removeLayout: (layoutId: LayoutId) => void;
   onImportFile: ({ items, layouts }: FileDropValue) => void;
   onCreate: (item: ContentAll) => void;
@@ -97,8 +104,8 @@ export function AppProvider({ children }: AppProviderProps) {
   }, [items, layouts, isEditorVisible]);
 
   useEffect(() => {
-    // Reconciles `items` against `layouts` (e.g. after popLayout removes a
-    // layout, orphaned items are dropped). `items` is genuinely mutable
+    // Reconciles `items` against `layouts` (e.g. after removeLayout, so
+    // orphaned items are dropped). `items` is genuinely mutable
     // state elsewhere (onCreate/onUpdate/onDelete/onMove all setItems
     // directly), not a pure derived view, so this can't just be computed
     // at render time without also touching those call sites. Preserved
@@ -191,8 +198,37 @@ export function AppProvider({ children }: AppProviderProps) {
     setLayouts((prevLayouts) => [...prevLayouts, newLayout]);
   }, []);
 
-  const popLayout = useCallback(() => {
-    setLayouts((prevLayouts) => [...prevLayouts.slice(0, -1)]);
+  // Insert at a specific position, not just append -- the canvas gap
+  // inserters (layout-gap-inserter.tsx) add a layout exactly where the
+  // user is looking (specs/editor-redesign.md, Design → Layout
+  // management).
+  const addLayoutAt = useCallback((newLayout: LayoutItem, index: number) => {
+    setLayouts((prevLayouts) => {
+      const next = [...prevLayouts];
+      next.splice(index, 0, newLayout);
+      return next;
+    });
+  }, []);
+
+  const moveLayout = useCallback((fromIndex: number, toGapIndex: number) => {
+    setLayouts((prevLayouts) => {
+      // The gaps directly above and below the dragged layout both mean
+      // "leave it where it is" -- bail with the same reference so
+      // nothing downstream misreads the drop as a change.
+      if (toGapIndex === fromIndex || toGapIndex === fromIndex + 1) {
+        return prevLayouts;
+      }
+
+      const next = [...prevLayouts];
+      const [moved] = next.splice(fromIndex, 1);
+      // Removing the layout first shifts every gap below it up by one.
+      next.splice(
+        toGapIndex > fromIndex ? toGapIndex - 1 : toGapIndex,
+        0,
+        moved,
+      );
+      return next;
+    });
   }, []);
 
   // Removes a specific layout by id, not just the last one -- the
@@ -270,7 +306,8 @@ export function AppProvider({ children }: AppProviderProps) {
         items,
         layouts,
         addLayout,
-        popLayout,
+        addLayoutAt,
+        moveLayout,
         removeLayout,
         onImportFile,
         onDelete,

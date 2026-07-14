@@ -19,6 +19,10 @@ vi.mock('@/context/app-context', async (importOriginal) => {
       layouts: contextState.layouts,
       items: contextState.items,
       addLayout: addLayoutMock,
+      addLayoutAt: vi.fn(),
+      moveLayout: vi.fn(),
+      onCreate: vi.fn(),
+      pushUndoSnapshot: vi.fn(),
       removeLayout: removeLayoutMock,
     }),
   };
@@ -82,6 +86,25 @@ describe('LayoutManager', () => {
 
     expect(getByText(/Your resume is empty/)).not.toBeNull();
     expect(container.querySelector('.layout-single')).toBeNull();
+  });
+
+  it('renders a gap inserter above every layout plus one after the last, and none when empty', () => {
+    contextState.layouts = [
+      { layoutId: 'a', layoutType: 'SINGLE' },
+      { layoutId: 'b', layoutType: 'SINGLE' },
+    ];
+    const { container, rerender } = renderLayoutManager();
+    expect(container.querySelectorAll('[data-gap-index]')).toHaveLength(3);
+
+    // No inserters in the empty state -- EmptyLayoutState's CTA is the
+    // one add-affordance there.
+    contextState.layouts = [];
+    rerender(
+      <DndProvider backend={HTML5Backend}>
+        <LayoutManager />
+      </DndProvider>,
+    );
+    expect(container.querySelectorAll('[data-gap-index]')).toHaveLength(0);
   });
 
   it('throws if a DOUBLE layout is missing layoutLeftId', () => {

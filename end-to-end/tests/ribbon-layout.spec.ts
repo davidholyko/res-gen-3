@@ -61,7 +61,7 @@ test.describe('ribbon layout', () => {
   }) => {
     await page.getByText('Edit', { exact: true }).click();
 
-    const menuItem = page.getByText('Remove Last Layout');
+    const menuItem = page.getByText('Add Single Column Layout');
     await expect(menuItem).toBeVisible();
     // A real click, not just a visibility check -- this is what actually
     // failed before the z-index fix (the ribbon intercepted the click
@@ -69,6 +69,6 @@ test.describe('ribbon layout', () => {
     await menuItem.click();
     await page.keyboard.press('Escape');
 
-    await expect(page.locator('.layout-single')).toHaveCount(0);
+    await expect(page.locator('.layout-single')).toHaveCount(2);
   });
 });
