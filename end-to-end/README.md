@@ -47,7 +47,7 @@ npx playwright show-trace <path-to-trace.zip>          # from the report's own l
   comment in `fixtures.ts` for why that distinction needs a real fix, not
   just `page.addInitScript`).
 - Use `page.goto('')`, never `page.goto('/')` — a leading slash resolves
-  against the origin root and silently drops `_frontend`'s `/app`
+  against the origin root and silently drops `_frontend`'s `/res-gen-3`
   `basePath` entirely. The fixture's own initial navigation already
   handles this; only relevant if a spec needs an explicit extra `goto`.
 - If a spec drags anything (`locator.dragTo(...)`), keep the drop target

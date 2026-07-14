@@ -31,7 +31,7 @@ export const test = base.extend({
     // component tests, not here.
     page.on('dialog', (dialog) => dialog.accept());
     // NOT `page.goto('/')`: a leading slash resolves against the origin
-    // root, discarding baseURL's own `/app` path entirely (a bare
+    // root, discarding baseURL's own `/res-gen-3` path entirely (a bare
     // `new URL('/', baseURL)` gotcha). An empty string resolves relative
     // to the full baseURL, path included.
     await page.goto('');

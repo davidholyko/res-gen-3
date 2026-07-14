@@ -4,6 +4,6 @@ import { basePath } from './base-path';
 
 describe('basePath', () => {
   it('matches the GitHub Pages project-page path', () => {
-    expect(basePath).toBe('/app');
+    expect(basePath).toBe('/res-gen-3');
   });
 });
