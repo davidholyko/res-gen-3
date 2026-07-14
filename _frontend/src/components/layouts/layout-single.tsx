@@ -7,6 +7,8 @@ import { CONTENT_TYPES } from '@/constants';
 import { useAppContext } from '@/context/app-context';
 import MacroManager from '@/managers/macro-manager';
 
+import AddBlockControl from './add-block-control';
+
 interface LayoutSingleProps {
   layoutType: keyof typeof LAYOUTS;
   className?: string;
@@ -59,6 +61,11 @@ export default function LayoutSingle(props: LayoutSingleProps) {
       }}
     >
       <MacroManager items={items} />
+      <AddBlockControl
+        layoutId={layoutId}
+        layoutType={layoutType}
+        layoutParentId={layoutParentId}
+      />
     </div>
   );
 }
