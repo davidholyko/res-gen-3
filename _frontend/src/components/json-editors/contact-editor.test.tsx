@@ -8,15 +8,20 @@ import type { ContentId } from '@/types/content-base-item';
 import ContactEditor from './contact-editor';
 
 describe('ContactEditor', () => {
-  it('defaults to the example contact JSON when no content is given', () => {
+  it('renders a labelled input per contact field, defaulting to the example contact', () => {
     const { container } = render(
       <AllProviders>
         <ContactEditor />
       </AllProviders>,
     );
-    const textarea = container.querySelector('textarea') as HTMLTextAreaElement;
 
-    expect(JSON.parse(textarea.value)).toHaveProperty('name');
+    expect(container.querySelector('textarea')).toBeNull();
+    const name = container.querySelector(
+      'input[name="name"]',
+    ) as HTMLInputElement;
+    expect(name.value).not.toBe('');
+    expect(container.querySelector('input[name="email"]')).not.toBeNull();
+    expect(container.querySelector('input[name="website"]')).not.toBeNull();
   });
 
   it('renders provided content instead of the example', () => {
@@ -29,21 +34,22 @@ describe('ContactEditor', () => {
         />
       </AllProviders>,
     );
-    const textarea = container.querySelector('textarea') as HTMLTextAreaElement;
 
-    expect(JSON.parse(textarea.value)).toEqual({
-      name: 'Ada Lovelace',
-      email: 'ada@example.com',
-    });
+    const name = container.querySelector(
+      'input[name="name"]',
+    ) as HTMLInputElement;
+    const email = container.querySelector(
+      'input[name="email"]',
+    ) as HTMLInputElement;
+    expect(name.value).toBe('Ada Lovelace');
+    expect(email.value).toBe('ada@example.com');
   });
 
-  it('validates successfully with only the required fields present', () => {
-    // Regression: the optional fields used to be typed as
-    // `union([string(), undefined()])`, which zod v4 treats as "the key
-    // must be present, even if its value is undefined" -- not the same as
-    // `.optional()`, which allows the key to be missing entirely. Editing
-    // a contact down to just name/email (a completely ordinary edit)
-    // failed validation until the schema was fixed to use `.optional()`.
+  it('leaves optional fields blank and error-free with only the required fields present', () => {
+    // Successor to the `.optional()`-vs-`union([string(), undefined()])`
+    // zod v4 regression test from the raw-JSON era: a contact holding
+    // just name/email is a completely ordinary state and must not
+    // produce validation errors when edited.
     const { container } = render(
       <AllProviders>
         <ContactEditor
@@ -53,26 +59,17 @@ describe('ContactEditor', () => {
         />
       </AllProviders>,
     );
-    const textarea = container.querySelector('textarea') as HTMLTextAreaElement;
+    const phone = container.querySelector(
+      'input[name="phone"]',
+    ) as HTMLInputElement;
+    expect(phone.value).toBe('');
 
-    fireEvent.change(textarea, {
-      target: {
-        value: JSON.stringify({
-          name: 'Grace Hopper',
-          email: 'grace@example.com',
-        }),
-      },
-    });
+    fireEvent.change(phone, { target: { value: '555-0100' } });
 
-    expect(container.querySelector('p')).toBeNull();
+    expect(container.querySelector('[role="alert"]')).toBeNull();
   });
 
-  it('validates a website field instead of leaving it unrecognized', () => {
-    // Regression: `website` is part of `ContactJsonOptional` and present
-    // in every example payload, but was missing from the schema's shape
-    // entirely, so a malformed website value went completely unvalidated
-    // (BaseEditor saves the raw parsed JSON regardless of what the schema
-    // recognizes, so this never dropped the field -- just never checked it).
+  it('shows an inline error under just the email field for a malformed email', () => {
     const { container } = render(
       <AllProviders>
         <ContactEditor
@@ -82,22 +79,24 @@ describe('ContactEditor', () => {
         />
       </AllProviders>,
     );
-    const textarea = container.querySelector('textarea') as HTMLTextAreaElement;
+    const email = container.querySelector(
+      'input[name="email"]',
+    ) as HTMLInputElement;
 
-    fireEvent.change(textarea, {
-      target: {
-        value: JSON.stringify({
-          name: 'Grace Hopper',
-          email: 'grace@example.com',
-          website: 'gracehopper.dev',
-        }),
-      },
-    });
+    fireEvent.change(email, { target: { value: 'not-an-email' } });
 
-    expect(container.querySelector('p')).toBeNull();
+    const alerts = container.querySelectorAll('[role="alert"]');
+    expect(alerts).toHaveLength(1);
+    expect(alerts[0].textContent).toMatch(/valid email/i);
+    expect(email).toHaveAttribute('aria-invalid', 'true');
+    // The untouched name field is not implicated.
+    expect(container.querySelector('input[name="name"]')).toHaveAttribute(
+      'aria-invalid',
+      'false',
+    );
   });
 
-  it('rejects a website field of the wrong type', () => {
+  it('shows an inline error when the required name is cleared, and clears it once refilled', () => {
     const { container } = render(
       <AllProviders>
         <ContactEditor
@@ -107,18 +106,16 @@ describe('ContactEditor', () => {
         />
       </AllProviders>,
     );
-    const textarea = container.querySelector('textarea') as HTMLTextAreaElement;
+    const name = container.querySelector(
+      'input[name="name"]',
+    ) as HTMLInputElement;
 
-    fireEvent.change(textarea, {
-      target: {
-        value: JSON.stringify({
-          name: 'Grace Hopper',
-          email: 'grace@example.com',
-          website: 12345,
-        }),
-      },
-    });
+    fireEvent.change(name, { target: { value: '' } });
+    expect(container.querySelector('[role="alert"]')?.textContent).toMatch(
+      /required/i,
+    );
 
-    expect(container.querySelector('p')).not.toBeNull();
+    fireEvent.change(name, { target: { value: 'Grace Hopper' } });
+    expect(container.querySelector('[role="alert"]')).toBeNull();
   });
 });

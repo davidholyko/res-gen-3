@@ -61,13 +61,8 @@ test.describe('accessibility (axe-core, real browser)', () => {
     expect(results.violations).toEqual([]);
   });
 
-  test('with an invalid-JSON validation error shown', async ({ page }) => {
-    const macro = page.locator('.layout-single [role="group"]').first();
-    await macro.click();
-    await macro.locator('.contact-editor textarea').fill('{ not valid json');
-    await expect(macro.getByRole('alert')).toBeVisible();
-
-    const results = await new AxeBuilder({ page }).analyze();
-    expect(results.violations).toEqual([]);
-  });
+  // No invalid-JSON scan anymore: every content type edits through
+  // generated form fields (specs/editor-redesign.md, Phase 5), so invalid
+  // JSON is unreachable; the per-field validation error state is
+  // axe-scanned in editor-forms.spec.ts instead.
 });

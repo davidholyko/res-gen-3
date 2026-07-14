@@ -4,6 +4,12 @@ type FocusInfo = {
   tag: string;
   ariaLabel: string | null;
   text: string;
+  // Distinguishes adjacent same-looking controls: a focused contact
+  // block's form is 8 consecutive <input>s with no text content and no
+  // aria-label (each is labelled by a separate <label> element), which
+  // the trap check below would otherwise misread as focus being stuck
+  // on one element.
+  id: string;
 };
 
 async function currentFocus(page: import('@playwright/test').Page) {
@@ -13,6 +19,7 @@ async function currentFocus(page: import('@playwright/test').Page) {
       tag: el?.tagName ?? '',
       ariaLabel: el?.getAttribute('aria-label') ?? null,
       text: (el?.textContent ?? '').trim().slice(0, 40),
+      id: el?.id ?? '',
     };
   });
 }
@@ -74,7 +81,8 @@ test.describe('keyboard navigation', () => {
         previous &&
         current.tag === previous.tag &&
         current.text === previous.text &&
-        current.ariaLabel === previous.ariaLabel
+        current.ariaLabel === previous.ariaLabel &&
+        current.id === previous.id
       ) {
         stuckCount += 1;
       } else {

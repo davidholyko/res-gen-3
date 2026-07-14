@@ -31,7 +31,9 @@ test.describe('ribbon layout', () => {
     const yBefore = (await canvas.boundingBox())!.y;
 
     await page.locator('.contact-editor [role="button"]').click();
-    await expect(page.locator('.contact-editor textarea')).toBeVisible();
+    await expect(
+      page.locator('.contact-editor input[name="name"]'),
+    ).toBeVisible();
 
     const yAfter = (await canvas.boundingBox())!.y;
     expect(yAfter).toBe(yBefore);

@@ -17,10 +17,11 @@ function baseProps(overrides: Record<string, unknown> = {}) {
     fields,
     value: { title: 'Hello', body: 'World' },
     onFieldChange: vi.fn(),
+    onValueChange: vi.fn(),
     formId: 'f1',
     isOpen: true,
     mode: EDITOR_MODES.IN_LAYOUT_MANAGER,
-    errorMessage: '',
+    fieldErrors: {},
     ...overrides,
   };
 }
@@ -106,19 +107,33 @@ describe('ContentForm', () => {
     expect(input.tabIndex).toBe(-1);
   });
 
-  it('marks fields invalid and describes them by the shared error message when errorMessage is set', () => {
+  it('renders an inline error under only the offending field and wires aria to it', () => {
     const { container } = render(
-      <ContentForm {...baseProps({ errorMessage: 'Required' })} />,
+      <ContentForm
+        {...baseProps({ fieldErrors: { title: 'Title is required' } })}
+      />,
     );
     const input = container.querySelector(
       'input[name="title"]',
     ) as HTMLInputElement;
+    const textarea = container.querySelector(
+      'textarea[name="body"]',
+    ) as HTMLTextAreaElement;
 
     expect(input).toHaveAttribute('aria-invalid', 'true');
-    expect(input).toHaveAttribute('aria-describedby', 'error-message-f1');
+    const describedById = input.getAttribute('aria-describedby');
+    expect(describedById).toBeTruthy();
+    expect(container.querySelector(`#${describedById}`)?.textContent).toBe(
+      'Title is required',
+    );
+
+    // The other field is untouched -- no banner-for-the-whole-block.
+    expect(textarea).toHaveAttribute('aria-invalid', 'false');
+    expect(textarea).not.toHaveAttribute('aria-describedby');
+    expect(container.querySelectorAll('[role="alert"]')).toHaveLength(1);
   });
 
-  it('has no aria-describedby and reports valid when there is no error message', () => {
+  it('has no aria-describedby and reports valid when there are no field errors', () => {
     const { container } = render(<ContentForm {...baseProps()} />);
     const input = container.querySelector(
       'input[name="title"]',
@@ -126,10 +141,128 @@ describe('ContentForm', () => {
 
     expect(input).toHaveAttribute('aria-invalid', 'false');
     expect(input).not.toHaveAttribute('aria-describedby');
+    expect(container.querySelector('[role="alert"]')).toBeNull();
   });
 
-  it('has no automatically detectable accessibility violations', async () => {
-    const { container } = render(<ContentForm {...baseProps()} />);
+  it('renders a TagsField for a tags kind and forwards its array changes', () => {
+    const onFieldChange = vi.fn();
+    const { container, getByLabelText } = render(
+      <ContentForm
+        {...baseProps({
+          fields: [
+            { kind: 'tags', name: 'tags', label: 'Tags' },
+          ] as FieldSpec[],
+          value: { tags: ['React'] },
+          onFieldChange,
+        })}
+      />,
+    );
+    const input = container.querySelector(
+      'input[name="tags"]',
+    ) as HTMLInputElement;
+
+    fireEvent.change(input, { target: { value: 'Node' } });
+    fireEvent.keyDown(input, { key: 'Enter' });
+    expect(onFieldChange).toHaveBeenCalledWith('tags', ['React', 'Node']);
+
+    fireEvent.click(getByLabelText('Remove Tags React'));
+    expect(onFieldChange).toHaveBeenCalledWith('tags', []);
+  });
+
+  it('renders a ListField for a list kind and forwards its array changes', () => {
+    const onFieldChange = vi.fn();
+    const { getByLabelText } = render(
+      <ContentForm
+        {...baseProps({
+          fields: [
+            { kind: 'list', name: 'descriptions', label: 'Descriptions' },
+          ] as FieldSpec[],
+          value: { descriptions: ['One'] },
+          onFieldChange,
+        })}
+      />,
+    );
+
+    fireEvent.click(getByLabelText('Add Descriptions entry'));
+
+    expect(onFieldChange).toHaveBeenCalledWith('descriptions', ['One', '']);
+  });
+
+  it('defaults a missing array value to an empty tags/list field', () => {
+    const { container, getByLabelText } = render(
+      <ContentForm
+        {...baseProps({
+          fields: [
+            { kind: 'tags', name: 'tags', label: 'Tags' },
+            { kind: 'list', name: 'descriptions', label: 'Descriptions' },
+          ] as FieldSpec[],
+          value: {},
+        })}
+      />,
+    );
+
+    // The tags entry input exists but no chips do; the list renders only
+    // its add button.
+    expect(container.querySelector('input[name="tags"]')).not.toBeNull();
+    expect(container.querySelectorAll('button')).toHaveLength(1);
+    expect(getByLabelText('Add Descriptions entry')).not.toBeNull();
+  });
+
+  it('renders a RecordOfListsField over the whole value and forwards whole-record changes', () => {
+    const onValueChange = vi.fn();
+    const { getByLabelText } = render(
+      <ContentForm
+        {...baseProps({
+          fields: [
+            { kind: 'record-of-lists', name: '', label: 'Groups' },
+          ] as FieldSpec[],
+          value: { Skills: ['React'] },
+          onValueChange,
+        })}
+      />,
+    );
+
+    expect((getByLabelText('Group 1 name') as HTMLInputElement).value).toBe(
+      'Skills',
+    );
+
+    fireEvent.click(getByLabelText('Add entry to group 1'));
+
+    expect(onValueChange).toHaveBeenCalledWith({ Skills: ['React', ''] });
+  });
+
+  it('shows an inline error under an array field via its errorId', () => {
+    const { container } = render(
+      <ContentForm
+        {...baseProps({
+          fields: [
+            { kind: 'tags', name: 'tags', label: 'Tags' },
+          ] as FieldSpec[],
+          value: { tags: [] },
+          fieldErrors: { tags: 'Tags are broken' },
+        })}
+      />,
+    );
+
+    const input = container.querySelector(
+      'input[name="tags"]',
+    ) as HTMLInputElement;
+    const describedById = input.getAttribute('aria-describedby');
+    expect(describedById).toBeTruthy();
+    expect(container.querySelector(`#${describedById}`)?.textContent).toBe(
+      'Tags are broken',
+    );
+  });
+
+  it('has no automatically detectable accessibility violations, with and without a field error', async () => {
+    const { container, rerender } = render(<ContentForm {...baseProps()} />);
+    expect((await axe.run(container)).violations).toEqual([]);
+
+    rerender(
+      <ContentForm
+        {...baseProps({ fieldErrors: { title: 'Title is required' } })}
+      />,
+    );
     expect((await axe.run(container)).violations).toEqual([]);
   });
 });

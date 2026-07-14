@@ -18,14 +18,19 @@ test.describe('page load', () => {
   test('shows the JSON editors panel and prepopulated resume content', async ({
     page,
   }) => {
-    await expect(page.locator('.contact-editor textarea')).toBeVisible();
-    // Header has a field spec now (specs/editor-redesign.md, Phase 1) --
-    // its single `text`-kind field renders as an <input>, not a
-    // <textarea>, unlike the other still-unmigrated content types.
+    // Every content type has a field spec now (specs/editor-redesign.md,
+    // Phases 1/3/4/5) -- `text`-kind fields render as <input>s;
+    // Paragraph's is the `textarea` kind, so its form field is still a
+    // <textarea>, just driven by form state rather than raw JSON.
+    await expect(page.locator('.contact-editor input[name="name"]')).toBeVisible();
     await expect(page.locator('.header-editor input[name="header"]')).toBeVisible();
     await expect(page.locator('.paragraph-editor textarea')).toBeVisible();
-    await expect(page.locator('.experience-editor textarea')).toBeVisible();
-    await expect(page.locator('.any-list-editor textarea')).toBeVisible();
+    await expect(
+      page.locator('.experience-editor input[name="title"]'),
+    ).toBeVisible();
+    await expect(
+      page.locator('.any-list-editor [aria-label="Group 1 name"]'),
+    ).toBeVisible();
 
     // Fresh localStorage falls back to a prepopulated example resume
     // (src/utils/prepopulate-util.ts) rather than an empty layout area.

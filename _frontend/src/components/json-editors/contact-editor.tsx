@@ -1,9 +1,10 @@
 import c from 'classnames';
-import { object, string } from 'zod';
+import { email, object, string } from 'zod';
 
 import EXAMPLE_CONTACT from '@/__example-json/contact.json';
 import { CONTENT_TYPES } from '@/constants';
 import type { ContactJson, ContentContact } from '@/types/content-contact';
+import type { FieldSpec } from '@/types/field-spec';
 import type { NeverProps } from '@/types/generics';
 
 import BaseEditor from './base-editor';
@@ -19,14 +20,16 @@ type ContactEditorProps =
 // marks it optional -- a union that merely *includes* `undefined()` still
 // requires the key to be present (even as `undefined`), so editing a
 // contact down to just name/email failed validation on every real,
-// legitimate partial payload. Also adds `website`, present in
-// `ContactJsonOptional` and every example payload but missing from this
-// schema entirely -- BaseEditor saves the raw parsed JSON regardless of
-// what the schema recognizes, so this didn't drop the field on save, but
-// it did mean a malformed `website` value went completely unvalidated.
+// legitimate partial payload.
+//
+// name/email carry real constraints (non-empty, well-formed), not the
+// unconstrained string() they were as raw JSON: Contact is the first
+// migrated type whose form can actually show the per-field inline errors
+// specs/editor-redesign.md's Validation UX section calls for -- an
+// unconstrained string is unviolatable through a text input.
 const schema = object({
-  name: string(),
-  email: string(),
+  name: string().min(1, 'Name is required'),
+  email: email('Must be a valid email address, e.g. you@example.com'),
   title: string().nullish(),
   phone: string().optional(),
   location: string().optional(),
@@ -34,6 +37,17 @@ const schema = object({
   linkedin: string().optional(),
   website: string().optional(),
 });
+
+const fields: FieldSpec[] = [
+  { kind: 'text', name: 'name', label: 'Name' },
+  { kind: 'text', name: 'email', label: 'Email' },
+  { kind: 'text', name: 'title', label: 'Title' },
+  { kind: 'text', name: 'phone', label: 'Phone' },
+  { kind: 'text', name: 'location', label: 'Location' },
+  { kind: 'text', name: 'github', label: 'GitHub' },
+  { kind: 'text', name: 'linkedin', label: 'LinkedIn' },
+  { kind: 'text', name: 'website', label: 'Website' },
+];
 
 export default function ContactEditor(props: ContactEditorProps) {
   const { content = EXAMPLE_CONTACT } = props;
@@ -48,6 +62,7 @@ export default function ContactEditor(props: ContactEditorProps) {
       macro="Contact"
       content={content}
       schema={schema}
+      fields={fields}
     />
   );
 }

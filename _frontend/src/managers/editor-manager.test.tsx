@@ -29,13 +29,17 @@ describe('EditorManager', () => {
       </AllProviders>,
     );
 
-    // Contact/Experience/AnyList still render the raw-JSON textarea;
-    // Header/Paragraph render a generated form field instead
-    // (specs/editor-redesign.md, Phase 1) -- Header's is a single-line
-    // `text` field (<input>), Paragraph's is a `textarea` field kind, so
-    // it still renders a <textarea>, just driven by form state now.
-    expect(container.querySelectorAll('textarea')).toHaveLength(4);
+    // All 5 content types render generated form fields now
+    // (specs/editor-redesign.md, Phases 1/3/4/5) -- the only remaining
+    // <textarea> is Paragraph's, a `textarea` field kind driven by form
+    // state, not the raw-JSON editor.
+    expect(container.querySelectorAll('textarea')).toHaveLength(1);
     expect(container.querySelectorAll('input[name="header"]')).toHaveLength(1);
+    expect(container.querySelectorAll('input[name="name"]')).toHaveLength(1);
+    expect(container.querySelectorAll('input[name="company"]')).toHaveLength(1);
+    expect(
+      container.querySelectorAll('[aria-label="Group 1 name"]'),
+    ).toHaveLength(1);
   });
 
   it('shows a "Template" heading to distinguish it from a focused block\'s inline editor', () => {
