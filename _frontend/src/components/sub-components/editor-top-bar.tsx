@@ -14,12 +14,10 @@ import UncollapseIcon from '../icons/uncollapse-icon';
 type EditorTopBarProps = {
   contentId: ContentId;
   contentType: keyof typeof CONTENT_TYPES;
-  errorMessage: string;
-  // The generated-form path reports validation problems per field inside
-  // ContentForm rather than through the errorMessage banner above -- this
-  // flag still has to disable add/drag so an invalid block can't be
-  // placed (specs/editor-redesign.md, Validation UX).
-  hasFieldErrors?: boolean;
+  // Validation problems render per field inside ContentForm
+  // (specs/editor-redesign.md, Validation UX) -- this flag's job is to
+  // disable add/drag so an invalid block can't be placed.
+  hasFieldErrors: boolean;
   formId: string;
   isOpen: boolean;
   macro: string;
@@ -33,8 +31,7 @@ export const EditorTopBar = forwardRef<HTMLDivElement, EditorTopBarProps>(
     const { onCreate, layouts } = useAppContext();
     const {
       macro,
-      errorMessage,
-      hasFieldErrors = false,
+      hasFieldErrors,
       text,
       formId,
       contentType,
@@ -43,8 +40,6 @@ export const EditorTopBar = forwardRef<HTMLDivElement, EditorTopBarProps>(
       setIsOpen,
       mode,
     } = props;
-
-    const hasError = !!errorMessage || hasFieldErrors;
 
     const isInEditor = useMemo(
       () => mode === EDITOR_MODES.IN_EDITOR_MANAGER,
@@ -121,32 +116,29 @@ export const EditorTopBar = forwardRef<HTMLDivElement, EditorTopBarProps>(
       // bg-gray-600 + white text over the page background drops the
       // already-borderline contrast to ~2.3:1 (needs 4.5:1) -- caught by
       // a real-browser axe scan, which (unlike jsdom) computes actual
-      // rendered contrast. The error text below (bright red, role="alert")
-      // is already the primary "something's wrong" signal; the cursor
+      // rendered contrast. ContentForm's inline per-field errors are
+      // already the primary "something's wrong" signal; the cursor
       // change already covers "you can't drag this right now".
       return c('flex grow items-center', {
-        'cursor-grab': !hasError && isInEditor,
+        'cursor-grab': !hasFieldErrors && isInEditor,
       });
-    }, [hasError, isInEditor]);
+    }, [hasFieldErrors, isInEditor]);
 
     const labelClassName = useMemo(() => {
       return c('grow p-1 font-bold', {
-        'cursor-grab': !hasError && isInEditor,
+        'cursor-grab': !hasFieldErrors && isInEditor,
       });
-    }, [hasError, isInEditor]);
+    }, [hasFieldErrors, isInEditor]);
 
     return (
-      <>
+      // The collapse toggle (role="button") only wraps the drag handle +
+      // label -- the select/add/visibility-toggle controls below are
+      // siblings, not descendants, of it. Nesting real interactive
+      // elements inside a role="button" is an axe-flagged WCAG 4.1.2
+      // violation (AT can't sensibly announce a "button" that itself
+      // contains a select and two more buttons).
+      <div className={editorDragContainerClassName}>
         {/*
-          The collapse toggle (role="button") only wraps the drag handle +
-          label -- the select/add/visibility-toggle controls below are
-          siblings, not descendants, of it. Nesting real interactive
-          elements inside a role="button" is an axe-flagged WCAG 4.1.2
-          violation (AT can't sensibly announce a "button" that itself
-          contains a select and two more buttons).
-        */}
-        <div className={editorDragContainerClassName}>
-          {/*
             draggable/ref scoped to just this drag-handle+label region, not
             the whole top bar: in the wide left-panel card this used to be,
             the whole bar's own center point safely landed on this region.
@@ -156,107 +148,88 @@ export const EditorTopBar = forwardRef<HTMLDivElement, EditorTopBarProps>(
             artifact, since a real drag gesture starting there would hit
             the select instead of triggering a drag too.
           */}
-          <div
-            className={dragHandleClassName}
-            draggable="true"
-            ref={ref}
-            role="button"
-            tabIndex={0}
-            onClick={onClickTopBar}
-            onKeyDown={onKeyDownTopBar}
-            aria-expanded={isOpen}
-            aria-controls={`editor-collapse-${formId}`}
-            title={
-              isInEditor
-                ? `${isOpen ? 'Collapse' : 'Expand'} ${macro} JSON`
-                : undefined
-            }
+        <div
+          className={dragHandleClassName}
+          draggable="true"
+          ref={ref}
+          role="button"
+          tabIndex={0}
+          onClick={onClickTopBar}
+          onKeyDown={onKeyDownTopBar}
+          aria-expanded={isOpen}
+          aria-controls={`editor-collapse-${formId}`}
+          title={
+            isInEditor
+              ? `${isOpen ? 'Collapse' : 'Expand'} ${macro} form`
+              : undefined
+          }
+        >
+          {isInEditor && (
+            <span title="Drag onto a layout to add this block">
+              <DragHandleIcon className="m-1 p-1" />
+            </span>
+          )}
+          <label
+            className={labelClassName}
+            htmlFor={`editor-textarea-${formId}`}
           >
-            {isInEditor && (
-              <span title="Drag onto a layout to add this block">
-                <DragHandleIcon className="m-1 p-1" />
+            {macro}
+            {!isInEditor && (
+              // A small text suffix ("(Edit Mode)") was easy to miss --
+              // this badge is the stronger visual differentiation
+              // between the left panel's static template cards and a
+              // focused block's live inline editor (Finding 7).
+              <span className="ml-2 text-xs font-bold uppercase bg-cyan-700 text-white rounded px-2 py-0.5 align-middle">
+                Editing
               </span>
             )}
-            <label
-              className={labelClassName}
-              htmlFor={`editor-textarea-${formId}`}
-            >
-              {macro}
-              {!isInEditor && (
-                // A small text suffix ("(Edit Mode)") was easy to miss --
-                // this badge is the stronger visual differentiation
-                // between the left panel's static template cards and a
-                // focused block's live inline editor (Finding 7).
-                <span className="ml-2 text-xs font-bold uppercase bg-cyan-700 text-white rounded px-2 py-0.5 align-middle">
-                  Editing
-                </span>
-              )}
-            </label>
-          </div>
-
-          {isInEditor && (
-            <>
-              <label className="sr-only" htmlFor={`add-target-${formId}`}>
-                Add to layout
-              </label>
-              <select
-                id={`add-target-${formId}`}
-                title="Choose which layout this block will be added to"
-                // Explicit bg-white: without it the select renders
-                // transparent over this dark toolbar, leaving text-black
-                // at ~2.8:1 contrast against the bg-gray-600 behind it
-                // (needs 4.5:1) -- caught by a real-browser axe scan,
-                // which (unlike jsdom) actually computes rendered contrast.
-                className="mx-1 rounded bg-white text-black"
-                value={selectedZone?.key ?? ''}
-                onChange={onSelectZone}
-                disabled={!zones.length}
-              >
-                {zones.map((zone) => (
-                  <option key={zone.key} value={zone.key}>
-                    {zone.label}
-                  </option>
-                ))}
-              </select>
-              <button
-                className="mx-4 p-1 bg-green-300 hover:bg-green-500 rounded"
-                aria-label="Add Macro Button"
-                title="Add this block to the selected layout"
-                type="button"
-                onClick={onAdd}
-                disabled={hasError || !selectedZone}
-              >
-                <PlusIcon />
-              </button>
-              <button
-                aria-label="Toggle Editor Visibility Button"
-                title={`${isOpen ? 'Collapse' : 'Expand'} ${macro} JSON`}
-                type="button"
-              >
-                {isOpen ? <CollapseIcon /> : <UncollapseIcon />}
-              </button>
-            </>
-          )}
+          </label>
         </div>
-        {errorMessage && (
-          <p
-            id={`error-message-${formId}`}
-            // bg-red-600, not bg-red-400: white text on red-400 is ~2.9:1
-            // contrast (needs 4.5:1) -- caught by a real-browser axe scan.
-            // red-600 clears it at ~4.8:1 with the same white text.
-            className="text-white bg-red-600 rounded p-2"
-            role="alert"
-          >
-            <span
-              className="border-black border-2 rounded bg-white p-1 m-1"
-              aria-hidden="true"
+
+        {isInEditor && (
+          <>
+            <label className="sr-only" htmlFor={`add-target-${formId}`}>
+              Add to layout
+            </label>
+            <select
+              id={`add-target-${formId}`}
+              title="Choose which layout this block will be added to"
+              // Explicit bg-white: without it the select renders
+              // transparent over this dark toolbar, leaving text-black
+              // at ~2.8:1 contrast against the bg-gray-600 behind it
+              // (needs 4.5:1) -- caught by a real-browser axe scan,
+              // which (unlike jsdom) actually computes rendered contrast.
+              className="mx-1 rounded bg-white text-black"
+              value={selectedZone?.key ?? ''}
+              onChange={onSelectZone}
+              disabled={!zones.length}
             >
-              ❗
-            </span>
-            {errorMessage}
-          </p>
+              {zones.map((zone) => (
+                <option key={zone.key} value={zone.key}>
+                  {zone.label}
+                </option>
+              ))}
+            </select>
+            <button
+              className="mx-4 p-1 bg-green-300 hover:bg-green-500 rounded"
+              aria-label="Add Macro Button"
+              title="Add this block to the selected layout"
+              type="button"
+              onClick={onAdd}
+              disabled={hasFieldErrors || !selectedZone}
+            >
+              <PlusIcon />
+            </button>
+            <button
+              aria-label="Toggle Editor Visibility Button"
+              title={`${isOpen ? 'Collapse' : 'Expand'} ${macro} form`}
+              type="button"
+            >
+              {isOpen ? <CollapseIcon /> : <UncollapseIcon />}
+            </button>
+          </>
         )}
-      </>
+      </div>
     );
   },
 );

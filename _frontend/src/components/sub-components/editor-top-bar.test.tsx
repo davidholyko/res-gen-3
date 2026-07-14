@@ -30,7 +30,7 @@ function baseProps(overrides: Record<string, unknown> = {}) {
   return {
     contentId: 'c1' as never,
     contentType: 'CONTACT' as const,
-    errorMessage: '',
+    hasFieldErrors: false,
     formId: 'f1',
     isOpen: false,
     macro: 'Contact',
@@ -71,27 +71,6 @@ describe('EditorTopBar', () => {
     expect(getByText('Editing')).not.toBeNull();
     expect(container.querySelector('svg')).toBeNull();
     expect(queryByLabelText('Add Macro Button')).toBeNull();
-  });
-
-  it('renders the error message when present and hides it otherwise', () => {
-    const { container, rerender } = render(<EditorTopBar {...baseProps()} />);
-    expect(container.querySelector('p')).toBeNull();
-
-    rerender(<EditorTopBar {...baseProps({ errorMessage: 'Bad JSON' })} />);
-    expect(container.querySelector('p')?.textContent).toContain('Bad JSON');
-  });
-
-  it('announces the error via role="alert" and hides the decorative icon from AT', () => {
-    const { container } = render(
-      <EditorTopBar
-        {...baseProps({ errorMessage: 'Bad JSON', formId: 'f1' })}
-      />,
-    );
-
-    const alert = container.querySelector('[role="alert"]');
-    expect(alert).not.toBeNull();
-    expect(alert).toHaveAttribute('id', 'error-message-f1');
-    expect(alert?.querySelector('span')).toHaveAttribute('aria-hidden', 'true');
   });
 
   it('exposes the collapsible region via aria-expanded/aria-controls on the trigger', () => {
@@ -232,18 +211,10 @@ describe('EditorTopBar', () => {
     expect(setIsOpen).not.toHaveBeenCalled();
   });
 
-  it('disables the add button while there is an error', () => {
-    const { getByLabelText } = render(
-      <EditorTopBar {...baseProps({ errorMessage: 'Bad JSON' })} />,
-    );
-
-    expect(getByLabelText('Add Macro Button')).toBeDisabled();
-  });
-
-  it('disables the add button on per-field errors too, without showing the banner', () => {
-    // The generated-form path (specs/editor-redesign.md) reports errors
-    // under individual fields inside ContentForm, never through
-    // errorMessage -- but an invalid block still must not be addable.
+  it('disables the add button while the form has field errors, without any banner of its own', () => {
+    // Validation problems render per field inside ContentForm
+    // (specs/editor-redesign.md) -- this bar's only job is to keep an
+    // invalid block from being added.
     const { container, getByLabelText } = render(
       <EditorTopBar {...baseProps({ hasFieldErrors: true })} />,
     );
@@ -265,7 +236,7 @@ describe('EditorTopBar', () => {
     expect(toggleButton().querySelectorAll('path')).toHaveLength(2);
   });
 
-  it('has no automatically detectable accessibility violations, open or with an error', async () => {
+  it('has no automatically detectable accessibility violations, open or with field errors', async () => {
     // aria-controls points at the <form> BaseEditor normally renders
     // alongside this component; stand a matching element in for it so this
     // isolated render doesn't false-positive on a dangling ARIA reference.
@@ -279,7 +250,7 @@ describe('EditorTopBar', () => {
 
     rerender(
       <>
-        <EditorTopBar {...baseProps({ errorMessage: 'Bad JSON' })} />
+        <EditorTopBar {...baseProps({ hasFieldErrors: true })} />
         <form id="editor-collapse-f1" />
       </>,
     );

@@ -1,13 +1,5 @@
 import c from 'classnames';
-import type { ChangeEvent } from 'react';
-import {
-  useCallback,
-  useEffect,
-  useId,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
+import { useCallback, useEffect, useId, useMemo, useState } from 'react';
 import { Collapse } from 'react-collapse';
 import { useDrag } from 'react-dnd';
 import { v4 as uuidv4 } from 'uuid';
@@ -31,10 +23,11 @@ type BaseEditorProps = Partial<ContentAll> & {
   schema: ZodObject<NonNullable<unknown>> | ZodRecord;
   contentType: keyof typeof CONTENT_TYPES;
   mode?: keyof typeof EDITOR_MODES;
-  // When present, renders a generated <ContentForm> instead of the raw-
-  // JSON textarea (specs/editor-redesign.md). Content types without a
-  // field spec yet keep the untouched textarea path.
-  fields?: FieldSpec[];
+  // Drives the generated <ContentForm>. Required since Phase 5 of
+  // specs/editor-redesign.md: every content type has a field spec, and
+  // the raw-JSON textarea path this used to fall back to is gone (the
+  // spec's "raw-JSON fallback: removed, not kept" decision).
+  fields: FieldSpec[];
 };
 
 const DEFAULT_CONTENT_ID = '' as ContentId;
@@ -50,44 +43,34 @@ export default function BaseEditor(props: BaseEditorProps) {
   } = props;
 
   const { onCreate, onUpdate } = useAppContext();
-  // `rawText` backs the legacy raw-JSON textarea path (fields undefined);
-  // `formValue` backs the generated-form path (fields provided). Only one
-  // is ever authoritative for a given instance -- `text` below picks
-  // whichever one is, so everything downstream (EditorTopBar, the drag
-  // payload) keeps reading a single JSON string exactly as before,
-  // whichever path produced it (specs/editor-redesign.md).
-  const [rawText, setRawText] = useState(JSON.stringify(content, null, 2));
   const [formValue, setFormValue] = useState<Record<string, unknown>>(
-    // Every editor that currently passes `fields` also defaults its own
-    // `content` prop (e.g. HeaderEditor's `content = EXAMPLE_HEADER`), so
-    // `content` is never actually undefined here in practice -- kept as a
-    // defensive fallback for BaseEditor as a generically reusable
-    // component, not because it's reachable today.
+    // Every editor defaults its own `content` prop (e.g. HeaderEditor's
+    // `content = EXAMPLE_HEADER`), so `content` is never actually
+    // undefined here in practice -- kept as a defensive fallback for
+    // BaseEditor as a generically reusable component, not because it's
+    // reachable today.
     /* v8 ignore next */
     () => (content as Record<string, unknown>) ?? {},
   );
-  const text = fields ? JSON.stringify(formValue, null, 2) : rawText;
+  // Everything downstream of the form (EditorTopBar's add button, the
+  // drag payload) still reads a single JSON string, exactly as the old
+  // textarea path produced.
+  const text = JSON.stringify(formValue, null, 2);
   const [isOpen, setIsOpen] = useState(mode === EDITOR_MODES.IN_LAYOUT_MANAGER);
-  const [errorMessage, setErrorMessage] = useState('');
-  // Per-field errors for the generated-form path, keyed by field name
-  // (specs/editor-redesign.md, Validation UX) -- the raw-JSON textarea
-  // path keeps the single errorMessage banner above, since a JSON parse
-  // failure has no field to attach to.
+  // Per-field errors keyed by field name (specs/editor-redesign.md,
+  // Validation UX) -- each renders inline under its own field inside
+  // ContentForm; there is no whole-block error banner anymore.
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const hasFieldErrors = Object.keys(fieldErrors).length > 0;
   const [contentId, setContentId] = useState<ContentId>(
     props.contentId || DEFAULT_CONTENT_ID,
   );
-  const textAreaRef = useRef<HTMLTextAreaElement>(null);
   const formId = useId();
 
   const [{ isDragging }, ref] = useDrag({
     type: contentType,
     item: { contentType, contentId },
-    canDrag:
-      !errorMessage &&
-      !hasFieldErrors &&
-      mode === EDITOR_MODES.IN_EDITOR_MANAGER,
+    canDrag: !hasFieldErrors && mode === EDITOR_MODES.IN_EDITOR_MANAGER,
     collect: (monitor) => ({
       isDragging: !!monitor.isDragging(),
     }),
@@ -107,55 +90,18 @@ export default function BaseEditor(props: BaseEditorProps) {
     },
   });
 
-  const adjustTextareaHeight = () => {
-    // Only ever called from the effect below, which runs post-mount, so
-    // textAreaRef.current is always set by the time this executes.
-    /* v8 ignore next */
-    if (!textAreaRef.current) return;
-    textAreaRef.current.style.height = `${textAreaRef.current.scrollHeight}px`;
-  };
-
   useEffect(() => {
-    adjustTextareaHeight();
     const contentId = uuidv4() as ContentId;
-    // Regenerating contentId here (not in onChange) is deliberate: this
-    // also needs to fire on `mode` changes, not just `text` changes.
-    // Preserved as-is during the res-gen-2 port; revisit once PR 2's
-    // tests can verify a render-time-derivation refactor is safe.
+    // Regenerating contentId here (not in a change handler) is
+    // deliberate: this also needs to fire on `mode` changes, not just
+    // `text` changes. Preserved as-is during the res-gen-2 port; revisit
+    // once PR 2's tests can verify a render-time-derivation refactor is
+    // safe.
     if (mode === EDITOR_MODES.IN_EDITOR_MANAGER) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setContentId(contentId);
     }
   }, [text, mode]);
-
-  const validateJsonSchema = useCallback(
-    (jsonString: string) => {
-      try {
-        const jsonData = JSON.parse(jsonString);
-        schema.parse(jsonData);
-        setErrorMessage('');
-        return true;
-      } catch (error) {
-        const e = error as Error;
-        console.error(e.message);
-        setErrorMessage(e.message);
-        return false;
-      }
-    },
-    [schema],
-  );
-
-  const onChange = useCallback(
-    (event: ChangeEvent<HTMLTextAreaElement>) => {
-      // prevent backspace from bubbling up to remove the macro
-      event.stopPropagation();
-
-      const jsonValue = event.target.value;
-      setRawText(jsonValue);
-      validateJsonSchema(jsonValue);
-    },
-    [validateJsonSchema],
-  );
 
   const validateContent = useCallback(
     (contentToValidate: unknown) => {
@@ -187,11 +133,11 @@ export default function BaseEditor(props: BaseEditorProps) {
       setFormValue(next);
       const isValid = validateContent(next);
 
-      // Mirrors onBlur below: IN_EDITOR_MANAGER's ribbon/template forms
-      // aren't persisted until dragged/added (a new item is created from
-      // whatever the form currently holds); IN_LAYOUT_MANAGER's focused-
-      // block form saves live as you type, since there's no single
-      // "blur" event across multiple fields to hang a save on.
+      // IN_EDITOR_MANAGER's ribbon/template forms aren't persisted until
+      // dragged/added (a new item is created from whatever the form
+      // currently holds); IN_LAYOUT_MANAGER's focused-block form saves
+      // live as you type, since there's no single "blur" event across
+      // multiple fields to hang a save on.
       if (isValid && mode === EDITOR_MODES.IN_LAYOUT_MANAGER) {
         onUpdate({
           contentId,
@@ -200,11 +146,9 @@ export default function BaseEditor(props: BaseEditorProps) {
           layoutId: props.layoutId,
           layoutType: props.layoutType,
           layoutParentId: props.layoutParentId || undefined,
-          // Same looseness as the raw-JSON path below (JSON.parse returns
-          // `any`, so it type-checks without a cast there) -- BaseEditor
-          // is generic over every content type and can't itself prove
-          // `next`'s shape correlates with whichever `contentType` this
-          // instance actually is.
+          // BaseEditor is generic over every content type and can't
+          // itself prove `next`'s shape correlates with whichever
+          // `contentType` this instance actually is.
         } as ContentAll);
       }
     },
@@ -220,54 +164,6 @@ export default function BaseEditor(props: BaseEditorProps) {
     },
     [formValue, commitFormValue],
   );
-
-  useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      // prevent Delete or Backspace key from deleting the ContentItem
-      // in WYSIWYG editor when editting textarea element text
-      event.stopPropagation();
-    };
-
-    const element = textAreaRef.current;
-
-    element?.addEventListener('keydown', handleKeyDown);
-
-    return () => {
-      element?.removeEventListener('keydown', handleKeyDown);
-    };
-  }, []);
-
-  const onBlur = useCallback(
-    (event: ChangeEvent<HTMLTextAreaElement>) => {
-      if (mode === EDITOR_MODES.IN_EDITOR_MANAGER) {
-        return;
-      }
-
-      if (validateJsonSchema(event.target.value)) {
-        onUpdate({
-          contentId,
-          content: { ...JSON.parse(text) },
-          contentType: props.contentType,
-          layoutId: props.layoutId,
-          layoutType: props.layoutType,
-          layoutParentId: props.layoutParentId || undefined,
-        });
-      }
-    },
-    [contentId, mode, onUpdate, props, text, validateJsonSchema],
-  );
-
-  const textAreaClassName = useMemo(() => {
-    const defaultClassName = c('h-[9ch]', 'p-2', 'font-mono', 'resize-none');
-    const overrideClassName = c('grow', {
-      'w-auto': mode === EDITOR_MODES.IN_LAYOUT_MANAGER,
-      'w-[60ch]': mode !== EDITOR_MODES.IN_LAYOUT_MANAGER,
-      'bg-emerald-100': mode === EDITOR_MODES.IN_LAYOUT_MANAGER,
-      'bg-sky-100': mode === EDITOR_MODES.IN_EDITOR_MANAGER,
-    });
-
-    return c(defaultClassName, overrideClassName);
-  }, [mode]);
 
   const containerClassName = useMemo(() => {
     const className = c(props.className, {
@@ -285,8 +181,8 @@ export default function BaseEditor(props: BaseEditorProps) {
 
   const collapseWrapperClassName = useMemo(() => {
     // Only in IN_EDITOR_MANAGER mode (the ribbon) -- IN_LAYOUT_MANAGER's
-    // inline editor (a focused block's own JSON editor) stays in normal
-    // flow, unrelated to this ribbon redesign (specs/ribbon-layout.md).
+    // inline editor (a focused block's own form) stays in normal flow,
+    // unrelated to this ribbon redesign (specs/ribbon-layout.md).
     return c({
       'absolute top-full left-0 z-20 shadow-lg rounded':
         mode === EDITOR_MODES.IN_EDITOR_MANAGER,
@@ -299,7 +195,6 @@ export default function BaseEditor(props: BaseEditorProps) {
         formId={formId}
         mode={mode}
         macro={macro}
-        errorMessage={errorMessage}
         hasFieldErrors={hasFieldErrors}
         text={text}
         contentType={contentType}
@@ -324,41 +219,16 @@ export default function BaseEditor(props: BaseEditorProps) {
       */}
       <div className={collapseWrapperClassName}>
         <Collapse isOpened={isOpen}>
-          {fields ? (
-            <ContentForm
-              fields={fields}
-              value={formValue}
-              onFieldChange={onFieldChange}
-              onValueChange={commitFormValue}
-              formId={formId}
-              isOpen={isOpen}
-              mode={mode}
-              fieldErrors={fieldErrors}
-            />
-          ) : (
-            <form id={`editor-collapse-${formId}`} className="flex">
-              <textarea
-                id={`editor-textarea-${formId}`}
-                className={textAreaClassName}
-                name={contentType}
-                spellCheck="false"
-                onBlur={onBlur}
-                onChange={onChange}
-                value={text}
-                ref={textAreaRef}
-                // Collapse marks its wrapper aria-hidden when closed, but only
-                // hides it visually (height 0) -- a focusable descendant left
-                // in the tab order would still be reachable, landing keyboard
-                // users on a control an AT announces as hidden. -1 while
-                // collapsed keeps it out of the tab order until reopened.
-                tabIndex={isOpen ? 0 : -1}
-                aria-invalid={!!errorMessage}
-                aria-describedby={
-                  errorMessage ? `error-message-${formId}` : undefined
-                }
-              />
-            </form>
-          )}
+          <ContentForm
+            fields={fields}
+            value={formValue}
+            onFieldChange={onFieldChange}
+            onValueChange={commitFormValue}
+            formId={formId}
+            isOpen={isOpen}
+            mode={mode}
+            fieldErrors={fieldErrors}
+          />
         </Collapse>
       </div>
     </div>
