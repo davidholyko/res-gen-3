@@ -20,20 +20,26 @@ function item(contentType: string, content: Record<string, unknown>) {
 
 describe('EditorItem', () => {
   it.each([
-    [CONTENT_TYPES.CONTACT, { name: 'Ada' }],
-    [CONTENT_TYPES.HEADER, { header: 'Summary' }],
-    [CONTENT_TYPES.EXPERIENCE, { company: 'Acme', title: 'Eng' }],
-    [CONTENT_TYPES.PARAGRAPH, { paragraph: 'Bio' }],
-    [CONTENT_TYPES.ANY_LIST, { list: ['a'] }],
-  ])('renders the matching editor for %s', (contentType, content) => {
-    const { container } = render(
-      <AllProviders>
-        <EditorItem {...item(contentType, content)} />
-      </AllProviders>,
-    );
+    [CONTENT_TYPES.CONTACT, { name: 'Ada' }, 'textarea'],
+    // Header has a field spec now (specs/editor-redesign.md, Phase 1) --
+    // its single `text`-kind field renders as an <input>, not a
+    // <textarea>, unlike the other still-unmigrated content types below.
+    [CONTENT_TYPES.HEADER, { header: 'Summary' }, 'input'],
+    [CONTENT_TYPES.EXPERIENCE, { company: 'Acme', title: 'Eng' }, 'textarea'],
+    [CONTENT_TYPES.PARAGRAPH, { paragraph: 'Bio' }, 'textarea'],
+    [CONTENT_TYPES.ANY_LIST, { list: ['a'] }, 'textarea'],
+  ] as const)(
+    'renders the matching editor for %s',
+    (contentType, content, tag) => {
+      const { container } = render(
+        <AllProviders>
+          <EditorItem {...item(contentType, content)} />
+        </AllProviders>,
+      );
 
-    expect(container.querySelector('textarea')).not.toBeNull();
-  });
+      expect(container.querySelector(tag)).not.toBeNull();
+    },
+  );
 
   it('throws for an unsupported content type', () => {
     expect(() =>

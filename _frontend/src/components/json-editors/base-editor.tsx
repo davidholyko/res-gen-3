@@ -18,8 +18,10 @@ import { useAppContext } from '@/context/app-context';
 import type { ContentAll } from '@/types/content-all';
 import { ContentId } from '@/types/content-base-item';
 import type { DropResult } from '@/types/drop-result';
+import type { FieldSpec } from '@/types/field-spec';
 
 import { EditorTopBar } from '../sub-components/editor-top-bar';
+import ContentForm from './content-form';
 
 type BaseEditorProps = Partial<ContentAll> & {
   macro: string;
@@ -29,6 +31,10 @@ type BaseEditorProps = Partial<ContentAll> & {
   schema: ZodObject<NonNullable<unknown>> | ZodRecord;
   contentType: keyof typeof CONTENT_TYPES;
   mode?: keyof typeof EDITOR_MODES;
+  // When present, renders a generated <ContentForm> instead of the raw-
+  // JSON textarea (specs/editor-redesign.md). Content types without a
+  // field spec yet keep the untouched textarea path.
+  fields?: FieldSpec[];
 };
 
 const DEFAULT_CONTENT_ID = '' as ContentId;
@@ -39,11 +45,28 @@ export default function BaseEditor(props: BaseEditorProps) {
     content,
     macro,
     schema,
+    fields,
     mode = EDITOR_MODES.IN_EDITOR_MANAGER,
   } = props;
 
   const { onCreate, onUpdate } = useAppContext();
-  const [text, setText] = useState(JSON.stringify(content, null, 2));
+  // `rawText` backs the legacy raw-JSON textarea path (fields undefined);
+  // `formValue` backs the generated-form path (fields provided). Only one
+  // is ever authoritative for a given instance -- `text` below picks
+  // whichever one is, so everything downstream (EditorTopBar, the drag
+  // payload) keeps reading a single JSON string exactly as before,
+  // whichever path produced it (specs/editor-redesign.md).
+  const [rawText, setRawText] = useState(JSON.stringify(content, null, 2));
+  const [formValue, setFormValue] = useState<Record<string, unknown>>(
+    // Every editor that currently passes `fields` also defaults its own
+    // `content` prop (e.g. HeaderEditor's `content = EXAMPLE_HEADER`), so
+    // `content` is never actually undefined here in practice -- kept as a
+    // defensive fallback for BaseEditor as a generically reusable
+    // component, not because it's reachable today.
+    /* v8 ignore next */
+    () => (content as Record<string, unknown>) ?? {},
+  );
+  const text = fields ? JSON.stringify(formValue, null, 2) : rawText;
   const [isOpen, setIsOpen] = useState(mode === EDITOR_MODES.IN_LAYOUT_MANAGER);
   const [errorMessage, setErrorMessage] = useState('');
   const [contentId, setContentId] = useState<ContentId>(
@@ -119,10 +142,56 @@ export default function BaseEditor(props: BaseEditorProps) {
       event.stopPropagation();
 
       const jsonValue = event.target.value;
-      setText(jsonValue);
+      setRawText(jsonValue);
       validateJsonSchema(jsonValue);
     },
     [validateJsonSchema],
+  );
+
+  const validateContent = useCallback(
+    (contentToValidate: unknown) => {
+      try {
+        schema.parse(contentToValidate);
+        setErrorMessage('');
+        return true;
+      } catch (error) {
+        const e = error as Error;
+        console.error(e.message);
+        setErrorMessage(e.message);
+        return false;
+      }
+    },
+    [schema],
+  );
+
+  const onFieldChange = useCallback(
+    (name: string, value: string) => {
+      const next = { ...formValue, [name]: value };
+      setFormValue(next);
+      const isValid = validateContent(next);
+
+      // Mirrors onBlur below: IN_EDITOR_MANAGER's ribbon/template forms
+      // aren't persisted until dragged/added (a new item is created from
+      // whatever the form currently holds); IN_LAYOUT_MANAGER's focused-
+      // block form saves live as you type, since there's no single
+      // "blur" event across multiple fields to hang a save on.
+      if (isValid && mode === EDITOR_MODES.IN_LAYOUT_MANAGER) {
+        onUpdate({
+          contentId,
+          content: next,
+          contentType: props.contentType,
+          layoutId: props.layoutId,
+          layoutType: props.layoutType,
+          layoutParentId: props.layoutParentId || undefined,
+          // Same looseness as the raw-JSON path below (JSON.parse returns
+          // `any`, so it type-checks without a cast there) -- BaseEditor
+          // is generic over every content type and can't itself prove
+          // `next`'s shape correlates with whichever `contentType` this
+          // instance actually is.
+        } as ContentAll);
+      }
+    },
+    [formValue, validateContent, mode, contentId, onUpdate, props],
   );
 
   useEffect(() => {
@@ -227,28 +296,40 @@ export default function BaseEditor(props: BaseEditorProps) {
       */}
       <div className={collapseWrapperClassName}>
         <Collapse isOpened={isOpen}>
-          <form id={`editor-collapse-${formId}`} className="flex">
-            <textarea
-              id={`editor-textarea-${formId}`}
-              className={textAreaClassName}
-              name={contentType}
-              spellCheck="false"
-              onBlur={onBlur}
-              onChange={onChange}
-              value={text}
-              ref={textAreaRef}
-              // Collapse marks its wrapper aria-hidden when closed, but only
-              // hides it visually (height 0) -- a focusable descendant left
-              // in the tab order would still be reachable, landing keyboard
-              // users on a control an AT announces as hidden. -1 while
-              // collapsed keeps it out of the tab order until reopened.
-              tabIndex={isOpen ? 0 : -1}
-              aria-invalid={!!errorMessage}
-              aria-describedby={
-                errorMessage ? `error-message-${formId}` : undefined
-              }
+          {fields ? (
+            <ContentForm
+              fields={fields}
+              value={formValue}
+              onFieldChange={onFieldChange}
+              formId={formId}
+              isOpen={isOpen}
+              mode={mode}
+              errorMessage={errorMessage}
             />
-          </form>
+          ) : (
+            <form id={`editor-collapse-${formId}`} className="flex">
+              <textarea
+                id={`editor-textarea-${formId}`}
+                className={textAreaClassName}
+                name={contentType}
+                spellCheck="false"
+                onBlur={onBlur}
+                onChange={onChange}
+                value={text}
+                ref={textAreaRef}
+                // Collapse marks its wrapper aria-hidden when closed, but only
+                // hides it visually (height 0) -- a focusable descendant left
+                // in the tab order would still be reachable, landing keyboard
+                // users on a control an AT announces as hidden. -1 while
+                // collapsed keeps it out of the tab order until reopened.
+                tabIndex={isOpen ? 0 : -1}
+                aria-invalid={!!errorMessage}
+                aria-describedby={
+                  errorMessage ? `error-message-${formId}` : undefined
+                }
+              />
+            </form>
+          )}
         </Collapse>
       </div>
     </div>

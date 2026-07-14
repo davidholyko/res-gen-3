@@ -6,6 +6,7 @@ import { object, string } from 'zod';
 
 import { CONTENT_TYPES, EDITOR_MODES } from '@/constants';
 import type { ContentId, LayoutId } from '@/types/content-base-item';
+import type { FieldSpec } from '@/types/field-spec';
 
 const { useDragMock } = vi.hoisted(() => ({ useDragMock: vi.fn() }));
 vi.mock('react-dnd', async (importOriginal) => {
@@ -307,6 +308,142 @@ describe('BaseEditor', () => {
     const textarea = container.querySelector('textarea') as HTMLTextAreaElement;
     fireEvent.change(textarea, { target: { value: '{ nope' } });
     rerender(<BaseEditor {...baseProps()} />);
+    expect((await axe.run(container)).violations).toEqual([]);
+  });
+});
+
+describe('BaseEditor with a field spec (specs/editor-redesign.md, Phase 1)', () => {
+  const formFields: FieldSpec[] = [
+    { kind: 'text', name: 'name', label: 'Name' },
+  ];
+  // .min(1), unlike the trivial z.string() Header/Paragraph actually ship
+  // with, so the form path's validation/error wiring is reachable here --
+  // see the spec's "Phase 1 scope note" for why Header/Paragraph's own
+  // schemas can't exercise this.
+  const requiredSchema = object({ name: string().min(1) });
+
+  function formProps(overrides: Record<string, unknown> = {}) {
+    return baseProps({
+      fields: formFields,
+      schema: requiredSchema,
+      ...overrides,
+    });
+  }
+
+  it('renders a generated form field instead of the raw-JSON textarea', () => {
+    const { container } = render(<BaseEditor {...formProps()} />);
+
+    expect(container.querySelector('textarea')).toBeNull();
+    const input = container.querySelector(
+      'input[name="name"]',
+    ) as HTMLInputElement;
+    expect(input.value).toBe('Ada');
+  });
+
+  it("the collapsible trigger's aria-controls still resolves to the form region", () => {
+    const { container } = render(<BaseEditor {...formProps()} />);
+
+    const trigger = container.querySelector('[role="button"]');
+    const controlsId = trigger?.getAttribute('aria-controls');
+    expect(controlsId).toBeTruthy();
+    expect(container.querySelector(`#${controlsId}`)).not.toBeNull();
+  });
+
+  it('calls onUpdate live as a field changes in IN_LAYOUT_MANAGER mode', () => {
+    const { container } = render(
+      <BaseEditor {...formProps({ mode: EDITOR_MODES.IN_LAYOUT_MANAGER })} />,
+    );
+    const input = container.querySelector(
+      'input[name="name"]',
+    ) as HTMLInputElement;
+
+    fireEvent.change(input, { target: { value: 'Grace' } });
+
+    expect(onUpdateMock).toHaveBeenCalledWith({
+      contentId: 'c1',
+      content: { name: 'Grace' },
+      contentType: CONTENT_TYPES.CONTACT,
+      layoutId: 'l1',
+      layoutType: 'SINGLE',
+      layoutParentId: undefined,
+    });
+  });
+
+  it('does not call onUpdate when a field change fails schema validation', () => {
+    const { container } = render(
+      <BaseEditor {...formProps({ mode: EDITOR_MODES.IN_LAYOUT_MANAGER })} />,
+    );
+    const input = container.querySelector(
+      'input[name="name"]',
+    ) as HTMLInputElement;
+
+    fireEvent.change(input, { target: { value: '' } });
+
+    expect(onUpdateMock).not.toHaveBeenCalled();
+    expect(container.querySelector('p')).not.toBeNull();
+  });
+
+  it('does not call onUpdate on field change in IN_EDITOR_MANAGER mode', () => {
+    const { container } = render(
+      <BaseEditor {...formProps({ mode: EDITOR_MODES.IN_EDITOR_MANAGER })} />,
+    );
+    const input = container.querySelector(
+      'input[name="name"]',
+    ) as HTMLInputElement;
+
+    fireEvent.change(input, { target: { value: 'Grace' } });
+
+    expect(onUpdateMock).not.toHaveBeenCalled();
+  });
+
+  it('creates a new item from the current form value on a successful drop', () => {
+    const { container } = render(<BaseEditor {...formProps()} />);
+    const input = container.querySelector(
+      'input[name="name"]',
+    ) as HTMLInputElement;
+    fireEvent.change(input, { target: { value: 'Grace' } });
+
+    const { end } = latestDragSpec();
+    end?.({ contentType: CONTENT_TYPES.CONTACT, contentId: 'c1' }, {
+      getDropResult: () => ({
+        layoutId: 'l2',
+        layoutType: 'SINGLE',
+        layoutParentId: 'p2',
+      }),
+    } as never);
+
+    expect(onCreateMock).toHaveBeenCalledWith({
+      contentId: expect.any(String),
+      content: { name: 'Grace' },
+      contentType: CONTENT_TYPES.CONTACT,
+      layoutId: 'l2',
+      layoutType: 'SINGLE',
+      layoutParentId: 'p2',
+    });
+  });
+
+  it('is not draggable while a field change fails schema validation', () => {
+    const { container } = render(
+      <BaseEditor {...formProps({ mode: EDITOR_MODES.IN_EDITOR_MANAGER })} />,
+    );
+    const input = container.querySelector(
+      'input[name="name"]',
+    ) as HTMLInputElement;
+
+    fireEvent.change(input, { target: { value: '' } });
+
+    expect(latestDragSpec().canDrag).toBe(false);
+  });
+
+  it('has no automatically detectable accessibility violations, including with an error shown', async () => {
+    const { container, rerender } = render(<BaseEditor {...formProps()} />);
+    expect((await axe.run(container)).violations).toEqual([]);
+
+    const input = container.querySelector(
+      'input[name="name"]',
+    ) as HTMLInputElement;
+    fireEvent.change(input, { target: { value: '' } });
+    rerender(<BaseEditor {...formProps()} />);
     expect((await axe.run(container)).violations).toEqual([]);
   });
 });

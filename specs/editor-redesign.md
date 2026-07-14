@@ -1,5 +1,5 @@
 ---
-status: draft
+status: in-progress
 ---
 
 # Editor redesign: intuitive content and layout editing
@@ -164,7 +164,9 @@ rather than one cutover:
 
 1. **Form primitives** — build the `text`/`textarea`/`tags`/`list`/
    `record-of-lists` field kinds and the generic `<ContentForm>` renderer,
-   proven against the two simplest types (Header, Paragraph).
+   proven against the two simplest types (Header, Paragraph). **Done** —
+   `text`/`textarea` only so far; `tags`/`list`/`record-of-lists` land
+   with the phases that actually need them.
 2. **Contact form** — flat fields only, no repeating structures; next
    simplest.
 3. **Experience form** — introduces `tags` and `list`.
@@ -220,3 +222,71 @@ use the JSON textarea while Header/Paragraph/Contact already have forms).
   across several "implement it" passes (as this session has been doing),
   or should each phase get its own spec file for a more granular
   approve/implement/review cycle?
+
+## Decisions (resolved before implementation)
+
+Terse go-ahead ("implement it") without addressing the open questions
+individually, so these are judgment calls made before starting, following
+this repo's established pattern of documenting such calls rather than
+leaving them implicit:
+
+- **Raw-JSON fallback: removed, not kept.** Once a content type has a
+  field spec, its form is the only editing UI for that type. A parallel
+  "Edit as JSON" escape hatch would mean maintaining two editing surfaces
+  indefinitely for marginal power-user value; the zod schema is still
+  there if it's ever wanted later.
+- **Data model: flat array + zone-aware `onMove` fix is sufficient.**
+  Not doing the deeper nesting-under-layout restructuring — it would
+  touch `app-context.tsx`'s whole shape and need a `localStorage`
+  migration path for a problem the zone-aware fix already solves.
+- **Drag-to-reorder within a zone: out of scope for this pass.**
+  Button-only Move Up/Down stays once it's zone-aware (Phase 6).
+- **SINGLE → DOUBLE conversion: out of scope**, as already stated in
+  Design → Layout management. Confirmed here rather than left as an
+  open question.
+- **Phasing: one continuous implementation effort**, matching how this
+  session has executed every other spec (ribbon-layout, multi-page-
+  indicator, etc.) — each phase still lands as its own reviewable commit/
+  PR, just without a separate spec file per phase.
+
+**Phase 1 scope note**: Header's and Paragraph's schemas are both a
+single unconstrained `z.string()` field — any string, including empty,
+satisfies them. That means per-field inline validation errors (Design →
+"Validation UX") aren't actually reachable through Phase 1's two target
+types (there's no way to enter an invalid value in a plain text/textarea
+field bound to `z.string()`). Building the full zod-issue-to-field-error
+mapping now would add untestable code paths. Deferred to whichever later
+phase first introduces a real per-field constraint (Contact's `email`
+looks like the first candidate) — Phase 1 keeps the existing single
+`errorMessage` string/banner, just validating a structured object
+directly instead of parsing JSON text first.
+
+## Findings from implementation (Phase 1)
+
+One real regression a live-browser check caught, not just unit tests:
+
+- **A React `onKeyDown` prop's `stopPropagation()` did not stop
+  `BaseMacro` from deleting a focused block while typing Backspace into
+  its new form field.** `BaseMacro` guards against exactly this hazard,
+  but via a *native* `document.addEventListener('keydown', ...)`
+  (`base-macro.tsx`) — a peer of wherever React's own synthetic dispatch
+  is attached, not a descendant of it. `stopPropagation()` only stops an
+  event from reaching *further* nodes along the bubble chain; it does
+  nothing to other listeners already registered on the same node
+  (`document`), which is exactly where `BaseMacro`'s listener lives.
+  `content-form.tsx`'s initial implementation used a synthetic
+  `onKeyDown={(e) => e.stopPropagation()}` per field and looked correct
+  in component tests (which dispatch directly on the field, never
+  reaching `document` at all) — but a real Playwright E2E test (typing
+  Backspace into a placed Header block's field) caught the block getting
+  deleted instead of just the last character. Fixed by matching what the
+  old raw-JSON textarea already did in `base-editor.tsx`: a real
+  `element.addEventListener('keydown', ...)` attached directly to the
+  field itself (via a React 19 ref-callback-with-cleanup), which fires —
+  and can stop propagation — before the event ever reaches `document`,
+  regardless of how many peer listeners are sitting there. Confirmed
+  fixed via a live debug script (`document.addEventListener` order
+  traced directly) and covered by
+  `end-to-end/tests/editor-forms.spec.ts`'s "backspace inside a form
+  field edits the text, not the macro" test, which a component-level
+  test alone could not have caught.
