@@ -1,5 +1,5 @@
 ---
-status: in-progress
+status: implemented
 ---
 
 # Editor redesign: intuitive content and layout editing
@@ -304,8 +304,17 @@ rather than one cutover:
 6. **Layout direct manipulation** — insert-at-position, drag-to-reorder
    layouts, per-zone "+ Add block" (with plain-language type names), the
    hover affordance on placed blocks, and retiring the Template ribbon
-   (see The user's journey → Journey-driven additions).
-7. **Zone-aware reordering fix** for `onMove`.
+   (see The user's journey → Journey-driven additions). **Done**, as
+   three commits: the per-zone add control, then gap inserters +
+   drag-to-reorder, then the ribbon retirement (which also removed the
+   `EDITOR_MODES` machinery, content drag-and-drop, the zone `<select>`,
+   the View → Toggle Editor action, and the Edit menu's "Remove Last
+   Layout"; older saves' `isEditorVisible` key is read-tolerated and
+   simply ignored).
+7. **Zone-aware reordering fix** for `onMove`. **Done** — swaps with the
+   nearest same-zone neighbor via a positional swap, and moving the
+   first/last item of a zone is an explicit no-op instead of a silent
+   cross-zone reorder.
 
 Each phase is independently shippable and testable; a phase landing
 doesn't require the others to be done first (e.g. Experience can still
@@ -315,28 +324,29 @@ use the JSON textarea while Header/Paragraph/Contact already have forms).
 
 - [x] Every content type is editable via real form fields — no content
       type still requires hand-editing JSON in the default flow
-- [ ] Adding a new block of any content type happens from a control on
+- [x] Adding a new block of any content type happens from a control on
       the layout/zone itself, not a separate template panel — and once
       that control ships, the Template ribbon (zone dropdown, green "+",
       drag-from-ribbon) is removed rather than left as a second path
-- [ ] The "+ Add block" menu names the five content types in plain
+- [x] The "+ Add block" menu names the five content types in plain
       language — no internal identifiers like "AnyList" in user-facing
       UI
-- [ ] New blocks start blank (or with clearly-labeled placeholders), not
+- [x] New blocks start blank (or with clearly-labeled placeholders), not
       copied from pre-filled example content
-- [ ] Placed blocks show a hover affordance signaling they can be
+- [x] Placed blocks show a hover affordance signaling they can be
       clicked to edit
-- [ ] A layout can be inserted at a specific position (not just
+- [x] A layout can be inserted at a specific position (not just
       appended), and layouts can be reordered via drag
-- [ ] Dragging a ribbon item near the top/bottom edge of the viewport
-      auto-scrolls the page, so an off-screen layout is reachable without
-      releasing and restarting the drag
-- [ ] Reordering content only ever moves an item within its own zone —
+- [x] Dragging near the top/bottom edge of the viewport auto-scrolls the
+      page, so an off-screen target is reachable without releasing and
+      restarting the drag (originally exercised by ribbon-item drags;
+      layout-reorder drags are the surviving drag surface it now serves)
+- [x] Reordering content only ever moves an item within its own zone —
       moving the first/last item in a zone cannot silently reorder
       relative to a different layout's content
-- [ ] Existing resumes saved under the current `localStorage` schema
+- [x] Existing resumes saved under the current `localStorage` schema
       still load correctly after this ships
-- [ ] All changes keep `_frontend` at 100% coverage and the `axe-core`
+- [x] All changes keep `_frontend` at 100% coverage and the `axe-core`
       component/E2E suites clean; each phase gets `end-to-end` happy-path
       coverage for its new interactions
 
@@ -432,6 +442,35 @@ One real regression a live-browser check caught, not just unit tests:
   `end-to-end/tests/editor-forms.spec.ts`'s "backspace inside a form
   field edits the text, not the macro" test, which a component-level
   test alone could not have caught.
+
+## Findings from implementation (Phases 6–7)
+
+- **Anything that resizes or unmounts at dragstart hangs Chromium's
+  intercepted-drag loop mid-gesture.** The gap inserters' first
+  implementation grew each gap (h-7 → h-9 + margins) and unmounted its
+  buttons the moment a layout drag began; every Playwright drag gesture
+  (both `dragTo()` and the low-level mouse API) then hung on the first
+  post-mousedown move, while the identical gesture against a
+  geometry-stable target worked fine. The fix is a rule worth keeping:
+  a drop target's drag-in-progress state must be **style-only** — same
+  geometry, same children, colors/pointer-events only
+  (`layout-gap-inserter.tsx`).
+- **Blank blocks surfaced a real axe violation: empty heading
+  elements.** A freshly added Section heading (or Contact) block
+  rendered `<h2></h2>`/`<h1></h1>` until typed into — flagged as
+  `empty-heading` by a real-browser scan. Header/Contact macros now
+  render an italic gray placeholder paragraph instead of an empty
+  heading while blank; canvas-only, since the PDF renders from content
+  through its own component tree.
+- **The keyboard Tab order got *shorter and more useful* as a side
+  effect of the retirement.** With the ribbon gone, Tab goes File/Edit/
+  View straight into the canvas: the first gap's insert buttons (which
+  reveal on focus, keeping the no-hover path), then each layout's
+  header controls, then its blocks. keyboard.spec.ts asserts the new
+  sequence.
+- **`localStorage` back-compat cost nothing.** Old saves carry an
+  `isEditorVisible` key for the retired ribbon toggle; `JSON.parse`
+  simply ignores it — no migration, no version gate.
 
 ## Findings from implementation (Phases 3–5)
 
