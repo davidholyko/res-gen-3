@@ -14,9 +14,11 @@ describe('HeaderEditor', () => {
         <HeaderEditor />
       </AllProviders>,
     );
-    const textarea = container.querySelector('textarea') as HTMLTextAreaElement;
+    const input = container.querySelector(
+      'input[name="header"]',
+    ) as HTMLInputElement;
 
-    expect(JSON.parse(textarea.value)).toHaveProperty('header');
+    expect(input.value).not.toBe('');
   });
 
   it('renders provided content instead of the example', () => {
@@ -29,10 +31,10 @@ describe('HeaderEditor', () => {
         />
       </AllProviders>,
     );
-    const textarea = container.querySelector('textarea') as HTMLTextAreaElement;
+    const input = container.querySelector(
+      'input[name="header"]',
+    ) as HTMLInputElement;
 
-    expect(JSON.parse(textarea.value)).toEqual({
-      header: 'Professional Summary',
-    });
+    expect(input.value).toBe('Professional Summary');
   });
 });

@@ -14,9 +14,11 @@ describe('ParagraphEditor', () => {
         <ParagraphEditor />
       </AllProviders>,
     );
-    const textarea = container.querySelector('textarea') as HTMLTextAreaElement;
+    const textarea = container.querySelector(
+      'textarea[name="paragraph"]',
+    ) as HTMLTextAreaElement;
 
-    expect(JSON.parse(textarea.value)).toHaveProperty('paragraph');
+    expect(textarea.value).not.toBe('');
   });
 
   it('renders provided content instead of the example', () => {
@@ -29,10 +31,10 @@ describe('ParagraphEditor', () => {
         />
       </AllProviders>,
     );
-    const textarea = container.querySelector('textarea') as HTMLTextAreaElement;
+    const textarea = container.querySelector(
+      'textarea[name="paragraph"]',
+    ) as HTMLTextAreaElement;
 
-    expect(JSON.parse(textarea.value)).toEqual({
-      paragraph: 'A short bio.',
-    });
+    expect(textarea.value).toBe('A short bio.');
   });
 });

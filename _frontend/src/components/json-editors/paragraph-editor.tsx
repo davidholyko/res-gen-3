@@ -7,6 +7,7 @@ import type {
   ContentParagraph,
   ParagraphJson,
 } from '@/types/content-paragraph';
+import type { FieldSpec } from '@/types/field-spec';
 import type { NeverProps } from '@/types/generics';
 
 import BaseEditor from './base-editor';
@@ -21,6 +22,10 @@ const schema = object({
   paragraph: string(),
 });
 
+const fields: FieldSpec[] = [
+  { kind: 'textarea', name: 'paragraph', label: 'Paragraph' },
+];
+
 export default function ParagraphEditor(props: ParagraphEditorProps) {
   const { content = EXAMPLE_PARAGRAPH } = props;
 
@@ -34,6 +39,7 @@ export default function ParagraphEditor(props: ParagraphEditorProps) {
       macro="Paragraph"
       content={content}
       schema={schema}
+      fields={fields}
     />
   );
 }

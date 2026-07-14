@@ -19,7 +19,10 @@ test.describe('page load', () => {
     page,
   }) => {
     await expect(page.locator('.contact-editor textarea')).toBeVisible();
-    await expect(page.locator('.header-editor textarea')).toBeVisible();
+    // Header has a field spec now (specs/editor-redesign.md, Phase 1) --
+    // its single `text`-kind field renders as an <input>, not a
+    // <textarea>, unlike the other still-unmigrated content types.
+    await expect(page.locator('.header-editor input[name="header"]')).toBeVisible();
     await expect(page.locator('.paragraph-editor textarea')).toBeVisible();
     await expect(page.locator('.experience-editor textarea')).toBeVisible();
     await expect(page.locator('.any-list-editor textarea')).toBeVisible();

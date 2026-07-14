@@ -4,6 +4,7 @@ import { object, string } from 'zod';
 import EXAMPLE_HEADER from '@/__example-json/header-1.json';
 import { CONTENT_TYPES } from '@/constants';
 import type { ContentHeader, HeaderJson } from '@/types/content-header';
+import type { FieldSpec } from '@/types/field-spec';
 import type { NeverProps } from '@/types/generics';
 
 import BaseEditor from './base-editor';
@@ -18,6 +19,8 @@ const schema = object({
   header: string(),
 });
 
+const fields: FieldSpec[] = [{ kind: 'text', name: 'header', label: 'Header' }];
+
 export default function HeaderEditor(props: HeaderEditorProps) {
   const { content = EXAMPLE_HEADER } = props;
 
@@ -31,6 +34,7 @@ export default function HeaderEditor(props: HeaderEditorProps) {
       macro="Header"
       content={content}
       schema={schema}
+      fields={fields}
     />
   );
 }
