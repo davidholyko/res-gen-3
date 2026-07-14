@@ -2,15 +2,20 @@ import { fireEvent, render } from '@testing-library/react';
 import axe from 'axe-core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { onMoveMock, onDeleteMock } = vi.hoisted(() => ({
+const { onMoveMock, onDeleteMock, pushUndoSnapshotMock } = vi.hoisted(() => ({
   onMoveMock: vi.fn(),
   onDeleteMock: vi.fn(),
+  pushUndoSnapshotMock: vi.fn(),
 }));
 vi.mock('@/context/app-context', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/context/app-context')>();
   return {
     ...actual,
-    useAppContext: () => ({ onMove: onMoveMock, onDelete: onDeleteMock }),
+    useAppContext: () => ({
+      onMove: onMoveMock,
+      onDelete: onDeleteMock,
+      pushUndoSnapshot: pushUndoSnapshotMock,
+    }),
   };
 });
 
@@ -20,6 +25,7 @@ const { MOVE_ACTION } = await import('@/context/app-context');
 beforeEach(() => {
   onMoveMock.mockReset();
   onDeleteMock.mockReset();
+  pushUndoSnapshotMock.mockReset();
 });
 
 describe('MacroTopBar', () => {
@@ -35,31 +41,15 @@ describe('MacroTopBar', () => {
     expect(onMoveMock).toHaveBeenCalledWith(MOVE_ACTION.MACRO_DOWN, 'c1');
   });
 
-  it('deletes the macro when the confirmation is accepted', () => {
-    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
+  it('deletes the macro immediately, after pushing an undo snapshot', () => {
     const { getByLabelText } = render(
       <MacroTopBar contentId={'c1' as never} />,
     );
 
     fireEvent.click(getByLabelText('Delete Macro Button'));
 
-    expect(confirmSpy).toHaveBeenCalledWith(
-      'Delete this block? This cannot be undone.',
-    );
+    expect(pushUndoSnapshotMock).toHaveBeenCalledWith('Block deleted');
     expect(onDeleteMock).toHaveBeenCalledWith({ contentId: 'c1' });
-    confirmSpy.mockRestore();
-  });
-
-  it('does not delete the macro when the confirmation is declined', () => {
-    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false);
-    const { getByLabelText } = render(
-      <MacroTopBar contentId={'c1' as never} />,
-    );
-
-    fireEvent.click(getByLabelText('Delete Macro Button'));
-
-    expect(onDeleteMock).not.toHaveBeenCalled();
-    confirmSpy.mockRestore();
   });
 
   it('has no automatically detectable accessibility violations', async () => {

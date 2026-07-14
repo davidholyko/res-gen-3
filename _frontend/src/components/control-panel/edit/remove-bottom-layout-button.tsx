@@ -14,19 +14,13 @@ export default function RemoveBottomLayoutButton({
   role,
   tabIndex,
 }: RemoveBottomLayoutButtonProps) {
-  const { popLayout, isEditorVisible } = useAppContext();
+  const { popLayout, isEditorVisible, pushUndoSnapshot } = useAppContext();
 
-  // Confirming here: this was previously instant and irreversible, same
-  // as per-block delete (specs/app-ux-improvements.md, Finding 4).
+  // Undo, not window.confirm -- see specs/undo-destructive-actions.md.
   const handleClick = useCallback(() => {
-    if (
-      window.confirm(
-        'Remove the last layout? This will delete any content in it.',
-      )
-    ) {
-      popLayout();
-    }
-  }, [popLayout]);
+    pushUndoSnapshot('Last layout removed');
+    popLayout();
+  }, [popLayout, pushUndoSnapshot]);
 
   if (isEditorVisible) {
     return null;

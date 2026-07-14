@@ -1,16 +1,20 @@
 import { fireEvent, render } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { popLayoutMock, contextState } = vi.hoisted(() => ({
-  popLayoutMock: vi.fn(),
-  contextState: { isEditorVisible: false },
-}));
+const { popLayoutMock, pushUndoSnapshotMock, contextState } = vi.hoisted(
+  () => ({
+    popLayoutMock: vi.fn(),
+    pushUndoSnapshotMock: vi.fn(),
+    contextState: { isEditorVisible: false },
+  }),
+);
 vi.mock('@/context/app-context', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/context/app-context')>();
   return {
     ...actual,
     useAppContext: () => ({
       popLayout: popLayoutMock,
+      pushUndoSnapshot: pushUndoSnapshotMock,
       isEditorVisible: contextState.isEditorVisible,
     }),
   };
@@ -21,31 +25,18 @@ const { default: RemoveBottomLayoutButton } =
 
 beforeEach(() => {
   popLayoutMock.mockReset();
+  pushUndoSnapshotMock.mockReset();
   contextState.isEditorVisible = false;
 });
 
 describe('RemoveBottomLayoutButton', () => {
-  it('calls popLayout when the confirmation is accepted', () => {
-    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
+  it('calls popLayout immediately, after pushing an undo snapshot', () => {
     const { getByText } = render(<RemoveBottomLayoutButton />);
 
     fireEvent.click(getByText('Remove Last Layout'));
 
-    expect(confirmSpy).toHaveBeenCalledWith(
-      'Remove the last layout? This will delete any content in it.',
-    );
+    expect(pushUndoSnapshotMock).toHaveBeenCalledWith('Last layout removed');
     expect(popLayoutMock).toHaveBeenCalledTimes(1);
-    confirmSpy.mockRestore();
-  });
-
-  it('does not call popLayout when the confirmation is declined', () => {
-    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false);
-    const { getByText } = render(<RemoveBottomLayoutButton />);
-
-    fireEvent.click(getByText('Remove Last Layout'));
-
-    expect(popLayoutMock).not.toHaveBeenCalled();
-    confirmSpy.mockRestore();
   });
 
   it('renders nothing while the editor panel is visible', () => {

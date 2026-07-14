@@ -19,7 +19,7 @@ type MacroTopBarProps = {
 export const MacroTopBar = forwardRef<HTMLDivElement, MacroTopBarProps>(
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   (props: MacroTopBarProps, _ref: Ref<HTMLDivElement>) => {
-    const { onMove, onDelete } = useAppContext();
+    const { onMove, onDelete, pushUndoSnapshot } = useAppContext();
     const { contentId } = props;
 
     const editorDragContainerClassName = useMemo(() => {
@@ -36,14 +36,14 @@ export const MacroTopBar = forwardRef<HTMLDivElement, MacroTopBarProps>(
       [contentId, onMove],
     );
 
-    // Confirming here: deleting was previously instant and irreversible --
-    // a stray click on a small icon button lost content permanently with
-    // no way to get it back (specs/app-ux-improvements.md, Finding 4).
+    // Undo, not window.confirm: a confirm dialog stops an accidental
+    // click but is a dead end if you actually meant to delete something
+    // else -- pushing an undo snapshot first lets the toast's Undo
+    // button fully restore this block (specs/undo-destructive-actions.md).
     const onDestroy = useCallback(() => {
-      if (window.confirm('Delete this block? This cannot be undone.')) {
-        onDelete({ contentId });
-      }
-    }, [contentId, onDelete]);
+      pushUndoSnapshot('Block deleted');
+      onDelete({ contentId });
+    }, [contentId, onDelete, pushUndoSnapshot]);
 
     return (
       <div className={editorDragContainerClassName} draggable="true">

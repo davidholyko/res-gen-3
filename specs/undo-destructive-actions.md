@@ -1,5 +1,5 @@
 ---
-status: draft
+status: implemented
 ---
 
 # Undo destructive actions
@@ -61,16 +61,18 @@ All three actions currently behind `window.confirm()`:
   most recent destructive action is undoable — performing a second
   destructive action, or explicitly dismissing the toast, discards the
   previous snapshot instead of stacking a history.
-- A new `UndoToast` component renders in a fixed corner (bottom-left,
-  clear of the existing top-right `SavedIndicator`), shown whenever the
-  undo buffer is non-empty. Contains the description text + an "Undo"
-  button that restores the snapshot via `onImportFile` and clears the
-  buffer.
-- **Replaces** `window.confirm()` on all three actions above — the toast
-  *is* the safety net now; keeping both would mean confirming a click and
-  then also being offered undo for the thing you just confirmed you
-  wanted, which is redundant friction in the other direction.
-- Auto-dismiss timing and exact copy are open questions below.
+- A new `UndoToast` component renders in a fixed corner (bottom-right —
+  see Decisions below for why not bottom-left), shown whenever the undo
+  buffer is non-empty. Contains the description text + an "Undo" button
+  that restores the snapshot and clears the buffer.
+- **Replaces `window.confirm()` on the two finer-grained actions** (delete
+  a block, remove a layout) — the toast *is* the safety net now; keeping
+  both would mean confirming a click and then also being offered undo for
+  the thing you just confirmed you wanted, which is redundant friction in
+  the other direction.
+- **"New" keeps `window.confirm()`** and *also* gets the undo toast
+  afterward — resolved in Decisions below. It clears the entire resume,
+  not one block/layout, so the extra guard stays as defense-in-depth.
 
 ### Accessibility
 
@@ -89,37 +91,50 @@ All three actions currently behind `window.confirm()`:
 
 ## Acceptance criteria
 
-- [ ] Deleting a block, removing a layout (either affordance), and "New"
-      no longer show a `window.confirm()` dialog
-- [ ] Each of those three actions instead shows a toast with an "Undo"
-      button that fully restores the pre-action state when clicked
-      (using it for a *destructive* deletion is not enough test coverage
-      by itself — clicking a second Undo, or without ever having deleted
-      anything, must not throw a "must be used within a Provider" or
-      similar undefined-state error)
-- [ ] Performing a second destructive action while a toast is showing
+- [x] Deleting a block and removing a layout (either affordance) no
+      longer show a `window.confirm()` dialog; "New" still does, per the
+      Decisions section
+- [x] All three actions show a toast with an "Undo" button that fully
+      restores the pre-action state when clicked (calling `performUndo`
+      with no snapshot, or after it's already been consumed, is a safe
+      no-op rather than throwing)
+- [x] Performing a second destructive action while a toast is showing
       replaces it (and its undo target) rather than stacking
-- [ ] The toast is accessible: announced via `aria-live`, "Undo" is
+- [x] The toast is accessible: announced via `aria-live`, "Undo" is
       keyboard-reachable, and the auto-dismiss timing doesn't violate
-      WCAG 2.2 SC 2.2.1
-- [ ] `_frontend` stays at 100% coverage; `end-to-end` gets happy-path
-      coverage for at least one undo flow (e.g. remove a layout, undo,
-      confirm it's back with its original content intact)
+      WCAG 2.2 SC 2.2.1 (paused on hover/focus)
+- [x] `_frontend` stays at 100% coverage; `end-to-end` gets happy-path
+      coverage for every undo flow (remove a layout, delete a block,
+      "New" — each undone and confirmed restored, plus toast-replacement
+      and auto-dismiss)
 
-## Open questions
+## Decisions (resolved before implementation)
 
-- **Auto-dismiss timing**: how long does the toast stay up before the
-  undo option is gone for good? A few seconds (Gmail-style, ~5-8s) is
-  the obvious default but needs to reconcile with the WCAG timing
-  concern above — possibly by pausing the timer on hover/keyboard focus.
-- **Keyboard shortcut**: is a `Ctrl+Z`/`Cmd+Z` binding in scope alongside
-  the toast button, or is the toast's own button enough for v1?
-- **Toast placement/style**: bottom-left was picked above mainly to
-  avoid colliding with the existing top-right `SavedIndicator` — worth
-  confirming against the rest of the cyan/gray palette
-  (`app-ux-improvements.md`'s "no new colors" decision) once mocked up.
-- **Does removing `window.confirm()` entirely feel too permissive** for
-  "New" specifically, given it clears the *entire* resume (not just one
-  layout/block)? An alternative is keeping `window.confirm()` for "New"
-  only (highest blast radius) while using undo-only for the two
-  finer-grained actions (block delete, layout remove).
+- **Auto-dismiss timing**: 8 seconds, paused while the toast (or its
+  Undo button) has mouse hover or keyboard focus, resuming on
+  mouseleave/blur. This is the standard snackbar pattern (Material
+  Design does the same) and is a reasonable practical answer to WCAG 2.2
+  SC 2.2.1 — a user who needs more time to notice/react to the toast can
+  keep it alive indefinitely just by hovering or tabbing to it.
+- **Keyboard shortcut**: not in scope for v1. A global `Ctrl+Z`/`Cmd+Z`
+  listener risks colliding with the browser's own native undo inside the
+  JSON editor `<textarea>`s (which already has real, expected undo
+  semantics of its own) — the toast's own keyboard-reachable button is
+  enough for now. Can revisit as a follow-up if it's requested.
+- **Toast placement/style**: bottom-right (`fixed`) — bottom-left was the
+  original plan, but a live-browser check during implementation caught
+  `next dev`'s own devtools indicator (bottom-left by default)
+  overlapping and partially covering a bottom-left toast; since
+  `end-to-end/` runs against `next dev`, not a production build, that
+  collision would have been real, not just a dev-mode cosmetic issue.
+  Bottom-right avoids both that indicator and the existing top-right
+  `SavedIndicator`. Dark `bg-gray-800`/`text-white` body (a standard
+  snackbar look, darker than the existing `bg-gray-600` toolbars so it
+  visibly floats above the page), with the "Undo" action styled
+  `text-cyan-300` for contrast against the dark background — no new
+  colors outside the existing cyan/gray palette.
+- **"New" keeps `window.confirm()` *and* gets undo**: it clears the
+  entire resume (every layout and block at once), which is a large
+  enough blast radius to keep both the confirm guard *and* the safety
+  net, unlike the two finer-grained actions (delete a block, remove a
+  layout) where undo alone replaces confirm entirely.

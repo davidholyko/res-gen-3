@@ -273,6 +273,97 @@ describe('useAppContext', () => {
     });
   });
 
+  describe('undo', () => {
+    it('starts with no undo snapshot', () => {
+      const { result } = renderAppContext();
+
+      expect(result.current.undoSnapshot).toBeNull();
+    });
+
+    it('pushUndoSnapshot captures the current items/layouts with a description', () => {
+      const { result } = renderAppContext();
+
+      act(() => {
+        result.current.pushUndoSnapshot('Layout 1 removed');
+      });
+
+      expect(result.current.undoSnapshot).toEqual({
+        items: [CONTACT_ITEM, HEADER_ITEM],
+        layouts: [LAYOUT],
+        description: 'Layout 1 removed',
+      });
+    });
+
+    it('a second pushUndoSnapshot replaces the previous one instead of stacking', () => {
+      const { result } = renderAppContext();
+
+      act(() => {
+        result.current.pushUndoSnapshot('First action');
+      });
+      act(() => {
+        result.current.onDelete({ contentId: CONTACT_ITEM.contentId });
+      });
+      act(() => {
+        result.current.pushUndoSnapshot('Second action');
+      });
+
+      expect(result.current.undoSnapshot).toEqual({
+        items: [HEADER_ITEM],
+        layouts: [LAYOUT],
+        description: 'Second action',
+      });
+    });
+
+    it('performUndo restores the snapshotted items/layouts and clears the buffer', () => {
+      const { result } = renderAppContext();
+
+      act(() => {
+        result.current.pushUndoSnapshot('Layout 1 removed');
+      });
+      act(() => {
+        result.current.removeLayout(LAYOUT.layoutId);
+      });
+      expect(result.current.layouts).toEqual([]);
+
+      act(() => {
+        result.current.performUndo();
+      });
+
+      expect(result.current.layouts).toEqual([LAYOUT]);
+      expect(result.current.items).toEqual([CONTACT_ITEM, HEADER_ITEM]);
+      expect(result.current.undoSnapshot).toBeNull();
+    });
+
+    it('performUndo is a no-op when there is nothing to undo', () => {
+      const { result } = renderAppContext();
+
+      act(() => {
+        result.current.performUndo();
+      });
+
+      expect(result.current.items).toEqual([CONTACT_ITEM, HEADER_ITEM]);
+      expect(result.current.layouts).toEqual([LAYOUT]);
+    });
+
+    it('dismissUndo clears the buffer without restoring anything', () => {
+      const { result } = renderAppContext();
+
+      act(() => {
+        result.current.pushUndoSnapshot('Layout 1 removed');
+      });
+      act(() => {
+        result.current.removeLayout(LAYOUT.layoutId);
+      });
+
+      act(() => {
+        result.current.dismissUndo();
+      });
+
+      expect(result.current.undoSnapshot).toBeNull();
+      expect(result.current.layouts).toEqual([]);
+    });
+  });
+
   describe('onImportFile', () => {
     it('replaces items and layouts wholesale', () => {
       const { result } = renderAppContext();

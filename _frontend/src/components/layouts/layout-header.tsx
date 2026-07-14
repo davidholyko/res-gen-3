@@ -14,15 +14,13 @@ type LayoutHeaderProps = {
 // to remove one was the Edit menu's "Remove Last Layout" -- always the
 // most recently added, never a specific one.
 export default function LayoutHeader({ label, layoutId }: LayoutHeaderProps) {
-  const { removeLayout } = useAppContext();
+  const { removeLayout, pushUndoSnapshot } = useAppContext();
 
+  // Undo, not window.confirm -- see specs/undo-destructive-actions.md.
   const onRemove = useCallback(() => {
-    if (
-      window.confirm(`Remove ${label}? This will delete any content in it.`)
-    ) {
-      removeLayout(layoutId);
-    }
-  }, [label, layoutId, removeLayout]);
+    pushUndoSnapshot(`${label} removed`);
+    removeLayout(layoutId);
+  }, [label, layoutId, removeLayout, pushUndoSnapshot]);
 
   return (
     <div className="flex items-center justify-between mt-3 mb-1 first:mt-0">
