@@ -1,22 +1,16 @@
 import c from 'classnames';
 import { array, object, string } from 'zod';
 
-import EXAMPLE_EXPERIENCE from '@/__example-json/experience-1.json';
 import { CONTENT_TYPES } from '@/constants';
-import type {
-  ContentExperience,
-  ExperienceJson,
-} from '@/types/content-experience';
+import type { ContentExperience } from '@/types/content-experience';
 import type { FieldSpec } from '@/types/field-spec';
-import { NeverProps } from '@/types/generics';
 
 import BaseEditor from './base-editor';
 
-type ExperienceEditorProps =
-  | NeverProps
-  | (ContentExperience & {
-      content?: ExperienceJson;
-    });
+// Always a placed block's inline editor now -- the ribbon's example-
+// content template cards retired with specs/editor-redesign.md Phase 6,
+// so `content` is required, never defaulted.
+type ExperienceEditorProps = ContentExperience;
 
 // title/company carry non-empty constraints now that they're edited
 // through form fields (same reasoning as Contact's name/email,
@@ -42,8 +36,6 @@ const fields: FieldSpec[] = [
 ];
 
 export default function ExperienceEditor(props: ExperienceEditorProps) {
-  const { content = EXAMPLE_EXPERIENCE } = props;
-
   const className = c('experience-editor');
 
   return (
@@ -52,7 +44,6 @@ export default function ExperienceEditor(props: ExperienceEditorProps) {
       className={className}
       contentType={CONTENT_TYPES.EXPERIENCE}
       macro="Experience"
-      content={content}
       schema={schema}
       fields={fields}
     />

@@ -1,4 +1,4 @@
-import { expect, test } from './fixtures';
+import { expect, removeLastLayout, test } from './fixtures';
 
 test.describe('PDF preview modal', () => {
   test('opens, renders a real PDF in the iframe, and is properly labelled', async ({
@@ -67,9 +67,7 @@ test.describe('PDF preview modal', () => {
     page,
   }) => {
     // Remove the prepopulated layout to reach the true empty state.
-    await page.getByText('Edit', { exact: true }).click();
-    await page.getByText('Remove Last Layout').click();
-    await page.keyboard.press('Escape');
+    await removeLastLayout(page);
     await expect(page.locator('.layout-single')).toHaveCount(0);
 
     await page.getByText('View', { exact: true }).click();

@@ -8,21 +8,7 @@ import type { ContentId } from '@/types/content-base-item';
 import ExperienceEditor from './experience-editor';
 
 describe('ExperienceEditor', () => {
-  it('renders form fields defaulting to the example experience, not a JSON textarea', () => {
-    const { container } = render(
-      <AllProviders>
-        <ExperienceEditor />
-      </AllProviders>,
-    );
-
-    expect(container.querySelector('textarea')).toBeNull();
-    const company = container.querySelector(
-      'input[name="company"]',
-    ) as HTMLInputElement;
-    expect(company.value).not.toBe('');
-  });
-
-  it('renders provided content instead of the example, including its list rows', () => {
+  it('renders the provided content in form fields, including its list rows', () => {
     const { container, getByLabelText } = render(
       <AllProviders>
         <ExperienceEditor

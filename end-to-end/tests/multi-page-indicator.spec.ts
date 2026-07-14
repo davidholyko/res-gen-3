@@ -1,4 +1,4 @@
-import { expect, test } from './fixtures';
+import { expect, removeLastLayout, test } from './fixtures';
 
 // Happy-path coverage for specs/multi-page-indicator.md. The page count
 // comes from react-pdf's own real render pipeline (shared with the PDF
@@ -21,9 +21,7 @@ test.describe('multi-page indicator', () => {
       timeout: 5000,
     });
 
-    await page.getByText('Edit', { exact: true }).click();
-    await page.getByText('Remove Last Layout').click();
-    await page.keyboard.press('Escape');
+    await removeLastLayout(page);
 
     await page.getByText('Edit', { exact: true }).click();
     await page

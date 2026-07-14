@@ -2,7 +2,6 @@ import c from 'classnames';
 import type { ChangeEvent } from 'react';
 import { useCallback } from 'react';
 
-import { EDITOR_MODES } from '@/constants';
 import type { FieldSpec } from '@/types/field-spec';
 
 import ListField from './list-field';
@@ -18,8 +17,6 @@ type ContentFormProps = {
   // whose keys are themselves user data rather than a fixed field name.
   onValueChange: (next: Record<string, unknown>) => void;
   formId: string;
-  isOpen: boolean;
-  mode: keyof typeof EDITOR_MODES;
   // Validation problems keyed by field name (specs/editor-redesign.md,
   // Validation UX): each one renders as an inline message under just the
   // offending field, not a single banner for the whole block.
@@ -27,14 +24,11 @@ type ContentFormProps = {
 };
 
 // The generic form renderer for specs/editor-redesign.md: each content
-// type supplies a declarative field spec instead of BaseEditor rendering
-// a raw-JSON textarea for it. `text`/`textarea` landed in Phase 1
-// (Header/Paragraph, then Contact), `tags`/`list` in Phase 4
-// (Experience), and `record-of-lists` in Phase 5 (AnyList) -- all 5
-// content types edit through generated forms now.
+// type supplies a declarative field spec, and this renders a focused
+// block's inline editor -- the only editing surface since the raw-JSON
+// textarea (Phase 5) and the Template ribbon (Phase 6) retired.
 export default function ContentForm(props: ContentFormProps) {
-  const { fields, value, onFieldChange, formId, isOpen, mode, fieldErrors } =
-    props;
+  const { fields, value, onFieldChange, formId, fieldErrors } = props;
   const { onValueChange } = props;
 
   const onChange = useCallback(
@@ -48,21 +42,15 @@ export default function ContentForm(props: ContentFormProps) {
   // listener on the field itself, not a React onKeyDown prop.
   const stopKeydownPropagationRef = useStopKeydownPropagationRef();
 
-  const fieldClassName = c('p-2', {
-    'w-auto': mode === EDITOR_MODES.IN_LAYOUT_MANAGER,
-    'w-[60ch]': mode !== EDITOR_MODES.IN_LAYOUT_MANAGER,
-    'bg-emerald-100': mode === EDITOR_MODES.IN_LAYOUT_MANAGER,
-    'bg-sky-100': mode === EDITOR_MODES.IN_EDITOR_MANAGER,
-  });
+  const fieldClassName = 'p-2 w-auto bg-emerald-100';
 
   return (
     <form id={`editor-collapse-${formId}`} className="flex flex-col gap-2 p-2">
       {fields.map((field, index) => {
-        // The first field reuses the id the old raw-JSON textarea had
+        // The first field keeps the id the old raw-JSON textarea had
         // (`editor-textarea-${formId}`) -- EditorTopBar's macro-name
-        // <label> and its htmlFor wiring already point at that id and
-        // are untouched by this change. Every field here already has its
-        // own explicit label regardless.
+        // <label> points at it. Every field here already has its own
+        // explicit label regardless.
         const fieldId =
           index === 0
             ? `editor-textarea-${formId}`
@@ -77,8 +65,6 @@ export default function ContentForm(props: ContentFormProps) {
               fieldId={fieldId}
               label={field.label}
               value={value as Record<string, string[]>}
-              isOpen={isOpen}
-              mode={mode}
               error={error}
               errorId={errorId}
               onChange={onValueChange}
@@ -93,8 +79,6 @@ export default function ContentForm(props: ContentFormProps) {
               name={field.name}
               label={field.label}
               value={arrayValue}
-              isOpen={isOpen}
-              mode={mode}
               error={error}
               errorId={errorId}
               onChange={(next) => onFieldChange(field.name, next)}
@@ -109,10 +93,6 @@ export default function ContentForm(props: ContentFormProps) {
             onChange,
             ref: stopKeydownPropagationRef,
             spellCheck: 'false' as const,
-            // Same rationale as the old textarea: Collapse only hides its
-            // wrapper visually (height 0), so a still-focusable field
-            // would remain in the tab order while collapsed.
-            tabIndex: isOpen ? 0 : -1,
             'aria-invalid': !!error,
             'aria-describedby': error ? errorId : undefined,
           };

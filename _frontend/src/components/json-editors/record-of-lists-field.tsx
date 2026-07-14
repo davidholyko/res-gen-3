@@ -1,16 +1,12 @@
 import c from 'classnames';
 import { useCallback, useState } from 'react';
 
-import { EDITOR_MODES } from '@/constants';
-
 import { useStopKeydownPropagationRef } from './use-stop-keydown-propagation';
 
 type RecordOfListsFieldProps = {
   fieldId: string;
   label: string;
   value: Record<string, string[]>;
-  isOpen: boolean;
-  mode: keyof typeof EDITOR_MODES;
   error: string;
   errorId: string;
   onChange: (next: Record<string, string[]>) => void;
@@ -29,7 +25,7 @@ type NameError = {
 // object -- the record's keys are themselves user data, not a fixed
 // field name.
 export default function RecordOfListsField(props: RecordOfListsFieldProps) {
-  const { fieldId, label, value, isOpen, mode, error, errorId } = props;
+  const { fieldId, label, value, error, errorId } = props;
   const { onChange } = props;
 
   // A rename that collides with another group's name is blocked, not
@@ -121,19 +117,14 @@ export default function RecordOfListsField(props: RecordOfListsFieldProps) {
     [groups, commitGroups],
   );
 
-  const inputClassName = c('grow p-2', {
-    'bg-emerald-100': mode === EDITOR_MODES.IN_LAYOUT_MANAGER,
-    'bg-sky-100': mode === EDITOR_MODES.IN_EDITOR_MANAGER,
+  const inputClassName = c('grow p-2 bg-emerald-100', {
     'outline outline-2 outline-red-700': !!error,
   });
 
   const buttonClassName =
     'px-2 py-1 rounded text-gray-700 hover:bg-gray-200 disabled:opacity-40';
 
-  const containerClassName = c('flex flex-col gap-2', {
-    'w-auto': mode === EDITOR_MODES.IN_LAYOUT_MANAGER,
-    'w-[60ch]': mode !== EDITOR_MODES.IN_LAYOUT_MANAGER,
-  });
+  const containerClassName = 'flex flex-col gap-2 w-auto';
 
   return (
     // fieldset/legend, same reasoning as list-field.tsx: this is a group
@@ -169,7 +160,6 @@ export default function RecordOfListsField(props: RecordOfListsFieldProps) {
                     onRenameGroup(groupIndex, event.target.value)
                   }
                   ref={stopKeydownPropagationRef}
-                  tabIndex={isOpen ? 0 : -1}
                   aria-invalid={!!groupNameError || !!error}
                   aria-describedby={
                     groupNameError ? nameErrorId : error ? errorId : undefined
@@ -180,7 +170,6 @@ export default function RecordOfListsField(props: RecordOfListsFieldProps) {
                   className={buttonClassName}
                   aria-label={`Remove group ${groupIndex + 1}`}
                   title="Remove this group"
-                  tabIndex={isOpen ? 0 : -1}
                   onClick={() => onRemoveGroup(groupIndex)}
                 >
                   ✕
@@ -210,7 +199,6 @@ export default function RecordOfListsField(props: RecordOfListsFieldProps) {
                       onEntryChange(groupIndex, entryIndex, event.target.value)
                     }
                     ref={stopKeydownPropagationRef}
-                    tabIndex={isOpen ? 0 : -1}
                     aria-invalid={!!error}
                     aria-describedby={error ? errorId : undefined}
                   />
@@ -219,7 +207,6 @@ export default function RecordOfListsField(props: RecordOfListsFieldProps) {
                     className={buttonClassName}
                     aria-label={`Remove group ${groupIndex + 1} entry ${entryIndex + 1}`}
                     title="Remove"
-                    tabIndex={isOpen ? 0 : -1}
                     onClick={() => onRemoveEntry(groupIndex, entryIndex)}
                   >
                     ✕
@@ -230,7 +217,6 @@ export default function RecordOfListsField(props: RecordOfListsFieldProps) {
                 type="button"
                 className={c(buttonClassName, 'self-start ml-4 text-sm')}
                 aria-label={`Add entry to group ${groupIndex + 1}`}
-                tabIndex={isOpen ? 0 : -1}
                 onClick={() => onAddEntry(groupIndex)}
               >
                 + Add entry
@@ -242,7 +228,6 @@ export default function RecordOfListsField(props: RecordOfListsFieldProps) {
           type="button"
           className={c(buttonClassName, 'self-start text-sm')}
           aria-label="Add group"
-          tabIndex={isOpen ? 0 : -1}
           onClick={onAddGroup}
         >
           + Add group

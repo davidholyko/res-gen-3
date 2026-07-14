@@ -2,8 +2,6 @@ import { fireEvent, render } from '@testing-library/react';
 import axe from 'axe-core';
 import { describe, expect, it, vi } from 'vitest';
 
-import { EDITOR_MODES } from '@/constants';
-
 import ListField from './list-field';
 
 function baseProps(overrides: Record<string, unknown> = {}) {
@@ -12,8 +10,6 @@ function baseProps(overrides: Record<string, unknown> = {}) {
     name: 'descriptions',
     label: 'Descriptions',
     value: ['First point', 'Second point'],
-    isOpen: true,
-    mode: EDITOR_MODES.IN_LAYOUT_MANAGER,
     error: '',
     errorId: 'f1-descriptions-error',
     onChange: vi.fn(),
@@ -116,19 +112,6 @@ describe('ListField', () => {
     input.dispatchEvent(event);
 
     expect(stopPropagation).toHaveBeenCalled();
-  });
-
-  it('keeps rows and buttons out of the tab order while collapsed', () => {
-    const { getByLabelText } = render(
-      <ListField {...baseProps({ isOpen: false })} />,
-    );
-
-    expect(
-      (getByLabelText('Descriptions 1') as HTMLInputElement).tabIndex,
-    ).toBe(-1);
-    expect(
-      (getByLabelText('Add Descriptions entry') as HTMLButtonElement).tabIndex,
-    ).toBe(-1);
   });
 
   it('marks rows invalid and described by the error id when an error is set', () => {

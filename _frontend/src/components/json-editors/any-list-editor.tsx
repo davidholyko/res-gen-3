@@ -1,15 +1,15 @@
 import c from 'classnames';
 import { array, record, string } from 'zod';
 
-import EXAMPLE_ANY_LIST from '@/__example-json/any-list-1.json';
 import { CONTENT_TYPES } from '@/constants';
 import { ContentAnyList } from '@/types/content-any-list';
 import type { FieldSpec } from '@/types/field-spec';
-import type { NeverProps } from '@/types/generics';
 
 import BaseEditor from './base-editor';
 
-type AnyListProps = NeverProps | ContentAnyList;
+// Always a placed block's inline editor now -- the ribbon's example-
+// content template cards retired with specs/editor-redesign.md Phase 6.
+type AnyListProps = ContentAnyList;
 
 // zod v4 requires an explicit key schema for record() (v3 defaulted to
 // string() keys implicitly).
@@ -24,8 +24,6 @@ const fields: FieldSpec[] = [
 ];
 
 export default function AnyListEditor(props: AnyListProps) {
-  const { content = EXAMPLE_ANY_LIST } = props;
-
   const className = c('any-list-editor');
 
   return (
@@ -34,7 +32,6 @@ export default function AnyListEditor(props: AnyListProps) {
       className={className}
       contentType={CONTENT_TYPES.ANY_LIST}
       macro="AnyList"
-      content={content}
       schema={schema}
       fields={fields}
     />

@@ -2,6 +2,7 @@ import { Fragment } from 'react';
 
 import EmptyLayoutState from '@/components/layouts/empty-layout-state';
 import LayoutDouble from '@/components/layouts/layout-double';
+import LayoutGapInserter from '@/components/layouts/layout-gap-inserter';
 import LayoutHeader from '@/components/layouts/layout-header';
 import LayoutSingle from '@/components/layouts/layout-single';
 import { LAYOUTS } from '@/constants';
@@ -18,15 +19,20 @@ export default function LayoutManager() {
         // (src/css/editor.css) is a direct-child selector that gives a
         // standalone SINGLE layout its WYSIWYG page padding -- wrapping it
         // would make it a grandchild instead and silently drop that rule.
-        // A Fragment keeps LayoutHeader and LayoutSingle/LayoutDouble as
-        // siblings, both still direct children of .editor-page-container.
+        // A Fragment keeps the gap/header/layout as siblings, all still
+        // direct children of .editor-page-container.
         const label = `Layout ${index + 1}`;
 
         switch (layout.layoutType) {
           case LAYOUTS.SINGLE: {
             return (
               <Fragment key={layout.layoutId}>
-                <LayoutHeader label={label} layoutId={layout.layoutId} />
+                <LayoutGapInserter index={index} />
+                <LayoutHeader
+                  label={label}
+                  layoutId={layout.layoutId}
+                  index={index}
+                />
                 <LayoutSingle
                   layoutId={layout.layoutId}
                   layoutType={layout.layoutType}
@@ -42,7 +48,12 @@ export default function LayoutManager() {
 
             return (
               <Fragment key={layout.layoutId}>
-                <LayoutHeader label={label} layoutId={layout.layoutId} />
+                <LayoutGapInserter index={index} />
+                <LayoutHeader
+                  label={label}
+                  layoutId={layout.layoutId}
+                  index={index}
+                />
                 <LayoutDouble
                   layoutId={layout.layoutId}
                   layoutLeftId={layout.layoutLeftId}
@@ -55,6 +66,7 @@ export default function LayoutManager() {
             throw new Error(`Unsupported layout ${layout}`);
         }
       })}
+      {layouts.length > 0 && <LayoutGapInserter index={layouts.length} />}
     </div>
   );
 }

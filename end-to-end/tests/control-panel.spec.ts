@@ -1,6 +1,6 @@
 import path from 'node:path';
 
-import { addSingleLayout, expect, test } from './fixtures';
+import { addSingleLayout, expect, removeLastLayout, test } from './fixtures';
 
 test.describe('control panel', () => {
   test('File/Edit/View menus open on click and close on Escape', async ({
@@ -18,26 +18,18 @@ test.describe('control panel', () => {
     }
   });
 
-  test('Edit menu adds and removes layouts', async ({ page }) => {
+  test('Edit menu adds layouts; the canvas Remove layout link removes them', async ({
+    page,
+  }) => {
     const before = await page.locator('.layout-single').count();
 
     await addSingleLayout(page);
     await expect(page.locator('.layout-single')).toHaveCount(before + 1);
 
-    await page.getByText('Edit', { exact: true }).click();
-    await page.getByText('Remove Last Layout').click();
-    await page.keyboard.press('Escape');
+    // Removal is canvas-only now -- the Edit menu's "Remove Last Layout"
+    // retired with specs/editor-redesign.md Phase 6.
+    await removeLastLayout(page);
     await expect(page.locator('.layout-single')).toHaveCount(before);
-  });
-
-  test('View menu toggles the editor panel visibility', async ({ page }) => {
-    const editorManager = page.locator('#editor-manager');
-    await expect(editorManager).not.toHaveClass(/hidden/);
-
-    await page.getByText('View', { exact: true }).click();
-    await page.getByText('Toggle Editor').click();
-
-    await expect(editorManager).toHaveClass(/hidden/);
   });
 
   test('JSON export downloads a file, and re-importing it round-trips the state', async ({
@@ -59,9 +51,7 @@ test.describe('control panel', () => {
 
     // Wipe state, then re-import the exported file -- the resume should
     // come back exactly as it was exported.
-    await page.getByText('Edit', { exact: true }).click();
-    await page.getByText('Remove Last Layout').click();
-    await page.keyboard.press('Escape');
+    await removeLastLayout(page);
     await expect(page.locator('.layout-single')).toHaveCount(0);
 
     // The upload <input> only exists in the DOM while its menu is open

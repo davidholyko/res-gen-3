@@ -1,19 +1,16 @@
 import c from 'classnames';
 import { email, object, string } from 'zod';
 
-import EXAMPLE_CONTACT from '@/__example-json/contact.json';
 import { CONTENT_TYPES } from '@/constants';
-import type { ContactJson, ContentContact } from '@/types/content-contact';
+import type { ContentContact } from '@/types/content-contact';
 import type { FieldSpec } from '@/types/field-spec';
-import type { NeverProps } from '@/types/generics';
 
 import BaseEditor from './base-editor';
 
-type ContactEditorProps =
-  | NeverProps
-  | (ContentContact & {
-      content?: ContactJson;
-    });
+// Always a placed block's inline editor now -- the ribbon's example-
+// content template cards retired with specs/editor-redesign.md Phase 6,
+// so `content` is required, never defaulted.
+type ContactEditorProps = ContentContact;
 
 // `.optional()`/`.nullish()`, not `union([string(), undefined()])`: zod v4
 // only treats a key as omittable from the input when the schema itself
@@ -50,8 +47,6 @@ const fields: FieldSpec[] = [
 ];
 
 export default function ContactEditor(props: ContactEditorProps) {
-  const { content = EXAMPLE_CONTACT } = props;
-
   const className = c('contact-editor');
 
   return (
@@ -60,7 +55,6 @@ export default function ContactEditor(props: ContactEditorProps) {
       className={className}
       contentType={CONTENT_TYPES.CONTACT}
       macro="Contact"
-      content={content}
       schema={schema}
       fields={fields}
     />

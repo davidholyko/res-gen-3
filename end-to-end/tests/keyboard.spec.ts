@@ -46,13 +46,13 @@ async function tabUntil(
 }
 
 test.describe('keyboard navigation', () => {
-  test('Tab reaches the control panel menus, then the first editor card, in order', async ({
+  test('Tab reaches the control panel menus, then the canvas controls, in order', async ({
     page,
   }) => {
     await tabUntil(page, 'File');
 
     const seen: FocusInfo[] = [];
-    for (let i = 0; i < 6; i++) {
+    for (let i = 0; i < 5; i++) {
       await page.keyboard.press('Tab');
       seen.push(await currentFocus(page));
     }
@@ -60,13 +60,13 @@ test.describe('keyboard navigation', () => {
     expect(seen.map((f) => f.text)).toEqual([
       'Edit',
       'View',
-      'Contact', // the Contact editor card's own collapse-toggle trigger
-      'Layout 1', // "Add to layout" <select> -- reports its selected option's text
-      '', // Add Macro Button
-      '', // Toggle Editor Visibility Button -- the Contact editor is
-      // collapsed by default (tabIndex={isOpen ? 0 : -1}), so its
-      // textarea isn't a tab stop at all until expanded; the next Tab
-      // moves straight to the next editor card (Header)'s own trigger.
+      // The canvas follows directly -- the Template ribbon retired with
+      // specs/editor-redesign.md Phase 6. First the top gap's inserters
+      // (revealed by focus, WCAG-reachable without hover)...
+      '+ One column',
+      '+ Two columns',
+      // ...then Layout 1's own header controls.
+      'Remove layout',
     ]);
   });
 

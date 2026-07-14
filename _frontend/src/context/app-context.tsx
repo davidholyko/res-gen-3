@@ -39,19 +39,24 @@ export type AppContextType = {
    * title refers to the name of the PDF when a user downloads from browser
    */
   title: string;
-  isEditorVisible: boolean;
   isModalOpen: boolean; // maybe move to pdf preview context
   items: ContentAll[]; // rename to contentItems
   layouts: LayoutItem[];
   addLayout: (newLayout: LayoutItem) => void;
-  popLayout: () => void;
+  addLayoutAt: (newLayout: LayoutItem, index: number) => void;
+  /**
+   * Moves the layout at `fromIndex` into the gap at `toGapIndex` (a gap
+   * index ranges 0..layouts.length: 0 is above the first layout,
+   * layouts.length is below the last). Dropping a layout into either of
+   * its own adjacent gaps is a no-op.
+   */
+  moveLayout: (fromIndex: number, toGapIndex: number) => void;
   removeLayout: (layoutId: LayoutId) => void;
   onImportFile: ({ items, layouts }: FileDropValue) => void;
   onCreate: (item: ContentAll) => void;
   onUpdate: (item: ContentAll) => void;
   onDelete: (item: Pick<ContentAll, 'contentId'>) => void;
   onMove: (action: MOVE_ACTION, contentId: ContentId) => void;
-  toggleEditor: () => void;
   togglePdfModal: (value?: boolean) => void;
   /**
    * The contentId most recently created via onCreate -- lets the newly
@@ -80,25 +85,22 @@ export function AppProvider({ children }: AppProviderProps) {
     localStorageUtil.layouts,
   );
   const [items, setItems] = useState<ContentAll[]>(localStorageUtil.items);
-  // Lazy-initialized from localStorage, same as `layouts`/`items` above
-  // (safe: AppProvider only ever mounts client-side, see src/app/page.tsx),
-  // rather than defaulting to false and correcting via an effect.
-  const [isEditorVisible, setIsEditorVisible] = useState(
-    localStorageUtil.isEditorVisible,
-  );
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [lastCreatedContentId, setLastCreatedContentId] =
     useState<ContentId | null>(null);
   const [undoSnapshot, setUndoSnapshot] = useState<UndoSnapshot | null>(null);
 
-  // Store data in local storage whenever it changes
+  // Store data in local storage whenever it changes. (Older saves also
+  // carried an isEditorVisible key for the retired Template ribbon's
+  // visibility toggle -- still readable, just ignored and no longer
+  // written.)
   useEffect(() => {
-    localStorageUtil.data = { items, layouts, isEditorVisible };
-  }, [items, layouts, isEditorVisible]);
+    localStorageUtil.data = { items, layouts };
+  }, [items, layouts]);
 
   useEffect(() => {
-    // Reconciles `items` against `layouts` (e.g. after popLayout removes a
-    // layout, orphaned items are dropped). `items` is genuinely mutable
+    // Reconciles `items` against `layouts` (e.g. after removeLayout, so
+    // orphaned items are dropped). `items` is genuinely mutable
     // state elsewhere (onCreate/onUpdate/onDelete/onMove all setItems
     // directly), not a pure derived view, so this can't just be computed
     // at render time without also touching those call sites. Preserved
@@ -122,26 +124,51 @@ export function AppProvider({ children }: AppProviderProps) {
     });
   }, [layouts]);
 
+  // Zone-aware (specs/editor-redesign.md, Phase 7): "move up/down" only
+  // ever swaps an item with the nearest *other* item sharing its zone
+  // (layoutId/layoutType/layoutParentId), never simply the adjacent
+  // flat-array index. The flat `items` array interleaves every zone's
+  // content, so the old adjacent-index splice could silently reorder an
+  // item relative to a *different* layout's content -- invisible on the
+  // canvas (each zone re-filters at render time) until enough presses
+  // finally crossed a same-zone neighbor.
   const onMove = useCallback(
     (action: MOVE_ACTION, contentId: ContentId) => {
       switch (action) {
-        case MOVE_ACTION.MACRO_UP: {
-          const newItems = [...items];
-          const foundIndex = newItems.findIndex(
-            (i) => i.contentId === contentId,
-          );
-          const [item] = newItems.splice(foundIndex, 1);
-          newItems.splice(foundIndex - 1, 0, item);
-          setItems(newItems);
-          break;
-        }
+        case MOVE_ACTION.MACRO_UP:
         case MOVE_ACTION.MACRO_DOWN: {
+          const foundIndex = items.findIndex((i) => i.contentId === contentId);
+          const item = items[foundIndex];
+          const isSameZone = (other: ContentAll) =>
+            other.layoutId === item.layoutId &&
+            other.layoutType === item.layoutType &&
+            other.layoutParentId === item.layoutParentId;
+
+          const step = action === MOVE_ACTION.MACRO_UP ? -1 : 1;
+          let neighborIndex = -1;
+          for (
+            let i = foundIndex + step;
+            i >= 0 && i < items.length;
+            i += step
+          ) {
+            if (isSameZone(items[i])) {
+              neighborIndex = i;
+              break;
+            }
+          }
+
+          // Already first/last within its own zone: nothing to move
+          // past -- a no-op, not a silent cross-zone reorder.
+          if (neighborIndex === -1) break;
+
+          // A positional swap keeps every other zone's relative order
+          // untouched, whereas a splice would shift items between the
+          // two positions.
           const newItems = [...items];
-          const foundIndex = newItems.findIndex(
-            (i) => i.contentId === contentId,
-          );
-          const [item] = newItems.splice(foundIndex, 1);
-          newItems.splice(foundIndex + 1, 0, item);
+          [newItems[foundIndex], newItems[neighborIndex]] = [
+            newItems[neighborIndex],
+            newItems[foundIndex],
+          ];
           setItems(newItems);
           break;
         }
@@ -191,8 +218,37 @@ export function AppProvider({ children }: AppProviderProps) {
     setLayouts((prevLayouts) => [...prevLayouts, newLayout]);
   }, []);
 
-  const popLayout = useCallback(() => {
-    setLayouts((prevLayouts) => [...prevLayouts.slice(0, -1)]);
+  // Insert at a specific position, not just append -- the canvas gap
+  // inserters (layout-gap-inserter.tsx) add a layout exactly where the
+  // user is looking (specs/editor-redesign.md, Design → Layout
+  // management).
+  const addLayoutAt = useCallback((newLayout: LayoutItem, index: number) => {
+    setLayouts((prevLayouts) => {
+      const next = [...prevLayouts];
+      next.splice(index, 0, newLayout);
+      return next;
+    });
+  }, []);
+
+  const moveLayout = useCallback((fromIndex: number, toGapIndex: number) => {
+    setLayouts((prevLayouts) => {
+      // The gaps directly above and below the dragged layout both mean
+      // "leave it where it is" -- bail with the same reference so
+      // nothing downstream misreads the drop as a change.
+      if (toGapIndex === fromIndex || toGapIndex === fromIndex + 1) {
+        return prevLayouts;
+      }
+
+      const next = [...prevLayouts];
+      const [moved] = next.splice(fromIndex, 1);
+      // Removing the layout first shifts every gap below it up by one.
+      next.splice(
+        toGapIndex > fromIndex ? toGapIndex - 1 : toGapIndex,
+        0,
+        moved,
+      );
+      return next;
+    });
   }, []);
 
   // Removes a specific layout by id, not just the last one -- the
@@ -204,11 +260,6 @@ export function AppProvider({ children }: AppProviderProps) {
       prevLayouts.filter((layout) => layout.layoutId !== layoutId),
     );
   }, []);
-
-  const toggleEditor = useCallback(
-    () => setIsEditorVisible(!isEditorVisible),
-    [isEditorVisible],
-  );
 
   const togglePdfModal = useCallback(
     (value?: boolean) => {
@@ -266,18 +317,17 @@ export function AppProvider({ children }: AppProviderProps) {
       value={{
         title,
         isModalOpen,
-        isEditorVisible,
         items,
         layouts,
         addLayout,
-        popLayout,
+        addLayoutAt,
+        moveLayout,
         removeLayout,
         onImportFile,
         onDelete,
         onUpdate,
         onCreate,
         onMove,
-        toggleEditor,
         togglePdfModal,
         lastCreatedContentId,
         undoSnapshot,

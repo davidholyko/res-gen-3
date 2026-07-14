@@ -1,4 +1,4 @@
-import { expect, test } from './fixtures';
+import { expect, removeLastLayout, test } from './fixtures';
 
 // Happy-path coverage for the new interactive elements added by
 // specs/app-ux-improvements.md. Declined-confirmation branches (still
@@ -13,9 +13,7 @@ test.describe('UX improvements', () => {
   test('removing every layout shows the empty-state CTA, which adds a new layout', async ({
     page,
   }) => {
-    await page.getByText('Edit', { exact: true }).click();
-    await page.getByText('Remove Last Layout').click();
-    await page.keyboard.press('Escape');
+    await removeLastLayout(page);
     await expect(page.locator('.layout-single')).toHaveCount(0);
 
     await expect(page.getByText('Your resume is empty.')).toBeVisible();

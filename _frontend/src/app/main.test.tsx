@@ -11,7 +11,6 @@ function seedLocalStorage() {
     JSON.stringify({
       items: [{ contentId: 'placeholder' }],
       layouts: [{ layoutId: 'a', layoutType: 'SINGLE' }],
-      isEditorVisible: false,
     }),
   );
 }
@@ -29,7 +28,6 @@ describe('Main', () => {
       </AllProviders>,
     );
 
-    expect(container.querySelector('#editor-manager')).not.toBeNull();
     expect(container.querySelector('.layout-single')).not.toBeNull();
   });
 });

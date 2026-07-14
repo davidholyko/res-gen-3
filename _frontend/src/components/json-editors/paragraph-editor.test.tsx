@@ -8,20 +8,7 @@ import type { ContentId } from '@/types/content-base-item';
 import ParagraphEditor from './paragraph-editor';
 
 describe('ParagraphEditor', () => {
-  it('defaults to the example paragraph JSON when no content is given', () => {
-    const { container } = render(
-      <AllProviders>
-        <ParagraphEditor />
-      </AllProviders>,
-    );
-    const textarea = container.querySelector(
-      'textarea[name="paragraph"]',
-    ) as HTMLTextAreaElement;
-
-    expect(textarea.value).not.toBe('');
-  });
-
-  it('renders provided content instead of the example', () => {
+  it('renders the provided content in its form field', () => {
     const { container } = render(
       <AllProviders>
         <ParagraphEditor

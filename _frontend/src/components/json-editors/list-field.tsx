@@ -2,8 +2,6 @@ import c from 'classnames';
 import type { ChangeEvent } from 'react';
 import { useCallback } from 'react';
 
-import { EDITOR_MODES } from '@/constants';
-
 import { useStopKeydownPropagationRef } from './use-stop-keydown-propagation';
 
 type ListFieldProps = {
@@ -11,8 +9,6 @@ type ListFieldProps = {
   name: string;
   label: string;
   value: string[];
-  isOpen: boolean;
-  mode: keyof typeof EDITOR_MODES;
   error: string;
   errorId: string;
   onChange: (next: string[]) => void;
@@ -23,7 +19,7 @@ type ListFieldProps = {
 // reorder-by-button controls plus an append control at the end
 // (Experience's `descriptions`, the macro's bulleted list).
 export default function ListField(props: ListFieldProps) {
-  const { fieldId, name, label, value, isOpen, mode, error, errorId } = props;
+  const { fieldId, name, label, value, error, errorId } = props;
   const { onChange } = props;
 
   const stopKeydownPropagationRef = useStopKeydownPropagationRef();
@@ -57,19 +53,14 @@ export default function ListField(props: ListFieldProps) {
     [value, onChange],
   );
 
-  const rowInputClassName = c('grow p-2', {
-    'bg-emerald-100': mode === EDITOR_MODES.IN_LAYOUT_MANAGER,
-    'bg-sky-100': mode === EDITOR_MODES.IN_EDITOR_MANAGER,
+  const rowInputClassName = c('grow p-2 bg-emerald-100', {
     'outline outline-2 outline-red-700': !!error,
   });
 
   const rowButtonClassName =
     'px-2 py-1 rounded text-gray-700 hover:bg-gray-200 disabled:opacity-40';
 
-  const containerClassName = c('flex flex-col gap-1', {
-    'w-auto': mode === EDITOR_MODES.IN_LAYOUT_MANAGER,
-    'w-[60ch]': mode !== EDITOR_MODES.IN_LAYOUT_MANAGER,
-  });
+  const containerClassName = 'flex flex-col gap-1 w-auto';
 
   return (
     // fieldset/legend, not a <label>: a label must point at a single form
@@ -93,7 +84,6 @@ export default function ListField(props: ListFieldProps) {
               value={entry}
               onChange={(event) => onRowChange(index, event)}
               ref={stopKeydownPropagationRef}
-              tabIndex={isOpen ? 0 : -1}
               aria-invalid={!!error}
               aria-describedby={error ? errorId : undefined}
             />
@@ -102,7 +92,6 @@ export default function ListField(props: ListFieldProps) {
               className={rowButtonClassName}
               aria-label={`Move ${label} ${index + 1} up`}
               title="Move up"
-              tabIndex={isOpen ? 0 : -1}
               disabled={index === 0}
               onClick={() => onMove(index, -1)}
             >
@@ -113,7 +102,6 @@ export default function ListField(props: ListFieldProps) {
               className={rowButtonClassName}
               aria-label={`Move ${label} ${index + 1} down`}
               title="Move down"
-              tabIndex={isOpen ? 0 : -1}
               disabled={index === value.length - 1}
               onClick={() => onMove(index, 1)}
             >
@@ -124,7 +112,6 @@ export default function ListField(props: ListFieldProps) {
               className={rowButtonClassName}
               aria-label={`Remove ${label} ${index + 1}`}
               title="Remove"
-              tabIndex={isOpen ? 0 : -1}
               onClick={() => onRemove(index)}
             >
               ✕
@@ -135,7 +122,6 @@ export default function ListField(props: ListFieldProps) {
           type="button"
           className="self-start px-2 py-1 rounded text-sm text-gray-700 hover:bg-gray-200"
           aria-label={`Add ${label} entry`}
-          tabIndex={isOpen ? 0 : -1}
           onClick={onAdd}
         >
           + Add entry

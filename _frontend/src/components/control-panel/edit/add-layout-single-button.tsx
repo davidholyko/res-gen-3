@@ -15,15 +15,11 @@ export default function AddLayoutSingleButton({
   role,
   tabIndex,
 }: AddLayoutSingleButtonProps) {
-  const { addLayout, isEditorVisible } = useAppContext();
+  const { addLayout } = useAppContext();
 
   const handleClick = () => {
     addLayout({ layoutId: uuidv4(), layoutType: LAYOUTS.SINGLE });
   };
-
-  if (isEditorVisible) {
-    return null;
-  }
 
   const classNames = c('unstyled', className);
 

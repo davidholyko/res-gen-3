@@ -27,17 +27,4 @@ test.describe('localStorage persistence', () => {
       page.locator('.layout-single [role="group"]').first().locator('h1'),
     ).toContainText('Ada Lovelace');
   });
-
-  test('reloading preserves the editor panel visibility toggle', async ({
-    page,
-  }) => {
-    await page.getByText('View', { exact: true }).click();
-    await page.getByText('Toggle Editor').click();
-    await expect(page.locator('#editor-manager')).toHaveClass(/hidden/);
-
-    await page.reload();
-    await page.waitForSelector('#res-gen', { timeout: 15000 });
-
-    await expect(page.locator('#editor-manager')).toHaveClass(/hidden/);
-  });
 });

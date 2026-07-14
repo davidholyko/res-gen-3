@@ -2,7 +2,6 @@ import { fireEvent, render } from '@testing-library/react';
 import axe from 'axe-core';
 import { describe, expect, it, vi } from 'vitest';
 
-import { EDITOR_MODES } from '@/constants';
 import type { FieldSpec } from '@/types/field-spec';
 
 import ContentForm from './content-form';
@@ -19,8 +18,6 @@ function baseProps(overrides: Record<string, unknown> = {}) {
     onFieldChange: vi.fn(),
     onValueChange: vi.fn(),
     formId: 'f1',
-    isOpen: true,
-    mode: EDITOR_MODES.IN_LAYOUT_MANAGER,
     fieldErrors: {},
     ...overrides,
   };
@@ -94,17 +91,6 @@ describe('ContentForm', () => {
     input.dispatchEvent(event);
 
     expect(stopPropagation).toHaveBeenCalled();
-  });
-
-  it('keeps fields in the tab order while open and out of it while collapsed', () => {
-    const { container, rerender } = render(<ContentForm {...baseProps()} />);
-    const input = container.querySelector(
-      'input[name="title"]',
-    ) as HTMLInputElement;
-    expect(input.tabIndex).toBe(0);
-
-    rerender(<ContentForm {...baseProps({ isOpen: false })} />);
-    expect(input.tabIndex).toBe(-1);
   });
 
   it('renders an inline error under only the offending field and wires aria to it', () => {

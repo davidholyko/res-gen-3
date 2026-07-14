@@ -15,7 +15,7 @@ export default function AddLayoutDoubleButton({
   role,
   tabIndex,
 }: AddLayoutDoubleButtonProps) {
-  const { addLayout, isEditorVisible } = useAppContext();
+  const { addLayout } = useAppContext();
 
   const handleClick = () => {
     addLayout({
@@ -25,10 +25,6 @@ export default function AddLayoutDoubleButton({
       layoutType: LAYOUTS.DOUBLE,
     });
   };
-
-  if (isEditorVisible) {
-    return null;
-  }
 
   const classNames = c('unstyled', className);
 

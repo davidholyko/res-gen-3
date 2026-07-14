@@ -31,7 +31,7 @@ const LAYOUT: LayoutItem = {
 function seedLocalStorage(items: ContentAll[], layouts: LayoutItem[]) {
   window.localStorage.setItem(
     'res-gen-data',
-    JSON.stringify({ items, layouts, isEditorVisible: true }),
+    JSON.stringify({ items, layouts }),
   );
 }
 
@@ -75,11 +75,11 @@ describe('useAppContext', () => {
     const { result } = renderAppContext();
 
     act(() => {
-      result.current.toggleEditor();
+      result.current.removeLayout(LAYOUT.layoutId);
     });
 
     const stored = JSON.parse(window.localStorage.getItem('res-gen-data')!);
-    expect(stored.isEditorVisible).toBe(false);
+    expect(stored.layouts).toEqual([]);
   });
 
   describe('onCreate', () => {
@@ -175,6 +175,94 @@ describe('useAppContext', () => {
         });
       }).toThrow('Unsupported move action LAYOUT_NEXT');
     });
+
+    describe('zone awareness (specs/editor-redesign.md, Phase 7)', () => {
+      // Flat order interleaves two zones: [A(z1), X(z2), B(z1)] -- the
+      // adjacent flat index of B is X, but B's nearest same-zone
+      // neighbor is A.
+      const ITEM_A = {
+        ...CONTACT_ITEM,
+        contentId: 'a' as ContentAll['contentId'],
+      };
+      const ITEM_X_OTHER_ZONE = {
+        ...HEADER_ITEM,
+        contentId: 'x' as ContentAll['contentId'],
+        layoutId: 'layout-2' as LayoutItem['layoutId'],
+      };
+      const ITEM_B = {
+        ...HEADER_ITEM,
+        contentId: 'b' as ContentAll['contentId'],
+      };
+      const SECOND_LAYOUT: LayoutItem = {
+        layoutId: 'layout-2' as LayoutItem['layoutId'],
+        layoutType: LAYOUTS.SINGLE,
+      };
+
+      beforeEach(() => {
+        seedLocalStorage(
+          [ITEM_A, ITEM_X_OTHER_ZONE, ITEM_B],
+          [LAYOUT, SECOND_LAYOUT],
+        );
+      });
+
+      it("MACRO_UP swaps with the nearest same-zone item, skipping other zones' items", () => {
+        const { result } = renderAppContext();
+
+        act(() => {
+          result.current.onMove(MOVE_ACTION.MACRO_UP, ITEM_B.contentId);
+        });
+
+        // B swapped with A -- X (a different layout) kept its position.
+        expect(result.current.items).toEqual([
+          ITEM_B,
+          ITEM_X_OTHER_ZONE,
+          ITEM_A,
+        ]);
+      });
+
+      it('MACRO_DOWN skips other zones the same way', () => {
+        const { result } = renderAppContext();
+
+        act(() => {
+          result.current.onMove(MOVE_ACTION.MACRO_DOWN, ITEM_A.contentId);
+        });
+
+        expect(result.current.items).toEqual([
+          ITEM_B,
+          ITEM_X_OTHER_ZONE,
+          ITEM_A,
+        ]);
+      });
+
+      it('is a no-op for the first item of a zone moving up, even mid-array', () => {
+        const { result } = renderAppContext();
+        const before = result.current.items;
+
+        act(() => {
+          // X is mid-array but the only item in its zone.
+          result.current.onMove(
+            MOVE_ACTION.MACRO_UP,
+            ITEM_X_OTHER_ZONE.contentId,
+          );
+        });
+
+        expect(result.current.items).toBe(before);
+      });
+
+      it('is a no-op for the last item of a zone moving down', () => {
+        const { result } = renderAppContext();
+        const before = result.current.items;
+
+        act(() => {
+          result.current.onMove(
+            MOVE_ACTION.MACRO_DOWN,
+            ITEM_X_OTHER_ZONE.contentId,
+          );
+        });
+
+        expect(result.current.items).toBe(before);
+      });
+    });
   });
 
   describe('layouts', () => {
@@ -192,15 +280,79 @@ describe('useAppContext', () => {
       expect(result.current.layouts).toEqual([LAYOUT, newLayout]);
     });
 
-    it('popLayout removes the last layout and drops orphaned items', () => {
+    it('addLayoutAt inserts a layout at a specific position, not just the end', () => {
       const { result } = renderAppContext();
+      const newLayout: LayoutItem = {
+        layoutId: 'layout-2' as LayoutItem['layoutId'],
+        layoutType: LAYOUTS.SINGLE,
+      };
 
       act(() => {
-        result.current.popLayout();
+        result.current.addLayoutAt(newLayout, 0);
       });
 
-      expect(result.current.layouts).toEqual([]);
-      expect(result.current.items).toEqual([]);
+      expect(result.current.layouts).toEqual([newLayout, LAYOUT]);
+    });
+
+    describe('moveLayout', () => {
+      const LAYOUT_B: LayoutItem = {
+        layoutId: 'layout-b' as LayoutItem['layoutId'],
+        layoutType: LAYOUTS.SINGLE,
+      };
+      const LAYOUT_C: LayoutItem = {
+        layoutId: 'layout-c' as LayoutItem['layoutId'],
+        layoutType: LAYOUTS.SINGLE,
+      };
+
+      function renderWithThreeLayouts() {
+        const rendered = renderAppContext();
+
+        act(() => {
+          rendered.result.current.addLayout(LAYOUT_B);
+        });
+        act(() => {
+          rendered.result.current.addLayout(LAYOUT_C);
+        });
+
+        return rendered;
+      }
+
+      it('moves a layout down into a later gap', () => {
+        const { result } = renderWithThreeLayouts();
+
+        act(() => {
+          // First layout into the gap below the second.
+          result.current.moveLayout(0, 2);
+        });
+
+        expect(result.current.layouts).toEqual([LAYOUT_B, LAYOUT, LAYOUT_C]);
+      });
+
+      it('moves a layout up into an earlier gap', () => {
+        const { result } = renderWithThreeLayouts();
+
+        act(() => {
+          // Last layout into the gap above the first.
+          result.current.moveLayout(2, 0);
+        });
+
+        expect(result.current.layouts).toEqual([LAYOUT_C, LAYOUT, LAYOUT_B]);
+      });
+
+      it("treats a layout's own adjacent gaps as a no-op, keeping the same array reference", () => {
+        const { result } = renderWithThreeLayouts();
+        const before = result.current.layouts;
+
+        act(() => {
+          result.current.moveLayout(1, 1); // gap directly above itself
+        });
+        expect(result.current.layouts).toBe(before);
+
+        act(() => {
+          result.current.moveLayout(1, 2); // gap directly below itself
+        });
+        expect(result.current.layouts).toBe(before);
+      });
     });
 
     it('removeLayout removes a specific layout by id and drops its orphaned items', () => {
@@ -234,17 +386,6 @@ describe('useAppContext', () => {
   });
 
   describe('visibility toggles', () => {
-    it('toggleEditor flips isEditorVisible', () => {
-      const { result } = renderAppContext();
-      const initial = result.current.isEditorVisible;
-
-      act(() => {
-        result.current.toggleEditor();
-      });
-
-      expect(result.current.isEditorVisible).toBe(!initial);
-    });
-
     it('togglePdfModal with no argument flips isModalOpen', () => {
       const { result } = renderAppContext();
 

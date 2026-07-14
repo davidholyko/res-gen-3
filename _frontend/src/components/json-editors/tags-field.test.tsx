@@ -2,8 +2,6 @@ import { fireEvent, render } from '@testing-library/react';
 import axe from 'axe-core';
 import { describe, expect, it, vi } from 'vitest';
 
-import { EDITOR_MODES } from '@/constants';
-
 import TagsField from './tags-field';
 
 function baseProps(overrides: Record<string, unknown> = {}) {
@@ -12,8 +10,6 @@ function baseProps(overrides: Record<string, unknown> = {}) {
     name: 'tags',
     label: 'Tags',
     value: ['React', 'TypeScript'],
-    isOpen: true,
-    mode: EDITOR_MODES.IN_LAYOUT_MANAGER,
     error: '',
     errorId: 'f1-tags-error',
     onChange: vi.fn(),
@@ -112,20 +108,6 @@ describe('TagsField', () => {
     input.dispatchEvent(event);
 
     expect(stopPropagation).toHaveBeenCalled();
-  });
-
-  it('keeps the input and chip buttons out of the tab order while collapsed', () => {
-    const { container, getByLabelText } = render(
-      <TagsField {...baseProps({ isOpen: false })} />,
-    );
-
-    const input = container.querySelector(
-      'input[name="tags"]',
-    ) as HTMLInputElement;
-    expect(input.tabIndex).toBe(-1);
-    expect(
-      (getByLabelText('Remove Tags React') as HTMLButtonElement).tabIndex,
-    ).toBe(-1);
   });
 
   it('marks the input invalid and described by the error id when an error is set', () => {

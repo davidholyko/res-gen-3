@@ -20,14 +20,21 @@ test.describe('accessibility (axe-core, real browser)', () => {
     expect(results.violations).toEqual([]);
   });
 
-  test('after adding content via the non-drag layout picker', async ({
+  test('after adding a blank block via a zone\'s "+ Add block" menu', async ({
     page,
   }) => {
     await addSingleLayout(page);
     await page
-      .locator('.header-editor')
-      .getByLabel('Add Macro Button')
+      .locator('.layout-single')
+      .last()
+      .getByRole('button', { name: '+ Add block' })
       .click();
+    await page.getByRole('menuitem', { name: 'Section heading' }).click();
+    // SavedIndicator's opacity fades in over 300ms after the add --
+    // scanning mid-transition catches axe computing contrast against a
+    // partially-transparent, blended color (same timing artifact as
+    // editor-forms.spec.ts).
+    await page.waitForTimeout(350);
 
     const results = await new AxeBuilder({ page }).analyze();
     expect(results.violations).toEqual([]);

@@ -1,27 +1,11 @@
 import { render } from '@testing-library/react';
 import axe from 'axe-core';
-import type { DropTargetHookSpec } from 'react-dnd';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 
 import { CONTENT_TYPES } from '@/constants';
 import { AllProviders } from '@/test-providers';
 
-const { useDropMock } = vi.hoisted(() => ({ useDropMock: vi.fn() }));
-vi.mock('react-dnd', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('react-dnd')>();
-  return { ...actual, useDrop: useDropMock };
-});
-
-const { default: LayoutSingle } = await import('./layout-single');
-
-function latestDropSpec(): DropTargetHookSpec<
-  unknown,
-  { layoutType: string; layoutId?: string; layoutParentId: string | null },
-  { isOver: boolean }
-> {
-  const { calls } = useDropMock.mock;
-  return calls[calls.length - 1][0];
-}
+import LayoutSingle from './layout-single';
 
 function seedLocalStorage() {
   window.localStorage.setItem(
@@ -44,20 +28,17 @@ function seedLocalStorage() {
         },
       ],
       layouts: [{ layoutId: 'this-layout', layoutType: 'SINGLE' }],
-      isEditorVisible: false,
     }),
   );
 }
-
-beforeEach(() => {
-  useDropMock.mockReset();
-  useDropMock.mockImplementation(() => [{ isOver: false }, vi.fn()]);
-});
 
 afterEach(() => {
   window.localStorage.clear();
 });
 
+// Not a drop target anymore: dragging content from the Template ribbon
+// retired with the ribbon (specs/editor-redesign.md, Phase 6) -- the
+// zone's own AddBlockControl is the add path.
 describe('LayoutSingle', () => {
   it('renders only items belonging to this layout', () => {
     seedLocalStorage();
@@ -71,72 +52,15 @@ describe('LayoutSingle', () => {
     expect(queryByText('Other layout')).toBeNull();
   });
 
-  it('accepts every content type as a drop source', () => {
-    render(
+  it('carries its own "+ Add block" control', () => {
+    seedLocalStorage();
+    const { getByText } = render(
       <AllProviders>
-        <LayoutSingle layoutType="SINGLE" layoutId="a" />
+        <LayoutSingle layoutType="SINGLE" layoutId="this-layout" />
       </AllProviders>,
     );
 
-    expect(latestDropSpec().accept).toEqual(
-      expect.arrayContaining(Object.values(CONTENT_TYPES)),
-    );
-  });
-
-  it('resolves a drop with this layout, defaulting layoutParentId to null', () => {
-    render(
-      <AllProviders>
-        <LayoutSingle layoutType="SINGLE" layoutId="a" />
-      </AllProviders>,
-    );
-
-    const { drop } = latestDropSpec();
-    expect(drop?.({} as never, undefined as never)).toEqual({
-      layoutType: 'SINGLE',
-      layoutId: 'a',
-      layoutParentId: null,
-    });
-  });
-
-  it('uses the provided layoutParentId when set', () => {
-    render(
-      <AllProviders>
-        <LayoutSingle layoutType="SINGLE" layoutId="a" layoutParentId="p" />
-      </AllProviders>,
-    );
-
-    const { drop } = latestDropSpec();
-    expect(drop?.({} as never, undefined as never)).toEqual(
-      expect.objectContaining({ layoutParentId: 'p' }),
-    );
-  });
-
-  it("collect reflects the drop monitor's isOver state", () => {
-    render(
-      <AllProviders>
-        <LayoutSingle layoutType="SINGLE" layoutId="a" />
-      </AllProviders>,
-    );
-
-    const { collect } = latestDropSpec();
-    expect(
-      collect?.({ isOver: () => true } as never, undefined as never),
-    ).toEqual({
-      isOver: true,
-    });
-  });
-
-  it('highlights the drop zone while a drag is over it', () => {
-    useDropMock.mockImplementation(() => [{ isOver: true }, vi.fn()]);
-    const { container } = render(
-      <AllProviders>
-        <LayoutSingle layoutType="SINGLE" layoutId="a" />
-      </AllProviders>,
-    );
-
-    expect(container.querySelector('.layout-single')).toHaveClass(
-      'bg-emerald-50',
-    );
+    expect(getByText('+ Add block')).not.toBeNull();
   });
 
   it('has no automatically detectable accessibility violations', async () => {

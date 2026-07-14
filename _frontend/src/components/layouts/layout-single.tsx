@@ -1,11 +1,11 @@
 import c from 'classnames';
 import React, { useMemo } from 'react';
-import { useDrop } from 'react-dnd';
 
 import type { LAYOUTS } from '@/constants';
-import { CONTENT_TYPES } from '@/constants';
 import { useAppContext } from '@/context/app-context';
 import MacroManager from '@/managers/macro-manager';
+
+import AddBlockControl from './add-block-control';
 
 interface LayoutSingleProps {
   layoutType: keyof typeof LAYOUTS;
@@ -14,17 +14,15 @@ interface LayoutSingleProps {
   layoutParentId?: string;
 }
 
+// No longer a react-dnd drop target: dragging content from the Template
+// ribbon retired with the ribbon itself (specs/editor-redesign.md,
+// Phase 6) -- blocks are added in place via AddBlockControl below.
+// Layout *reorder* drags target the gaps between layouts
+// (layout-gap-inserter.tsx), not the layouts.
 export default function LayoutSingle(props: LayoutSingleProps) {
   const { layoutType, layoutId, layoutParentId = null } = props;
 
   const { items: allItems } = useAppContext();
-  const [{ isOver }, drop] = useDrop({
-    accept: [...Object.values(CONTENT_TYPES)],
-    drop: () => ({ layoutType, layoutId, layoutParentId }),
-    collect: (monitor) => ({
-      isOver: !!monitor.isOver(),
-    }),
-  });
 
   const items = useMemo(() => {
     const filteredItems = allItems.filter(
@@ -38,27 +36,23 @@ export default function LayoutSingle(props: LayoutSingleProps) {
     () =>
       c(props.className, {
         'layout-single': true,
-        'bg-emerald-50': isOver,
         'min-h-[50px]': true,
         rounded: true,
         'border-2': true,
         'border-stone-700': true,
         'border-dashed': true,
       }),
-    [props.className, isOver],
+    [props.className],
   );
 
   return (
-    <div
-      className={className}
-      // react-dnd's ConnectDropTarget return type predates React 19's
-      // stricter ref-callback typing (must return void, not ReactElement).
-      // No behavior change, just satisfying the type.
-      ref={(node) => {
-        drop(node);
-      }}
-    >
+    <div className={className}>
       <MacroManager items={items} />
+      <AddBlockControl
+        layoutId={layoutId}
+        layoutType={layoutType}
+        layoutParentId={layoutParentId}
+      />
     </div>
   );
 }

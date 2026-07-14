@@ -7,7 +7,7 @@ import ViewMenu from './control-panel-view-menu';
 
 describe('ViewMenu', () => {
   it('opens to reveal the view actions', () => {
-    const { getByText } = render(
+    const { getByText, queryByText } = render(
       <AllProviders>
         <ViewMenu />
       </AllProviders>,
@@ -16,6 +16,8 @@ describe('ViewMenu', () => {
     fireEvent.click(getByText('View'));
 
     expect(getByText('Open PDF View')).not.toBeNull();
-    expect(getByText('Toggle Editor')).not.toBeNull();
+    // "Toggle Editor" retired with the Template ribbon
+    // (specs/editor-redesign.md, Phase 6).
+    expect(queryByText('Toggle Editor')).toBeNull();
   });
 });
