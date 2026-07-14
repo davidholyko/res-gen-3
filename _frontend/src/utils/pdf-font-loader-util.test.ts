@@ -28,18 +28,18 @@ describe('pdf-font-loader-util', () => {
         family: 'Roboto',
         fonts: expect.arrayContaining([
           expect.objectContaining({
-            src: '/app/fonts/Roboto-Regular.ttf',
+            src: '/res-gen-3/fonts/Roboto-Regular.ttf',
           }),
           expect.objectContaining({
-            src: '/app/fonts/Roboto-Bold.ttf',
+            src: '/res-gen-3/fonts/Roboto-Bold.ttf',
             fontWeight: 'bold',
           }),
           expect.objectContaining({
-            src: '/app/fonts/Roboto-Italic.ttf',
+            src: '/res-gen-3/fonts/Roboto-Italic.ttf',
             fontStyle: 'italic',
           }),
           expect.objectContaining({
-            src: '/app/fonts/Roboto-BoldItalic.ttf',
+            src: '/res-gen-3/fonts/Roboto-BoldItalic.ttf',
             fontWeight: 'bold',
             fontStyle: 'italic',
           }),

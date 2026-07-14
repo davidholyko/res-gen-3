@@ -5,7 +5,7 @@ const isCI = !!process.env.CI;
 // `_frontend`'s basePath (see `_frontend/next.config.ts`) is baked into
 // every route/asset reference the app itself makes, so tests always need
 // to hit the app under this prefix, not the bare origin.
-const baseURL = 'http://localhost:3330/app/';
+const baseURL = 'http://localhost:3330/res-gen-3/';
 
 export default defineConfig({
   testDir: './tests',
