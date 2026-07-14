@@ -31,7 +31,7 @@ const LAYOUT: LayoutItem = {
 function seedLocalStorage(items: ContentAll[], layouts: LayoutItem[]) {
   window.localStorage.setItem(
     'res-gen-data',
-    JSON.stringify({ items, layouts, isEditorVisible: true }),
+    JSON.stringify({ items, layouts }),
   );
 }
 
@@ -75,11 +75,11 @@ describe('useAppContext', () => {
     const { result } = renderAppContext();
 
     act(() => {
-      result.current.toggleEditor();
+      result.current.removeLayout(LAYOUT.layoutId);
     });
 
     const stored = JSON.parse(window.localStorage.getItem('res-gen-data')!);
-    expect(stored.isEditorVisible).toBe(false);
+    expect(stored.layouts).toEqual([]);
   });
 
   describe('onCreate', () => {
@@ -298,17 +298,6 @@ describe('useAppContext', () => {
   });
 
   describe('visibility toggles', () => {
-    it('toggleEditor flips isEditorVisible', () => {
-      const { result } = renderAppContext();
-      const initial = result.current.isEditorVisible;
-
-      act(() => {
-        result.current.toggleEditor();
-      });
-
-      expect(result.current.isEditorVisible).toBe(!initial);
-    });
-
     it('togglePdfModal with no argument flips isModalOpen', () => {
       const { result } = renderAppContext();
 

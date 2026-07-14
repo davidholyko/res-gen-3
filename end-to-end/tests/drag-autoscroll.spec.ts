@@ -1,11 +1,14 @@
 import { addSingleLayout, expect, test } from './fixtures';
 
-// Happy-path coverage for specs/editor-redesign.md, Phase 2: dragging a
-// ribbon item near the top/bottom viewport edge auto-scrolls the page,
-// reported directly by a user who couldn't reach an off-screen layout
-// mid-drag. Native HTML5 drag-and-drop doesn't do this on its own, so
-// this exercises a real, multi-step drag (not `dragTo()`'s single-shot
-// helper, which can't pause mid-gesture) via the low-level mouse API.
+// Happy-path coverage for specs/editor-redesign.md, Phase 2: dragging
+// near the top/bottom viewport edge auto-scrolls the page, reported
+// directly by a user who couldn't reach an off-screen target mid-drag.
+// Originally exercised via ribbon-item drags; since the ribbon retired
+// (Phase 6) the surviving drag surface is a layout header being
+// reordered, which this now drives. Native HTML5 drag-and-drop doesn't
+// auto-scroll on its own, so this exercises a real, multi-step drag (not
+// `dragTo()`'s single-shot helper, which can't pause mid-gesture) via
+// the low-level mouse API.
 test.describe('drag auto-scroll', () => {
   test.beforeEach(async ({ page }) => {
     // A short viewport, deliberately overriding the suite's default tall
@@ -23,10 +26,7 @@ test.describe('drag auto-scroll', () => {
     const scrollYBefore = await page.evaluate(() => window.scrollY);
     expect(scrollYBefore).toBe(0);
 
-    const source = page
-      .locator('.paragraph-editor')
-      .locator('div[draggable="true"]')
-      .first();
+    const source = page.getByTitle('Drag to move Layout 1');
     const box = (await source.boundingBox())!;
 
     await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
@@ -56,10 +56,9 @@ test.describe('drag auto-scroll', () => {
     const scrollYBefore = await page.evaluate(() => window.scrollY);
     expect(scrollYBefore).toBeGreaterThan(0);
 
-    const source = page
-      .locator('.paragraph-editor')
-      .locator('div[draggable="true"]')
-      .first();
+    // The page is scrolled to the bottom, so grab the last layout's
+    // header -- the only one reliably in view.
+    const source = page.getByTitle('Drag to move Layout 7');
     const box = (await source.boundingBox())!;
 
     await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
@@ -81,10 +80,7 @@ test.describe('drag auto-scroll', () => {
   });
 
   test('releasing the drag stops the auto-scroll', async ({ page }) => {
-    const source = page
-      .locator('.paragraph-editor')
-      .locator('div[draggable="true"]')
-      .first();
+    const source = page.getByTitle('Drag to move Layout 1');
     const box = (await source.boundingBox())!;
 
     await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
@@ -119,10 +115,7 @@ test.describe('drag auto-scroll', () => {
   test('dragging in the middle of the viewport does not scroll the page', async ({
     page,
   }) => {
-    const source = page
-      .locator('.paragraph-editor')
-      .locator('div[draggable="true"]')
-      .first();
+    const source = page.getByTitle('Drag to move Layout 1');
     const box = (await source.boundingBox())!;
 
     await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);

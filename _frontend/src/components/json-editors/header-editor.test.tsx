@@ -8,20 +8,7 @@ import type { ContentId } from '@/types/content-base-item';
 import HeaderEditor from './header-editor';
 
 describe('HeaderEditor', () => {
-  it('defaults to the example header JSON when no content is given', () => {
-    const { container } = render(
-      <AllProviders>
-        <HeaderEditor />
-      </AllProviders>,
-    );
-    const input = container.querySelector(
-      'input[name="header"]',
-    ) as HTMLInputElement;
-
-    expect(input.value).not.toBe('');
-  });
-
-  it('renders provided content instead of the example', () => {
+  it('renders the provided content in its form field', () => {
     const { container } = render(
       <AllProviders>
         <HeaderEditor

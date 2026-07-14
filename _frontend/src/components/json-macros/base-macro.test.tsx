@@ -19,7 +19,6 @@ function seedLocalStorage() {
       // whose layoutId has no matching layout.
       items: [{ contentId: 'm1', layoutId: 'a' }],
       layouts: [{ layoutId: 'a' }],
-      isEditorVisible: false,
     }),
   );
 }

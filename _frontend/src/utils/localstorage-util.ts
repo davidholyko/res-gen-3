@@ -5,10 +5,12 @@ import { prepopulateUtil } from './prepopulate-util';
 
 const RES_GEN_KEY = 'res-gen-data';
 
+// Saves written before specs/editor-redesign.md Phase 6 also carry an
+// `isEditorVisible` key (the retired Template ribbon's visibility
+// toggle) -- parsing simply ignores it.
 export type LocalStorageData = {
   layouts: LayoutItem[];
   items: ContentAll[];
-  isEditorVisible: boolean;
 };
 
 export type JsonType = {
@@ -37,10 +39,6 @@ export class LocalStorageUtil {
 
   get items() {
     return this.isEmpty() ? this.data.items : prepopulateUtil.items;
-  }
-
-  get isEditorVisible() {
-    return this.data.isEditorVisible;
   }
 
   isEmpty() {

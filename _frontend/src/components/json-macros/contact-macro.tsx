@@ -12,7 +12,13 @@ export default function ContactMacro(props: ContactMacroProps) {
 
   return (
     <BaseMacro {...props}>
-      <h1 className="text-3xl font-bold text-center">{name}</h1>
+      {/* Same empty-heading reasoning as header-macro.tsx: a blank
+          contact block must not render an empty <h1>. */}
+      {name ? (
+        <h1 className="text-3xl font-bold text-center">{name}</h1>
+      ) : (
+        <p className="text-center italic text-gray-600">Empty contact block</p>
+      )}
       {/* h2, not h4: no h3 exists in between to skip down from (WCAG 1.3.1). */}
       {title && <h2 className="text-center">{title}</h2>}
       <div className="flex flex-row justify-center text-center mr-2 flex-wrap">

@@ -6,7 +6,7 @@ import { useAppContext } from '@/context/app-context';
 const VISIBLE_DURATION_MS = 2000;
 
 export default function SavedIndicator() {
-  const { items, layouts, isEditorVisible } = useAppContext();
+  const { items, layouts } = useAppContext();
   const [isVisible, setIsVisible] = useState(false);
   // Value snapshot, not a boolean "first render" flag -- a boolean flip
   // doesn't survive React StrictMode's dev-only double-invoke of the
@@ -15,17 +15,13 @@ export default function SavedIndicator() {
   // Comparing against the previous values instead is naturally correct
   // under double-invoke, since both invocations see the same (unchanged)
   // values and neither looks like a real change.
-  const previousRef = useRef({ items, layouts, isEditorVisible });
+  const previousRef = useRef({ items, layouts });
 
   useEffect(() => {
     const previous = previousRef.current;
-    previousRef.current = { items, layouts, isEditorVisible };
+    previousRef.current = { items, layouts };
 
-    if (
-      previous.items === items &&
-      previous.layouts === layouts &&
-      previous.isEditorVisible === isEditorVisible
-    ) {
+    if (previous.items === items && previous.layouts === layouts) {
       return;
     }
 
@@ -36,7 +32,7 @@ export default function SavedIndicator() {
     );
 
     return () => clearTimeout(timeoutId);
-  }, [items, layouts, isEditorVisible]);
+  }, [items, layouts]);
 
   return (
     <span

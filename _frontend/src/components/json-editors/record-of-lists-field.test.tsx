@@ -2,8 +2,6 @@ import { fireEvent, render } from '@testing-library/react';
 import axe from 'axe-core';
 import { describe, expect, it, vi } from 'vitest';
 
-import { EDITOR_MODES } from '@/constants';
-
 import RecordOfListsField from './record-of-lists-field';
 
 function baseProps(overrides: Record<string, unknown> = {}) {
@@ -14,8 +12,6 @@ function baseProps(overrides: Record<string, unknown> = {}) {
       Foods: ['Meats', 'Sushi'],
       Hobbies: ['Sailing'],
     },
-    isOpen: true,
-    mode: EDITOR_MODES.IN_LAYOUT_MANAGER,
     error: '',
     errorId: 'f1-groups-error',
     onChange: vi.fn(),
@@ -200,22 +196,6 @@ describe('RecordOfListsField', () => {
     input.dispatchEvent(event);
 
     expect(stopPropagation).toHaveBeenCalled();
-  });
-
-  it('keeps every control out of the tab order while collapsed', () => {
-    const { getByLabelText } = render(
-      <RecordOfListsField {...baseProps({ isOpen: false })} />,
-    );
-
-    expect((getByLabelText('Group 1 name') as HTMLInputElement).tabIndex).toBe(
-      -1,
-    );
-    expect(
-      (getByLabelText('Group 1 entry 1') as HTMLInputElement).tabIndex,
-    ).toBe(-1);
-    expect((getByLabelText('Add group') as HTMLButtonElement).tabIndex).toBe(
-      -1,
-    );
   });
 
   it('marks inputs invalid and described by the shared error id when a field error is set', () => {

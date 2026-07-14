@@ -1,4 +1,4 @@
-import { CONTENT_TYPES, EDITOR_MODES } from '@/constants';
+import { CONTENT_TYPES } from '@/constants';
 import type { ContentAll } from '@/types/content-all';
 
 import AnyListEditor from '../json-editors/any-list-editor';
@@ -7,9 +7,7 @@ import ExperienceEditor from '../json-editors/experience-editor';
 import HeaderEditor from '../json-editors/header-editor';
 import ParagraphEditor from '../json-editors/paragraph-editor';
 
-type EditorItemProps = ContentAll & {
-  mode: keyof typeof EDITOR_MODES;
-};
+type EditorItemProps = ContentAll;
 
 export default function EditorItem(props: EditorItemProps) {
   const { contentType, contentId } = props;

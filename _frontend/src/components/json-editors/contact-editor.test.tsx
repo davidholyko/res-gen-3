@@ -8,23 +8,7 @@ import type { ContentId } from '@/types/content-base-item';
 import ContactEditor from './contact-editor';
 
 describe('ContactEditor', () => {
-  it('renders a labelled input per contact field, defaulting to the example contact', () => {
-    const { container } = render(
-      <AllProviders>
-        <ContactEditor />
-      </AllProviders>,
-    );
-
-    expect(container.querySelector('textarea')).toBeNull();
-    const name = container.querySelector(
-      'input[name="name"]',
-    ) as HTMLInputElement;
-    expect(name.value).not.toBe('');
-    expect(container.querySelector('input[name="email"]')).not.toBeNull();
-    expect(container.querySelector('input[name="website"]')).not.toBeNull();
-  });
-
-  it('renders provided content instead of the example', () => {
+  it('renders a labelled input per contact field with the provided content', () => {
     const { container } = render(
       <AllProviders>
         <ContactEditor
@@ -35,6 +19,7 @@ describe('ContactEditor', () => {
       </AllProviders>,
     );
 
+    expect(container.querySelector('textarea')).toBeNull();
     const name = container.querySelector(
       'input[name="name"]',
     ) as HTMLInputElement;
@@ -43,6 +28,7 @@ describe('ContactEditor', () => {
     ) as HTMLInputElement;
     expect(name.value).toBe('Ada Lovelace');
     expect(email.value).toBe('ada@example.com');
+    expect(container.querySelector('input[name="website"]')).not.toBeNull();
   });
 
   it('leaves optional fields blank and error-free with only the required fields present', () => {

@@ -8,7 +8,6 @@ import {
   useState,
 } from 'react';
 
-import { EDITOR_MODES } from '@/constants';
 import { useAppContext } from '@/context/app-context';
 import type { ContentAll } from '@/types/content-all';
 
@@ -98,12 +97,16 @@ export default function BaseMacro(props: BaseMacroProps) {
     };
   }, [contentId, isFocused, onDelete]);
 
-  const className = c({
-    'mb-2': true,
+  const className = c('mb-2 rounded', {
     'border-2': isFocused,
-    rounded: isFocused,
     'border-blue-700': isFocused,
     'p-2': isFocused,
+    // Hover affordance (specs/editor-redesign.md, The user's journey →
+    // Journey-driven additions): nothing else signals a block is
+    // clickable until it's already been clicked. outline, not border, so
+    // the hint never shifts layout.
+    'cursor-pointer hover:outline hover:outline-2 hover:outline-blue-300':
+      !isFocused,
   });
 
   return (
@@ -126,9 +129,7 @@ export default function BaseMacro(props: BaseMacroProps) {
     >
       {isFocused && <MacroTopBar contentId={contentId} />}
       {children}
-      {isFocused && (
-        <EditorItem {...props} mode={EDITOR_MODES.IN_LAYOUT_MANAGER} />
-      )}
+      {isFocused && <EditorItem {...props} />}
     </div>
   );
 }

@@ -58,4 +58,17 @@ describe('ContactMacro', () => {
     expect(container.querySelector('h4')).toBeNull();
     expect(container.querySelectorAll('span')).toHaveLength(0);
   });
+
+  it('renders a placeholder instead of an empty <h1> while blank', () => {
+    // A freshly added block starts empty (specs/editor-redesign.md,
+    // Phase 6) -- an empty heading element is an axe violation.
+    const { container, getByText } = render(
+      <AllProviders>
+        <ContactMacro {...makeProps({ name: '', email: '' })} />
+      </AllProviders>,
+    );
+
+    expect(container.querySelector('h1')).toBeNull();
+    expect(getByText('Empty contact block')).not.toBeNull();
+  });
 });

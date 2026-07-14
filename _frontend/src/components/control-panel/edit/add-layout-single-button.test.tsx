@@ -1,9 +1,8 @@
 import { fireEvent, render } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { addLayoutMock, contextState } = vi.hoisted(() => ({
+const { addLayoutMock } = vi.hoisted(() => ({
   addLayoutMock: vi.fn(),
-  contextState: { isEditorVisible: false },
 }));
 vi.mock('@/context/app-context', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/context/app-context')>();
@@ -11,7 +10,6 @@ vi.mock('@/context/app-context', async (importOriginal) => {
     ...actual,
     useAppContext: () => ({
       addLayout: addLayoutMock,
-      isEditorVisible: contextState.isEditorVisible,
     }),
   };
 });
@@ -21,7 +19,6 @@ const { default: AddLayoutSingleButton } =
 
 beforeEach(() => {
   addLayoutMock.mockReset();
-  contextState.isEditorVisible = false;
 });
 
 describe('AddLayoutSingleButton', () => {
@@ -36,13 +33,6 @@ describe('AddLayoutSingleButton', () => {
         layoutId: expect.any(String),
       }),
     );
-  });
-
-  it('renders nothing while the editor panel is visible', () => {
-    contextState.isEditorVisible = true;
-    const { container } = render(<AddLayoutSingleButton />);
-
-    expect(container).toBeEmptyDOMElement();
   });
 
   it('forwards className, role, and tabIndex', () => {

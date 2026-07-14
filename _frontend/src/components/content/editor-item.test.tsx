@@ -1,7 +1,7 @@
 import { render } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 
-import { CONTENT_TYPES, EDITOR_MODES } from '@/constants';
+import { CONTENT_TYPES } from '@/constants';
 import { AllProviders } from '@/test-providers';
 import type { ContentAll } from '@/types/content-all';
 
@@ -14,8 +14,7 @@ function item(contentType: string, content: Record<string, unknown>) {
     content,
     layoutId: 'a',
     layoutType: 'SINGLE',
-    mode: EDITOR_MODES.IN_LAYOUT_MANAGER,
-  } as unknown as ContentAll & { mode: keyof typeof EDITOR_MODES };
+  } as unknown as ContentAll;
 }
 
 describe('EditorItem', () => {

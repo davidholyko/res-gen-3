@@ -2,15 +2,11 @@ import c from 'classnames';
 import type { ChangeEvent } from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-import { EDITOR_MODES } from '@/constants';
-
 type TagsFieldProps = {
   fieldId: string;
   name: string;
   label: string;
   value: string[];
-  isOpen: boolean;
-  mode: keyof typeof EDITOR_MODES;
   error: string;
   errorId: string;
   onChange: (next: string[]) => void;
@@ -22,7 +18,7 @@ type TagsFieldProps = {
 // it produces. Type text, Enter or comma commits it, a chip's × removes
 // it.
 export default function TagsField(props: TagsFieldProps) {
-  const { fieldId, name, label, value, isOpen, mode, error, errorId } = props;
+  const { fieldId, name, label, value, error, errorId } = props;
   const { onChange } = props;
 
   // The not-yet-committed chip text -- deliberately local state, not part
@@ -89,14 +85,8 @@ export default function TagsField(props: TagsFieldProps) {
   // visual "input box", so it carries the mode background/width, while
   // the inner input stays transparent inside it.
   const containerClassName = c(
-    'flex flex-row flex-wrap items-center gap-1 p-2',
-    {
-      'w-auto': mode === EDITOR_MODES.IN_LAYOUT_MANAGER,
-      'w-[60ch]': mode !== EDITOR_MODES.IN_LAYOUT_MANAGER,
-      'bg-emerald-100': mode === EDITOR_MODES.IN_LAYOUT_MANAGER,
-      'bg-sky-100': mode === EDITOR_MODES.IN_EDITOR_MANAGER,
-      'outline outline-2 outline-red-700': !!error,
-    },
+    'flex flex-row flex-wrap items-center gap-1 p-2 w-auto bg-emerald-100',
+    { 'outline outline-2 outline-red-700': !!error },
   );
 
   return (
@@ -119,7 +109,6 @@ export default function TagsField(props: TagsFieldProps) {
               className="ml-1 px-1 rounded hover:bg-gray-700"
               aria-label={`Remove ${label} ${tag}`}
               title={`Remove ${tag}`}
-              tabIndex={isOpen ? 0 : -1}
               onClick={() => onRemove(index)}
             >
               ×
@@ -136,7 +125,6 @@ export default function TagsField(props: TagsFieldProps) {
           value={pending}
           onChange={onPendingChange}
           ref={inputRef}
-          tabIndex={isOpen ? 0 : -1}
           aria-invalid={!!error}
           aria-describedby={error ? errorId : undefined}
         />

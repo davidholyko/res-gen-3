@@ -32,16 +32,6 @@ test.describe('control panel', () => {
     await expect(page.locator('.layout-single')).toHaveCount(before);
   });
 
-  test('View menu toggles the editor panel visibility', async ({ page }) => {
-    const editorManager = page.locator('#editor-manager');
-    await expect(editorManager).not.toHaveClass(/hidden/);
-
-    await page.getByText('View', { exact: true }).click();
-    await page.getByText('Toggle Editor').click();
-
-    await expect(editorManager).toHaveClass(/hidden/);
-  });
-
   test('JSON export downloads a file, and re-importing it round-trips the state', async ({
     page,
   }) => {

@@ -57,20 +57,10 @@ describe('SavedIndicator', () => {
     expect(container.textContent).toBe('');
   });
 
-  it('reacts to layouts and isEditorVisible changes too', () => {
+  it('reacts to layouts changes too', () => {
     const { container, rerender } = render(<SavedIndicator />);
 
     contextState.layouts = [{ layoutId: 'a' }];
-    act(() => {
-      rerender(<SavedIndicator />);
-    });
-    expect(container.textContent).toBe('Saved');
-
-    act(() => {
-      vi.advanceTimersByTime(2000);
-    });
-
-    contextState.isEditorVisible = true;
     act(() => {
       rerender(<SavedIndicator />);
     });

@@ -39,7 +39,6 @@ export type AppContextType = {
    * title refers to the name of the PDF when a user downloads from browser
    */
   title: string;
-  isEditorVisible: boolean;
   isModalOpen: boolean; // maybe move to pdf preview context
   items: ContentAll[]; // rename to contentItems
   layouts: LayoutItem[];
@@ -58,7 +57,6 @@ export type AppContextType = {
   onUpdate: (item: ContentAll) => void;
   onDelete: (item: Pick<ContentAll, 'contentId'>) => void;
   onMove: (action: MOVE_ACTION, contentId: ContentId) => void;
-  toggleEditor: () => void;
   togglePdfModal: (value?: boolean) => void;
   /**
    * The contentId most recently created via onCreate -- lets the newly
@@ -87,21 +85,18 @@ export function AppProvider({ children }: AppProviderProps) {
     localStorageUtil.layouts,
   );
   const [items, setItems] = useState<ContentAll[]>(localStorageUtil.items);
-  // Lazy-initialized from localStorage, same as `layouts`/`items` above
-  // (safe: AppProvider only ever mounts client-side, see src/app/page.tsx),
-  // rather than defaulting to false and correcting via an effect.
-  const [isEditorVisible, setIsEditorVisible] = useState(
-    localStorageUtil.isEditorVisible,
-  );
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [lastCreatedContentId, setLastCreatedContentId] =
     useState<ContentId | null>(null);
   const [undoSnapshot, setUndoSnapshot] = useState<UndoSnapshot | null>(null);
 
-  // Store data in local storage whenever it changes
+  // Store data in local storage whenever it changes. (Older saves also
+  // carried an isEditorVisible key for the retired Template ribbon's
+  // visibility toggle -- still readable, just ignored and no longer
+  // written.)
   useEffect(() => {
-    localStorageUtil.data = { items, layouts, isEditorVisible };
-  }, [items, layouts, isEditorVisible]);
+    localStorageUtil.data = { items, layouts };
+  }, [items, layouts]);
 
   useEffect(() => {
     // Reconciles `items` against `layouts` (e.g. after removeLayout, so
@@ -241,11 +236,6 @@ export function AppProvider({ children }: AppProviderProps) {
     );
   }, []);
 
-  const toggleEditor = useCallback(
-    () => setIsEditorVisible(!isEditorVisible),
-    [isEditorVisible],
-  );
-
   const togglePdfModal = useCallback(
     (value?: boolean) => {
       setIsModalOpen(value === undefined ? !isModalOpen : value);
@@ -302,7 +292,6 @@ export function AppProvider({ children }: AppProviderProps) {
       value={{
         title,
         isModalOpen,
-        isEditorVisible,
         items,
         layouts,
         addLayout,
@@ -314,7 +303,6 @@ export function AppProvider({ children }: AppProviderProps) {
         onUpdate,
         onCreate,
         onMove,
-        toggleEditor,
         togglePdfModal,
         lastCreatedContentId,
         undoSnapshot,

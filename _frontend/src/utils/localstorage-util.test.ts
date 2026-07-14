@@ -15,7 +15,7 @@ describe('LocalStorageUtil', () => {
 
   it('data setter/getter round-trips through localStorage', () => {
     const util = new LocalStorageUtil();
-    const value = { items: [], layouts: [], isEditorVisible: true };
+    const value = { items: [], layouts: [] };
 
     util.data = value;
 
@@ -25,12 +25,12 @@ describe('LocalStorageUtil', () => {
     );
   });
 
-  it('isEditorVisible reflects the stored value', () => {
+  it('ignores the isEditorVisible key older saves carry (retired ribbon toggle)', () => {
     const util = new LocalStorageUtil();
 
     util.data = { items: [], layouts: [], isEditorVisible: true };
 
-    expect(util.isEditorVisible).toBe(true);
+    expect(util.data.layouts).toEqual([]);
   });
 
   describe('isEmpty / layouts / items', () => {
@@ -47,7 +47,6 @@ describe('LocalStorageUtil', () => {
       const stored = {
         items: [{ contentId: 'a' }],
         layouts: [{ layoutId: 'b' }],
-        isEditorVisible: false,
       };
 
       util.data = stored;
@@ -63,7 +62,6 @@ describe('LocalStorageUtil', () => {
       util.data = {
         items: [{ contentId: 'a' }],
         layouts: [],
-        isEditorVisible: false,
       };
 
       expect(util.isEmpty()).toBe(false);

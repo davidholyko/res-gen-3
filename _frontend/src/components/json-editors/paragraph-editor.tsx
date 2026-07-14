@@ -1,22 +1,16 @@
 import c from 'classnames';
 import { object, string } from 'zod';
 
-import EXAMPLE_PARAGRAPH from '@/__example-json/paragraph.json';
 import { CONTENT_TYPES } from '@/constants';
-import type {
-  ContentParagraph,
-  ParagraphJson,
-} from '@/types/content-paragraph';
+import type { ContentParagraph } from '@/types/content-paragraph';
 import type { FieldSpec } from '@/types/field-spec';
-import type { NeverProps } from '@/types/generics';
 
 import BaseEditor from './base-editor';
 
-type ParagraphEditorProps =
-  | NeverProps
-  | (ContentParagraph & {
-      content?: ParagraphJson;
-    });
+// Always a placed block's inline editor now -- the ribbon's example-
+// content template cards retired with specs/editor-redesign.md Phase 6,
+// so `content` is required, never defaulted.
+type ParagraphEditorProps = ContentParagraph;
 
 const schema = object({
   paragraph: string(),
@@ -27,8 +21,6 @@ const fields: FieldSpec[] = [
 ];
 
 export default function ParagraphEditor(props: ParagraphEditorProps) {
-  const { content = EXAMPLE_PARAGRAPH } = props;
-
   const className = c('paragraph-editor');
 
   return (
@@ -37,7 +29,6 @@ export default function ParagraphEditor(props: ParagraphEditorProps) {
       className={className}
       contentType={CONTENT_TYPES.PARAGRAPH}
       macro="Paragraph"
-      content={content}
       schema={schema}
       fields={fields}
     />

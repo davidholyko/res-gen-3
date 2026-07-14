@@ -8,21 +8,8 @@ import type { ContentId } from '@/types/content-base-item';
 import AnyListEditor from './any-list-editor';
 
 describe('AnyListEditor', () => {
-  it('renders group form fields defaulting to the example any-list, not a JSON textarea', () => {
+  it('renders the provided content as group form fields, not a JSON textarea', () => {
     const { container, getByLabelText } = render(
-      <AllProviders>
-        <AnyListEditor />
-      </AllProviders>,
-    );
-
-    expect(container.querySelector('textarea')).toBeNull();
-    expect((getByLabelText('Group 1 name') as HTMLInputElement).value).toBe(
-      'Gears',
-    );
-  });
-
-  it('renders provided content instead of the example', () => {
-    const { getByLabelText } = render(
       <AllProviders>
         <AnyListEditor
           contentId={'c1' as ContentId}
@@ -32,6 +19,7 @@ describe('AnyListEditor', () => {
       </AllProviders>,
     );
 
+    expect(container.querySelector('textarea')).toBeNull();
     expect((getByLabelText('Group 1 name') as HTMLInputElement).value).toBe(
       'Skills',
     );
