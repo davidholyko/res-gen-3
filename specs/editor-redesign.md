@@ -75,6 +75,97 @@ app. Every action routes through a menu, a dropdown, or a JSON blob.
   still read resumes saved under the current schema — no "your old
   resume is gone" regression.
 
+## The user's journey (target experience)
+
+Everything in Design below exists to serve one narrative. This is what a
+person sees and does, start to finish, once this spec is fully
+implemented — written from the user's chair, not the component tree.
+(Which steps already work today is tracked in Sequencing, not here.)
+
+**1. First open.** A cyan control bar across the top — "Res Gen 3",
+File / Edit / View menus, a page counter, a Saved indicator — and below
+it, a complete example resume laid out on a white page-shaped canvas.
+The first impression is "this is the kind of document this tool makes,"
+not an empty form. (First-run prepopulation stays — it's the app's own
+demo, and clearing it is one click.)
+
+**2. Making it mine.** Nobody edits a stranger's resume line by line,
+so the realistic first action is File → New: a confirm, an undo toast
+as a safety net, and then an empty canvas with a single clear call to
+action — "Your resume is empty. Add a layout to start placing content
+in it." From this point on, the person never has to leave the canvas to
+build their resume.
+
+**3. Sketching the skeleton.** People think in sections: name and
+contact info up top, a summary, experience, maybe skills split into two
+columns. Each section container ("layout") is added right where
+they're looking: hovering the gap between two sections (or above the
+first / below the last) reveals a "+" — one column by default, two
+columns via a secondary pick. Every section shows a small label and a
+Remove link, and dragging a section moves it whole; the page scrolls
+itself when the drag nears the viewport edge.
+
+**4. Filling in content.** Every section (each column of a two-column
+section) carries a quiet "+ Add block" control. Clicking it lists the
+five block types in plain words — nobody looking for a skills list
+will pick something called "AnyList". Choosing one drops a *blank*
+block into that exact spot with its form already open and focus in the
+first field. No dragging from a separate panel, no picking a
+destination from a dropdown, no deleting someone else's example text
+first.
+
+**5. Editing.** Hovering a placed block hints that it's clickable;
+clicking it frames it in blue and reveals two things: a small toolbar
+(move up / move down / delete) and the block's form — real labeled
+fields shaped like the content itself. Single-line inputs for names
+and emails, a paragraph box for prose, chips for tags, add/remove rows
+for bullet lists, named groups for grouped lists. Typing updates the
+block live on the page; Backspace edits text and never deletes the
+block; a bad value flags just the offending field, right under it.
+Clicking anywhere else closes the editor.
+
+**6. Rearranging.** Move up / move down shifts a block within its own
+column — it never silently jumps relative to another section's
+content. Whole sections reorder by drag (step 3).
+
+**7. Checking and shipping.** The page counter answers "does it still
+fit on one page?" continuously while editing. View → PDF opens the
+real rendered PDF; File → Download PDF produces the file they actually
+send out; Download/Upload JSON round-trips the resume as data. There
+is no save button to remember — the Saved indicator confirms autosave
+as they type, and closing the tab loses nothing.
+
+### Journey-driven additions
+
+Walking the app as a person (rather than as its component tree)
+surfaced three gaps the design below didn't yet cover explicitly.
+Folded in as follows:
+
+- **Plain-language block names in the "+ Add block" menu.** Internal
+  type names leak into the UI today ("AnyList" in the ribbon, "Macro"
+  in aria-labels). The add menu labels the five types in human terms —
+  along the lines of Contact details / Section heading / Paragraph /
+  Experience / Custom list (final wording at implementation time).
+  Internal identifiers (`ANY_LIST` etc.) are unchanged in code, storage,
+  and JSON import/export.
+- **The Template ribbon retires when per-zone "+ Add block" lands.**
+  Design → Content editing already says the panel's role "goes away";
+  making the consequence explicit: Phase 6 removes the ribbon itself,
+  and with it the per-card "Add to layout" `<select>` + green "+"
+  button, drag-from-ribbon, and View → toggle-panel. Accessibility
+  doesn't regress: the zone `<select>` existed as the single-pointer
+  alternative to drag (WCAG 2.5.7), and a click on "+ Add block" is
+  itself single-pointer. The drag auto-scroll (Phase 2) stays — from
+  that point it serves layout drag-to-reorder.
+- **Hover affordance on editable blocks.** Nothing today signals a
+  block is clickable until it's already been clicked. Add a subtle
+  hover cue (pointer cursor plus a faint outline or tint) as part of
+  Phase 6.
+
+Deliberately *not* changed by this walkthrough: the first-run example
+resume stays (journey step 1) — a blank first run would show nothing of
+what the tool produces, and File → New is one click away.
+
 ## Design
 
 ### Content editing: real forms, driven by a declarative field spec
@@ -200,7 +291,9 @@ rather than one cutover:
 4. **Experience form** — introduces `tags` and `list`.
 5. **AnyList form** — introduces `record-of-lists`, the hardest shape.
 6. **Layout direct manipulation** — insert-at-position, drag-to-reorder
-   layouts, per-zone "+ Add block".
+   layouts, per-zone "+ Add block" (with plain-language type names), the
+   hover affordance on placed blocks, and retiring the Template ribbon
+   (see The user's journey → Journey-driven additions).
 7. **Zone-aware reordering fix** for `onMove`.
 
 Each phase is independently shippable and testable; a phase landing
@@ -212,9 +305,16 @@ use the JSON textarea while Header/Paragraph/Contact already have forms).
 - [ ] Every content type is editable via real form fields — no content
       type still requires hand-editing JSON in the default flow
 - [ ] Adding a new block of any content type happens from a control on
-      the layout/zone itself, not a separate template panel
+      the layout/zone itself, not a separate template panel — and once
+      that control ships, the Template ribbon (zone dropdown, green "+",
+      drag-from-ribbon) is removed rather than left as a second path
+- [ ] The "+ Add block" menu names the five content types in plain
+      language — no internal identifiers like "AnyList" in user-facing
+      UI
 - [ ] New blocks start blank (or with clearly-labeled placeholders), not
       copied from pre-filled example content
+- [ ] Placed blocks show a hover affordance signaling they can be
+      clicked to edit
 - [ ] A layout can be inserted at a specific position (not just
       appended), and layouts can be reordered via drag
 - [ ] Dragging a ribbon item near the top/bottom edge of the viewport
