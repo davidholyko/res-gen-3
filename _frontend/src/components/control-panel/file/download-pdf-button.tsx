@@ -1,11 +1,8 @@
-import { pdf } from '@react-pdf/renderer';
 import c from 'classnames';
 import { useCallback, useMemo } from 'react';
 
 import { useAppContext } from '@/context/app-context';
-import { PdfDocumentProvider } from '@/context/pdf-document-context';
-import { usePdfPreviewContext } from '@/context/pdf-preview-context';
-import PdfDocument from '@/pdf/pdf-document';
+import { usePdfInstance } from '@/context/pdf-instance-context';
 
 type DownloadPdfButtonProps = {
   className?: string;
@@ -18,29 +15,31 @@ export default function DownloadPdfButton({
   role,
   tabIndex,
 }: DownloadPdfButtonProps) {
-  const { styles } = usePdfPreviewContext();
   const { items, layouts, title } = useAppContext();
+  // Reuses PdfInstanceProvider's shared, already-rendered blob instead of
+  // running a second, independent pdf() render pass -- react-pdf keeps a
+  // single module-level renderer instance across calls ("We must keep a
+  // single renderer instance, otherwise React will complain"), so two
+  // concurrent render passes (this button's own render racing the shared
+  // instance's background debounced render) can genuinely collide.
+  // Confirmed live: this exact race threw a real
+  // "Cannot read properties of null (reading 'props')" error before this
+  // fix (specs/multi-page-indicator.md).
+  const { instance } = usePdfInstance();
 
   const disabled = useMemo(() => {
-    return !(items.length || layouts.length);
-  }, [items, layouts]);
+    return !(items.length || layouts.length) || !instance.blob;
+  }, [items, layouts, instance.blob]);
 
-  const handleClick = useCallback(async () => {
-    // Same PdfDocumentProvider + PdfDocument tree the preview modal
-    // renders inside <PDFViewer> -- `pdf()` is @react-pdf's generation
-    // primitive for producing a Blob without mounting an iframe.
-    const blob = await pdf(
-      <PdfDocumentProvider
-        styles={styles}
-        items={items}
-        layouts={layouts}
-        title={title}
-      >
-        <PdfDocument />
-      </PdfDocumentProvider>,
-    ).toBlob();
+  const handleClick = useCallback(() => {
+    // Unreachable via a real click: the button is disabled whenever
+    // instance.blob is falsy, and disabled buttons never dispatch click
+    // events. Only relevant if this handler is ever wired up elsewhere
+    // without that same disabled guard.
+    /* v8 ignore next */
+    if (!instance.blob) return;
 
-    const url = URL.createObjectURL(blob);
+    const url = URL.createObjectURL(instance.blob);
     const a = document.createElement('a');
     a.href = url;
     a.download = title;
@@ -48,7 +47,7 @@ export default function DownloadPdfButton({
     a.click();
     URL.revokeObjectURL(url);
     document.body.removeChild(a);
-  }, [styles, items, layouts, title]);
+  }, [instance.blob, title]);
 
   const classNames = c('unstyled', className);
 

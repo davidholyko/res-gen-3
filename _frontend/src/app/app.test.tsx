@@ -5,6 +5,7 @@ import { HTML5Backend } from 'react-dnd-html5-backend';
 import { afterEach, describe, expect, it } from 'vitest';
 
 import { AppProvider } from '@/context/app-context';
+import { PdfInstanceProvider } from '@/context/pdf-instance-context';
 import { PdfPreviewProvider } from '@/context/pdf-preview-context';
 
 import App from './app';
@@ -34,9 +35,11 @@ describe('App', () => {
       <div id="res-gen">
         <AppProvider>
           <PdfPreviewProvider>
-            <DndProvider backend={HTML5Backend}>
-              <App />
-            </DndProvider>
+            <PdfInstanceProvider>
+              <DndProvider backend={HTML5Backend}>
+                <App />
+              </DndProvider>
+            </PdfInstanceProvider>
           </PdfPreviewProvider>
         </AppProvider>
       </div>,
@@ -55,9 +58,11 @@ describe('App', () => {
       <div id="res-gen">
         <AppProvider>
           <PdfPreviewProvider>
-            <DndProvider backend={HTML5Backend}>
-              <App />
-            </DndProvider>
+            <PdfInstanceProvider>
+              <DndProvider backend={HTML5Backend}>
+                <App />
+              </DndProvider>
+            </PdfInstanceProvider>
           </PdfPreviewProvider>
         </AppProvider>
       </div>,
