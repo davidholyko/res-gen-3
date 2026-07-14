@@ -1,8 +1,10 @@
 import { fireEvent, render } from '@testing-library/react';
 import axe from 'axe-core';
-import { afterEach, describe, expect, it } from 'vitest';
+import { useEffect, useRef } from 'react';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { CONTENT_TYPES } from '@/constants';
+import { useAppContext } from '@/context/app-context';
 import { AllProviders } from '@/test-providers';
 import type { ContentContact } from '@/types/content-contact';
 
@@ -37,6 +39,46 @@ const props = {
 function readStoredItems(): Array<{ contentId: string }> {
   const raw = window.localStorage.getItem('res-gen-data');
   return raw ? JSON.parse(raw).items : [];
+}
+
+// Drives a real onCreate() (real AppProvider, matching this file's
+// existing integration-style tests) and, once the freshly-created item
+// shows up in `items`, renders its own BaseMacro -- this is the only way
+// to observe the "just created" scroll/focus behavior against a real
+// contentId, since onCreate always generates a fresh uuid rather than
+// using whatever id was passed in.
+function AddThenRenderMacro() {
+  const { items, onCreate } = useAppContext();
+  // A ref, not state: only ever written inside the effect (never read
+  // during render), so it doesn't trip react-hooks/refs. Whether to
+  // render is instead derived from `items.length` itself below, which is
+  // safe to read during render.
+  const hasAddedRef = useRef(false);
+
+  useEffect(() => {
+    if (hasAddedRef.current) return;
+    hasAddedRef.current = true;
+    onCreate({
+      contentId: 'ignored' as never,
+      contentType: CONTENT_TYPES.CONTACT,
+      content: { name: 'New Person', email: 'new@example.com' },
+      layoutId: 'a',
+      layoutType: 'SINGLE',
+    } as unknown as ContentContact);
+  }, [onCreate]);
+
+  // seedLocalStorage() below always seeds exactly one item.
+  if (items.length < 2) {
+    return null;
+  }
+
+  const newItem = items[items.length - 1];
+
+  return (
+    <BaseMacro {...(newItem as unknown as ContentContact)}>
+      <p>new content</p>
+    </BaseMacro>
+  );
 }
 
 describe('BaseMacro', () => {
@@ -221,6 +263,47 @@ describe('BaseMacro', () => {
     expect(readStoredItems().some((item) => item.contentId === 'm1')).toBe(
       true,
     );
+  });
+
+  it('scrolls itself into view and reveals its controls when it is the just-created item', () => {
+    seedLocalStorage();
+    const scrollIntoViewMock = vi.fn();
+    const focusSpy = vi.spyOn(HTMLElement.prototype, 'focus');
+    Element.prototype.scrollIntoView = scrollIntoViewMock;
+
+    const { container, getByText } = render(
+      <AllProviders>
+        <AddThenRenderMacro />
+      </AllProviders>,
+    );
+
+    expect(getByText('new content')).not.toBeNull();
+    expect(scrollIntoViewMock).toHaveBeenCalledWith({
+      behavior: 'smooth',
+      block: 'center',
+    });
+    expect(focusSpy).toHaveBeenCalledWith({ preventScroll: true });
+    // The existing focus-triggered reveal (not new behavior) confirms
+    // focus() actually landed on this macro, not just was called.
+    expect(container.querySelector('.border-2')).not.toBeNull();
+
+    focusSpy.mockRestore();
+  });
+
+  it('does not scroll/focus a macro that is not the just-created item', () => {
+    seedLocalStorage();
+    const scrollIntoViewMock = vi.fn();
+    Element.prototype.scrollIntoView = scrollIntoViewMock;
+
+    render(
+      <AllProviders>
+        <BaseMacro {...props}>
+          <p>child content</p>
+        </BaseMacro>
+      </AllProviders>,
+    );
+
+    expect(scrollIntoViewMock).not.toHaveBeenCalled();
   });
 
   it('has no automatically detectable accessibility violations, focused or not', async () => {
