@@ -24,4 +24,20 @@ describe('PdfDocument', () => {
     );
     expect(container.querySelector('page')).not.toBeNull();
   });
+
+  it('accepts an onRender prop without breaking rendering (threaded through to Document by PdfInstanceProvider)', () => {
+    const onRender = () => {};
+    const { container } = render(
+      <PdfDocumentProvider
+        styles={{ page: {} }}
+        items={[]}
+        layouts={[]}
+        title="resume.pdf"
+      >
+        <PdfDocument onRender={onRender} />
+      </PdfDocumentProvider>,
+    );
+
+    expect(container.querySelector('document')).not.toBeNull();
+  });
 });

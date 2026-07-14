@@ -1,34 +1,18 @@
-import { usePDF } from '@react-pdf/renderer';
-import { useEffect } from 'react';
-
 import { useAppContext } from '@/context/app-context';
-import { PdfDocumentProvider } from '@/context/pdf-document-context';
-import { usePdfPreviewContext } from '@/context/pdf-preview-context';
-
-import PdfDocument from './pdf-document';
+import { usePdfInstance } from '@/context/pdf-instance-context';
 
 export default function PdfPreview() {
-  const { styles } = usePdfPreviewContext();
-  const { items, layouts, title } = useAppContext();
-  // Manual usePDF()+<iframe>, not <PDFViewer>, so `instance.loading` is
-  // available to drive a visible loading state before the iframe has a
-  // real `src` (specs/app-ux-improvements.md, Finding 10) -- this is
-  // exactly what PDFViewer does internally, minus the always-mounted
-  // iframe with a null src.
-  const [instance, updateInstance] = usePDF();
-
-  useEffect(() => {
-    updateInstance(
-      <PdfDocumentProvider
-        styles={styles}
-        items={items}
-        layouts={layouts}
-        title={title}
-      >
-        <PdfDocument />
-      </PdfDocumentProvider>,
-    );
-  }, [styles, items, layouts, title, updateInstance]);
+  const { title } = useAppContext();
+  // Shared instance, not its own usePDF() call: PdfInstanceProvider
+  // (mounted once, above both this modal and the always-visible
+  // page-count indicator) owns the actual render -- this avoids two
+  // separate render pipelines for the same content, and means the
+  // modal usually opens against an already-rendered instance instead of
+  // cold-starting its own render every time
+  // (specs/multi-page-indicator.md). `instance.loading` still drives the
+  // same visible loading state as before (specs/app-ux-improvements.md,
+  // Finding 10).
+  const { instance } = usePdfInstance();
 
   if (instance.loading || !instance.url) {
     return (

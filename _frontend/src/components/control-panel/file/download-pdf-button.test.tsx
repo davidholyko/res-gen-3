@@ -1,21 +1,14 @@
-import { fireEvent, render, waitFor } from '@testing-library/react';
+import { fireEvent, render } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { toBlobMock, pdfMock } = vi.hoisted(() => {
-  const toBlobMock = vi.fn();
-  const pdfMock = vi.fn(() => ({ toBlob: toBlobMock }));
-  return { toBlobMock, pdfMock };
-});
-vi.mock('@react-pdf/renderer', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@react-pdf/renderer')>();
-  return { ...actual, pdf: pdfMock };
-});
-
-const { contextState } = vi.hoisted(() => ({
-  contextState: {
+const { appContextState, pdfInstanceState } = vi.hoisted(() => ({
+  appContextState: {
     items: [] as unknown[],
     layouts: [] as unknown[],
     title: '2026-01-01-your-name.pdf',
+  },
+  pdfInstanceState: {
+    blob: null as Blob | null,
   },
 }));
 vi.mock('@/context/app-context', async (importOriginal) => {
@@ -23,18 +16,20 @@ vi.mock('@/context/app-context', async (importOriginal) => {
   return {
     ...actual,
     useAppContext: () => ({
-      items: contextState.items,
-      layouts: contextState.layouts,
-      title: contextState.title,
+      items: appContextState.items,
+      layouts: appContextState.layouts,
+      title: appContextState.title,
     }),
   };
 });
-vi.mock('@/context/pdf-preview-context', async (importOriginal) => {
+vi.mock('@/context/pdf-instance-context', async (importOriginal) => {
   const actual =
-    await importOriginal<typeof import('@/context/pdf-preview-context')>();
+    await importOriginal<typeof import('@/context/pdf-instance-context')>();
   return {
     ...actual,
-    usePdfPreviewContext: () => ({ styles: {} }),
+    usePdfInstance: () => ({
+      instance: { blob: pdfInstanceState.blob },
+    }),
   };
 });
 
@@ -46,14 +41,10 @@ describe('DownloadPdfButton', () => {
   let clickSpy: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
-    pdfMock.mockClear();
-    toBlobMock.mockReset();
-    toBlobMock.mockResolvedValue(
-      new Blob(['pdf-bytes'], { type: 'application/pdf' }),
-    );
-    contextState.items = [];
-    contextState.layouts = [];
-    contextState.title = '2026-01-01-your-name.pdf';
+    appContextState.items = [];
+    appContextState.layouts = [];
+    appContextState.title = '2026-01-01-your-name.pdf';
+    pdfInstanceState.blob = null;
 
     createObjectURL = vi.fn(() => 'blob:mock-url');
     revokeObjectURL = vi.fn();
@@ -65,30 +56,42 @@ describe('DownloadPdfButton', () => {
   });
 
   it('is disabled when there are no items and no layouts', () => {
+    pdfInstanceState.blob = new Blob(['pdf-bytes'], {
+      type: 'application/pdf',
+    });
     const { getByText } = render(<DownloadPdfButton />);
 
     expect(getByText('Download PDF')).toBeDisabled();
   });
 
-  it('generates and downloads a PDF blob once there are items', async () => {
-    contextState.items = [{ contentId: 'a' }];
+  it('is disabled while the shared PDF instance has not rendered a blob yet, even with content', () => {
+    appContextState.items = [{ contentId: 'a' }];
+    pdfInstanceState.blob = null;
+    const { getByText } = render(<DownloadPdfButton />);
+
+    expect(getByText('Download PDF')).toBeDisabled();
+  });
+
+  it('downloads the shared instance blob once there are items and it has rendered', () => {
+    appContextState.items = [{ contentId: 'a' }];
+    const blob = new Blob(['pdf-bytes'], { type: 'application/pdf' });
+    pdfInstanceState.blob = blob;
     const { getByText } = render(<DownloadPdfButton />);
     const button = getByText('Download PDF');
 
     expect(button).toBeEnabled();
     fireEvent.click(button);
 
-    await waitFor(() => expect(clickSpy).toHaveBeenCalledTimes(1));
-
-    expect(pdfMock).toHaveBeenCalledTimes(1);
-    expect(createObjectURL).toHaveBeenCalledTimes(1);
-    const blob = createObjectURL.mock.calls[0][0] as Blob;
-    expect(blob.type).toBe('application/pdf');
+    expect(createObjectURL).toHaveBeenCalledWith(blob);
+    expect(clickSpy).toHaveBeenCalledTimes(1);
     expect(revokeObjectURL).toHaveBeenCalledWith('blob:mock-url');
   });
 
-  it('is enabled once there are layouts, even with no items', () => {
-    contextState.layouts = [{ layoutId: 'a' }];
+  it('is enabled once there are layouts, even with no items, once the instance has rendered', () => {
+    appContextState.layouts = [{ layoutId: 'a' }];
+    pdfInstanceState.blob = new Blob(['pdf-bytes'], {
+      type: 'application/pdf',
+    });
     const { getByText } = render(<DownloadPdfButton />);
 
     expect(getByText('Download PDF')).toBeEnabled();

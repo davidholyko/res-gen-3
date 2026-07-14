@@ -44,7 +44,7 @@ export default function SavedIndicator() {
       // bg-cyan-100 -- -700 landed at 4.4:1 (needs 4.5:1), caught by a
       // real-browser axe scan.
       className={c(
-        'ml-auto text-sm text-cyan-800 transition-opacity duration-300 self-center',
+        'text-sm text-cyan-800 transition-opacity duration-300 self-center',
         isVisible ? 'opacity-100' : 'opacity-0',
       )}
       aria-live="polite"

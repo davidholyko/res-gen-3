@@ -1,40 +1,37 @@
 import { render } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { usePDFMock, updateInstanceMock } = vi.hoisted(() => ({
-  usePDFMock: vi.fn(),
-  updateInstanceMock: vi.fn(),
+const { contextState } = vi.hoisted(() => ({
+  contextState: {
+    instance: { loading: false, url: null as string | null },
+  },
 }));
-vi.mock('@react-pdf/renderer', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@react-pdf/renderer')>();
-  return { ...actual, usePDF: usePDFMock };
+vi.mock('@/context/pdf-instance-context', async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import('@/context/pdf-instance-context')>();
+  return {
+    ...actual,
+    usePdfInstance: () => ({ instance: contextState.instance }),
+  };
 });
 
 const { AppProvider } = await import('@/context/app-context');
-const { PdfPreviewProvider } = await import('@/context/pdf-preview-context');
 const { default: PdfPreview } = await import('./pdf-preview');
 
 function renderPdfPreview() {
   return render(
     <AppProvider>
-      <PdfPreviewProvider>
-        <PdfPreview />
-      </PdfPreviewProvider>
+      <PdfPreview />
     </AppProvider>,
   );
 }
 
 beforeEach(() => {
-  updateInstanceMock.mockReset();
-  usePDFMock.mockReset();
+  contextState.instance = { loading: false, url: null };
 });
 
 describe('PdfPreview', () => {
   it('shows a loading state before the PDF has a url yet', () => {
-    usePDFMock.mockReturnValue([
-      { loading: false, url: null },
-      updateInstanceMock,
-    ]);
     const { getByRole, container } = renderPdfPreview();
 
     expect(getByRole('status')).toHaveTextContent(/generating pdf preview/i);
@@ -42,10 +39,7 @@ describe('PdfPreview', () => {
   });
 
   it('shows a loading state while instance.loading is true, even with a stale url', () => {
-    usePDFMock.mockReturnValue([
-      { loading: true, url: 'blob:stale-url' },
-      updateInstanceMock,
-    ]);
+    contextState.instance = { loading: true, url: 'blob:stale-url' };
     const { getByRole, container } = renderPdfPreview();
 
     expect(getByRole('status')).toHaveTextContent(/generating pdf preview/i);
@@ -53,10 +47,7 @@ describe('PdfPreview', () => {
   });
 
   it('renders a full-size iframe with the toolbar suffix once the PDF is ready', () => {
-    usePDFMock.mockReturnValue([
-      { loading: false, url: 'blob:mock-url' },
-      updateInstanceMock,
-    ]);
+    contextState.instance = { loading: false, url: 'blob:mock-url' };
     const { container } = renderPdfPreview();
 
     const iframe = container.querySelector('iframe');
@@ -66,23 +57,10 @@ describe('PdfPreview', () => {
   });
 
   it('gives the iframe an accessible title', () => {
-    usePDFMock.mockReturnValue([
-      { loading: false, url: 'blob:mock-url' },
-      updateInstanceMock,
-    ]);
+    contextState.instance = { loading: false, url: 'blob:mock-url' };
     const { container } = renderPdfPreview();
 
     const iframe = container.querySelector('iframe');
     expect(iframe?.getAttribute('title')).toMatch(/\.pdf$/);
-  });
-
-  it('updates the PDF instance when the underlying document inputs change', () => {
-    usePDFMock.mockReturnValue([
-      { loading: false, url: 'blob:mock-url' },
-      updateInstanceMock,
-    ]);
-    renderPdfPreview();
-
-    expect(updateInstanceMock).toHaveBeenCalled();
   });
 });

@@ -4,6 +4,7 @@ import { useMemo } from 'react';
 import pkg from '../../../package.json';
 import EditMenu from './control-panel-edit-menu';
 import FileMenu from './control-panel-file-menu';
+import PageCountIndicator from './page-count-indicator';
 import ViewMenu from './control-panel-view-menu';
 import SavedIndicator from './saved-indicator';
 
@@ -33,7 +34,10 @@ export default function ControlPanel() {
       <FileMenu />
       <EditMenu />
       <ViewMenu />
-      <SavedIndicator />
+      <div className="ml-auto flex items-center gap-2">
+        <PageCountIndicator />
+        <SavedIndicator />
+      </div>
       <span className="text-sm bg-neutral-200 px-2 py-1 rounded self-center">
         v{pkg.version}
       </span>
