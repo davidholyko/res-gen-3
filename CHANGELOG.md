@@ -1,3 +1,5 @@
+## [1.10.0](https://github.com/davidholyko/res-gen-3/compare/v1.9.0...v1.10.0) (2026-07-14)
+
 ## [1.9.0](https://github.com/davidholyko/res-gen-3/compare/v1.8.0...v1.9.0) (2026-07-14)
 
 ## [1.8.0](https://github.com/davidholyko/res-gen-3/compare/v1.7.0...v1.8.0) (2026-07-14)
