@@ -2,6 +2,7 @@
   "name": "@res-gen-3/frontend",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "scripts": {
     "dev": "next dev -p 3330",
     "build": "next build",
