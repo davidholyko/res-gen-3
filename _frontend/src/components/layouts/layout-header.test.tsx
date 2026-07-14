@@ -2,14 +2,18 @@ import { fireEvent, render } from '@testing-library/react';
 import axe from 'axe-core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { removeLayoutMock } = vi.hoisted(() => ({
+const { removeLayoutMock, pushUndoSnapshotMock } = vi.hoisted(() => ({
   removeLayoutMock: vi.fn(),
+  pushUndoSnapshotMock: vi.fn(),
 }));
 vi.mock('@/context/app-context', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/context/app-context')>();
   return {
     ...actual,
-    useAppContext: () => ({ removeLayout: removeLayoutMock }),
+    useAppContext: () => ({
+      removeLayout: removeLayoutMock,
+      pushUndoSnapshot: pushUndoSnapshotMock,
+    }),
   };
 });
 
@@ -17,6 +21,7 @@ const { default: LayoutHeader } = await import('./layout-header');
 
 beforeEach(() => {
   removeLayoutMock.mockReset();
+  pushUndoSnapshotMock.mockReset();
 });
 
 describe('LayoutHeader', () => {
@@ -28,31 +33,15 @@ describe('LayoutHeader', () => {
     expect(getByText('Layout 1')).not.toBeNull();
   });
 
-  it('removes the layout when the remove button is clicked and confirmed', () => {
-    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
+  it('removes the layout immediately, after pushing an undo snapshot', () => {
     const { getByLabelText } = render(
       <LayoutHeader label="Layout 1" layoutId={'a' as never} />,
     );
 
     fireEvent.click(getByLabelText('Remove Layout 1 Button'));
 
-    expect(confirmSpy).toHaveBeenCalledWith(
-      'Remove Layout 1? This will delete any content in it.',
-    );
+    expect(pushUndoSnapshotMock).toHaveBeenCalledWith('Layout 1 removed');
     expect(removeLayoutMock).toHaveBeenCalledWith('a');
-    confirmSpy.mockRestore();
-  });
-
-  it('does not remove the layout when the confirmation is declined', () => {
-    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false);
-    const { getByLabelText } = render(
-      <LayoutHeader label="Layout 1" layoutId={'a' as never} />,
-    );
-
-    fireEvent.click(getByLabelText('Remove Layout 1 Button'));
-
-    expect(removeLayoutMock).not.toHaveBeenCalled();
-    confirmSpy.mockRestore();
   });
 
   it('has no automatically detectable accessibility violations', async () => {

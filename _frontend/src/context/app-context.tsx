@@ -28,6 +28,12 @@ export enum MOVE_ACTION {
   LAYOUT_PREV = 'LAYOUT_PREV',
 }
 
+export type UndoSnapshot = {
+  items: ContentAll[];
+  layouts: LayoutItem[];
+  description: string;
+};
+
 export type AppContextType = {
   /**
    * title refers to the name of the PDF when a user downloads from browser
@@ -47,6 +53,10 @@ export type AppContextType = {
   onMove: (action: MOVE_ACTION, contentId: ContentId) => void;
   toggleEditor: () => void;
   togglePdfModal: (value?: boolean) => void;
+  undoSnapshot: UndoSnapshot | null;
+  pushUndoSnapshot: (description: string) => void;
+  performUndo: () => void;
+  dismissUndo: () => void;
 };
 
 // No default value: createContext(fullDefaultObject) would make the
@@ -70,6 +80,7 @@ export function AppProvider({ children }: AppProviderProps) {
     localStorageUtil.isEditorVisible,
   );
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [undoSnapshot, setUndoSnapshot] = useState<UndoSnapshot | null>(null);
 
   // Store data in local storage whenever it changes
   useEffect(() => {
@@ -216,6 +227,30 @@ export function AppProvider({ children }: AppProviderProps) {
     setLayouts(value.layouts);
   }, []);
 
+  // Captures the pre-action state so a destructive action (delete a
+  // block, remove a layout, "New") can be undone -- call sites invoke
+  // this immediately before performing the action itself, from the same
+  // render's `items`/`layouts` closure (specs/undo-destructive-actions.md).
+  // Overwrites any existing snapshot: only the most recent destructive
+  // action is undoable, by design (no history stack).
+  const pushUndoSnapshot = useCallback(
+    (description: string) => {
+      setUndoSnapshot({ items, layouts, description });
+    },
+    [items, layouts],
+  );
+
+  const performUndo = useCallback(() => {
+    if (!undoSnapshot) return;
+    setItems(undoSnapshot.items);
+    setLayouts(undoSnapshot.layouts);
+    setUndoSnapshot(null);
+  }, [undoSnapshot]);
+
+  const dismissUndo = useCallback(() => {
+    setUndoSnapshot(null);
+  }, []);
+
   return (
     <AppContext.Provider
       value={{
@@ -234,6 +269,10 @@ export function AppProvider({ children }: AppProviderProps) {
         onMove,
         toggleEditor,
         togglePdfModal,
+        undoSnapshot,
+        pushUndoSnapshot,
+        performUndo,
+        dismissUndo,
       }}
     >
       {children}

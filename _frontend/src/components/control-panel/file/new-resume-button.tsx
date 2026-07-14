@@ -14,16 +14,19 @@ export default function NewResumeButton({
   role,
   tabIndex,
 }: NewResumeButtonProps) {
-  const { onImportFile } = useAppContext();
+  const { onImportFile, pushUndoSnapshot } = useAppContext();
 
-  // Confirming here: this clears every layout and item with no way to get
-  // it back, same reasoning as the other destructive-action confirms
-  // (specs/app-ux-improvements.md, Finding 4/6).
+  // Keeps window.confirm on top of the undo toast (unlike the two
+  // finer-grained actions, which dropped confirm entirely): this clears
+  // the *entire* resume at once, a big enough blast radius to keep both
+  // guards rather than relying on undo alone
+  // (specs/undo-destructive-actions.md).
   const handleClick = useCallback(() => {
     if (window.confirm('Start a new resume? This will clear everything.')) {
+      pushUndoSnapshot('Resume cleared');
       onImportFile({ items: [], layouts: [] });
     }
-  }, [onImportFile]);
+  }, [onImportFile, pushUndoSnapshot]);
 
   const classNames = c('unstyled', className);
 
