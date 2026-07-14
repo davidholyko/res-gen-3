@@ -99,6 +99,22 @@ describe('useAppContext', () => {
       expect(created.contentId).toBeTruthy();
       expect(created.contentId).not.toBe('ignored');
     });
+
+    it('records the generated contentId as lastCreatedContentId', () => {
+      const { result } = renderAppContext();
+
+      expect(result.current.lastCreatedContentId).toBeNull();
+
+      act(() => {
+        result.current.onCreate({
+          ...HEADER_ITEM,
+          contentId: 'ignored' as ContentAll['contentId'],
+        });
+      });
+
+      const created = result.current.items[2];
+      expect(result.current.lastCreatedContentId).toBe(created.contentId);
+    });
   });
 
   describe('onUpdate', () => {

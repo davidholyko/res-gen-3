@@ -53,6 +53,13 @@ export type AppContextType = {
   onMove: (action: MOVE_ACTION, contentId: ContentId) => void;
   toggleEditor: () => void;
   togglePdfModal: (value?: boolean) => void;
+  /**
+   * The contentId most recently created via onCreate -- lets the newly
+   * added block scroll itself into view and reveal its edit controls,
+   * since it can land in a layout that's off-screen with no other
+   * indication anything happened (a real UX complaint, not hypothetical).
+   */
+  lastCreatedContentId: ContentId | null;
   undoSnapshot: UndoSnapshot | null;
   pushUndoSnapshot: (description: string) => void;
   performUndo: () => void;
@@ -80,6 +87,8 @@ export function AppProvider({ children }: AppProviderProps) {
     localStorageUtil.isEditorVisible,
   );
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [lastCreatedContentId, setLastCreatedContentId] =
+    useState<ContentId | null>(null);
   const [undoSnapshot, setUndoSnapshot] = useState<UndoSnapshot | null>(null);
 
   // Store data in local storage whenever it changes
@@ -150,6 +159,7 @@ export function AppProvider({ children }: AppProviderProps) {
     (item: ContentAll) => {
       const contentId = uuidv4() as ContentId;
       setItems([...items, { ...item, contentId }]);
+      setLastCreatedContentId(contentId);
     },
     [items],
   );
@@ -269,6 +279,7 @@ export function AppProvider({ children }: AppProviderProps) {
         onMove,
         toggleEditor,
         togglePdfModal,
+        lastCreatedContentId,
         undoSnapshot,
         pushUndoSnapshot,
         performUndo,

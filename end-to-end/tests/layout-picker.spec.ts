@@ -75,4 +75,33 @@ test.describe('layout picker (non-drag content placement)', () => {
     await expect(editor.getByLabel('Add to layout')).toBeDisabled();
     await expect(editor.getByLabel('Add Macro Button')).toBeDisabled();
   });
+
+  test('adding content into an off-screen layout scrolls it into view and reveals its controls', async ({
+    page,
+  }) => {
+    // The suite's default viewport is deliberately tall (dragTo() auto-
+    // scroll limitation, see playwright.config.ts) -- tall enough that a
+    // second layout after the prepopulated content is still in view,
+    // which would defeat this test's whole point. A shorter viewport
+    // here reproduces the actual off-screen scenario being tested.
+    await page.setViewportSize({ width: 1280, height: 800 });
+
+    // A second layout, added after the prepopulated (already tall)
+    // content, starts off-screen -- without the scroll/focus behavior
+    // there would be no indication a block was added at all.
+    await addSingleLayout(page);
+    const newLayout = page.locator('.layout-single').last();
+    await expect(newLayout).not.toBeInViewport();
+
+    const editor = page.locator('.paragraph-editor');
+    await editor.getByLabel('Add to layout').selectOption({ label: 'Layout 2' });
+    await editor.getByLabel('Add Macro Button').click();
+
+    await expect(newLayout).toBeInViewport();
+    // The focus-triggered reveal (Move Up/Down/Delete) confirms the new
+    // block, not just its layout, ended up actually focused.
+    await expect(
+      newLayout.getByLabel('Delete Macro Button'),
+    ).toBeVisible();
+  });
 });

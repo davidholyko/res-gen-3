@@ -22,11 +22,23 @@ type BaseMacroProps = ContentAll & {
 export default function BaseMacro(props: BaseMacroProps) {
   const { children, contentId } = props;
 
-  const { onDelete } = useAppContext();
+  const { onDelete, lastCreatedContentId } = useAppContext();
 
   const [isFocused, setIsFocused] = useState(false);
 
   const divRef = useRef<HTMLDivElement>(null);
+
+  // Scrolls a newly-added block into view and reveals its edit controls
+  // (via the existing focus-triggered reveal below) -- without this, a
+  // block added into an off-screen layout gives no indication anything
+  // happened at all. preventScroll on focus() avoids double-scrolling
+  // against the smooth scrollIntoView already doing that job.
+  useEffect(() => {
+    if (lastCreatedContentId !== contentId) return;
+
+    divRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    divRef.current?.focus({ preventScroll: true });
+  }, [lastCreatedContentId, contentId]);
 
   // Function to handle clicks outside of the div
   const handleClick = useCallback((event: MouseEvent) => {
