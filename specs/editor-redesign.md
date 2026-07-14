@@ -42,6 +42,14 @@ not direct manipulation.** Concretely, today:
   fragile: "move up" on the first item in a zone swaps flat-array
   position with whatever item precedes it in the *entire resume*,
   regardless of which layout that item is in.
+- Dragging a ribbon item onto a layout has no auto-scroll: the native
+  HTML5 drag gesture (`react-dnd`'s HTML5 backend) doesn't scroll the
+  page as the pointer nears the top/bottom of the viewport the way
+  dragging a file onto a folder tree, or a card in Trello, does. Once the
+  target layout is below the fold, there's no way to reach it without
+  first releasing the drag, scrolling manually, and starting over —
+  reported directly by the user while trying to drag a new Paragraph
+  block onto the last (off-screen) layout.
 
 Net effect: nothing about "how do I add a bullet point" or "how do I put
 a second column next to this one" is discoverable from looking at the
@@ -120,6 +128,20 @@ already produce field-level error paths (`error.issues[].path`) — this
 is a matter of surfacing them per-field instead of collapsing them into
 `error.message`.
 
+### Auto-scroll during drag
+
+While a ribbon item is being dragged (`react-dnd`'s HTML5 backend), watch
+the pointer's Y position via the drag source's `hover`/native `dragover`
+event: within a threshold band near the top or bottom of the viewport,
+scroll the window (or the nearest scrollable ancestor, if the layout
+canvas ever grows its own scroll container) at a speed that increases the
+closer the pointer gets to the edge, and stop as soon as the pointer
+moves back out of the band or the drag ends. This is the same interaction
+users already expect from drag-and-drop in file managers, Trello, etc. —
+today's gap isn't a missing feature so much as `react-dnd`'s HTML5
+backend not doing this automatically the way some libraries' custom
+(non-native) drag backends do.
+
 ### Layout management: direct manipulation on the canvas
 
 - **Insert a layout at a specific position**, not just append: hovering
@@ -167,13 +189,19 @@ rather than one cutover:
    proven against the two simplest types (Header, Paragraph). **Done** —
    `text`/`textarea` only so far; `tags`/`list`/`record-of-lists` land
    with the phases that actually need them.
-2. **Contact form** — flat fields only, no repeating structures; next
+2. **Drag auto-scroll** — scroll the page while a ribbon item is being
+   dragged near the top/bottom viewport edge (Design → Auto-scroll during
+   drag). Small and independent of the forms work; pulled forward ahead
+   of Contact/Experience/AnyList because it's a live usability bug on
+   *today's* drag mechanic, not something waiting on a later phase to
+   exist. **Done.**
+3. **Contact form** — flat fields only, no repeating structures; next
    simplest.
-3. **Experience form** — introduces `tags` and `list`.
-4. **AnyList form** — introduces `record-of-lists`, the hardest shape.
-5. **Layout direct manipulation** — insert-at-position, drag-to-reorder
+4. **Experience form** — introduces `tags` and `list`.
+5. **AnyList form** — introduces `record-of-lists`, the hardest shape.
+6. **Layout direct manipulation** — insert-at-position, drag-to-reorder
    layouts, per-zone "+ Add block".
-6. **Zone-aware reordering fix** for `onMove`.
+7. **Zone-aware reordering fix** for `onMove`.
 
 Each phase is independently shippable and testable; a phase landing
 doesn't require the others to be done first (e.g. Experience can still
@@ -189,6 +217,9 @@ use the JSON textarea while Header/Paragraph/Contact already have forms).
       copied from pre-filled example content
 - [ ] A layout can be inserted at a specific position (not just
       appended), and layouts can be reordered via drag
+- [ ] Dragging a ribbon item near the top/bottom edge of the viewport
+      auto-scrolls the page, so an off-screen layout is reachable without
+      releasing and restarting the drag
 - [ ] Reordering content only ever moves an item within its own zone —
       moving the first/last item in a zone cannot silently reorder
       relative to a different layout's content
@@ -290,3 +321,35 @@ One real regression a live-browser check caught, not just unit tests:
   `end-to-end/tests/editor-forms.spec.ts`'s "backspace inside a form
   field edits the text, not the macro" test, which a component-level
   test alone could not have caught.
+
+## Findings from implementation (Phase 2)
+
+- **Chromium already has some native auto-scroll during an HTML5 drag.**
+  Confirmed live by temporarily removing `DragAutoScroll` entirely and
+  dragging near the bottom edge anyway: the page still scrolled, driven
+  entirely by the browser, with no JS involved. It ramps up slowly from
+  a near-standstill, though — consistent with the "kind of difficult"
+  complaint that prompted this phase, since a real user wouldn't reliably
+  hold a drag steady long enough for a slow ramp to become useful.
+  `drag-auto-scroll.tsx` supplements this with a faster, tunable ramp
+  rather than replacing it; the two run side by side without conflict
+  (confirmed live: scrolling reached exactly `scrollHeight - innerHeight`
+  in both directions and stayed there, no jitter or overshoot).
+- **Playwright's simulated mouse-driven drag doesn't reliably deliver
+  `dragover` events with an updated `clientY` to a `document`-level
+  listener, even though Chromium's own native auto-scroll clearly sees
+  the real cursor position.** A debug script logging every `dragover`
+  this component received showed `clientY` frozen at the drag's starting
+  position for the entire gesture, while the page kept scrolling anyway
+  (via the native behavior above) — a CDP/automation quirk in how
+  simulated input translates to JS-visible drag events during an active
+  native drag session, not a bug in this component (real user-driven
+  drags do not have this problem; a real mouse move always produces a
+  fresh `dragover`). This made one E2E assertion flaky: an initial
+  "stops instantly on release" test sometimes saw scrollY keep climbing
+  briefly after `mouse.up()`, which is the *native* scroll's own momentum
+  settling, not this component's loop still running (its `dragend`/`drop`
+  listeners fire and `cancelAnimationFrame` correctly, confirmed via
+  direct instrumentation). Rewrote that assertion to wait for scrollY to
+  stabilize rather than expecting an instantaneous freeze
+  (`end-to-end/tests/drag-autoscroll.spec.ts`).
