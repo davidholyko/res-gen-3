@@ -143,6 +143,93 @@ describe('ContentForm', () => {
     expect(container.querySelector('[role="alert"]')).toBeNull();
   });
 
+  it('renders a TagsField for a tags kind and forwards its array changes', () => {
+    const onFieldChange = vi.fn();
+    const { container, getByLabelText } = render(
+      <ContentForm
+        {...baseProps({
+          fields: [
+            { kind: 'tags', name: 'tags', label: 'Tags' },
+          ] as FieldSpec[],
+          value: { tags: ['React'] },
+          onFieldChange,
+        })}
+      />,
+    );
+    const input = container.querySelector(
+      'input[name="tags"]',
+    ) as HTMLInputElement;
+
+    fireEvent.change(input, { target: { value: 'Node' } });
+    fireEvent.keyDown(input, { key: 'Enter' });
+    expect(onFieldChange).toHaveBeenCalledWith('tags', ['React', 'Node']);
+
+    fireEvent.click(getByLabelText('Remove Tags React'));
+    expect(onFieldChange).toHaveBeenCalledWith('tags', []);
+  });
+
+  it('renders a ListField for a list kind and forwards its array changes', () => {
+    const onFieldChange = vi.fn();
+    const { getByLabelText } = render(
+      <ContentForm
+        {...baseProps({
+          fields: [
+            { kind: 'list', name: 'descriptions', label: 'Descriptions' },
+          ] as FieldSpec[],
+          value: { descriptions: ['One'] },
+          onFieldChange,
+        })}
+      />,
+    );
+
+    fireEvent.click(getByLabelText('Add Descriptions entry'));
+
+    expect(onFieldChange).toHaveBeenCalledWith('descriptions', ['One', '']);
+  });
+
+  it('defaults a missing array value to an empty tags/list field', () => {
+    const { container, getByLabelText } = render(
+      <ContentForm
+        {...baseProps({
+          fields: [
+            { kind: 'tags', name: 'tags', label: 'Tags' },
+            { kind: 'list', name: 'descriptions', label: 'Descriptions' },
+          ] as FieldSpec[],
+          value: {},
+        })}
+      />,
+    );
+
+    // The tags entry input exists but no chips do; the list renders only
+    // its add button.
+    expect(container.querySelector('input[name="tags"]')).not.toBeNull();
+    expect(container.querySelectorAll('button')).toHaveLength(1);
+    expect(getByLabelText('Add Descriptions entry')).not.toBeNull();
+  });
+
+  it('shows an inline error under an array field via its errorId', () => {
+    const { container } = render(
+      <ContentForm
+        {...baseProps({
+          fields: [
+            { kind: 'tags', name: 'tags', label: 'Tags' },
+          ] as FieldSpec[],
+          value: { tags: [] },
+          fieldErrors: { tags: 'Tags are broken' },
+        })}
+      />,
+    );
+
+    const input = container.querySelector(
+      'input[name="tags"]',
+    ) as HTMLInputElement;
+    const describedById = input.getAttribute('aria-describedby');
+    expect(describedById).toBeTruthy();
+    expect(container.querySelector(`#${describedById}`)?.textContent).toBe(
+      'Tags are broken',
+    );
+  });
+
   it('has no automatically detectable accessibility violations, with and without a field error', async () => {
     const { container, rerender } = render(<ContentForm {...baseProps()} />);
     expect((await axe.run(container)).violations).toEqual([]);

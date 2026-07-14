@@ -62,15 +62,16 @@ test.describe('accessibility (axe-core, real browser)', () => {
   });
 
   test('with an invalid-JSON validation error shown', async ({ page }) => {
-    // Experience still edits as raw JSON (specs/editor-redesign.md --
-    // Contact migrated to form fields in Phase 3; its per-field error
-    // state is axe-scanned in editor-forms.spec.ts instead).
+    // AnyList is the one type still on the raw-JSON editor
+    // (specs/editor-redesign.md -- everything else migrated to form
+    // fields, whose per-field error state is axe-scanned in
+    // editor-forms.spec.ts instead).
     const macro = page
       .locator('.layout-single [role="group"]')
-      .filter({ hasText: 'Red Hair Pirates' })
+      .filter({ hasText: 'Gears' })
       .first();
     await macro.click();
-    await macro.locator('.experience-editor textarea').fill('{ not valid json');
+    await macro.locator('.any-list-editor textarea').fill('{ not valid json');
     await expect(macro.getByRole('alert')).toBeVisible();
 
     const results = await new AxeBuilder({ page }).analyze();

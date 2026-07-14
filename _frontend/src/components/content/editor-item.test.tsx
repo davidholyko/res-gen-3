@@ -20,12 +20,13 @@ function item(contentType: string, content: Record<string, unknown>) {
 
 describe('EditorItem', () => {
   it.each([
-    // Contact and Header have field specs now (specs/editor-redesign.md,
-    // Phases 1/3) -- their `text`-kind fields render as <input>s, not a
-    // <textarea>, unlike the still-unmigrated content types below.
+    // Contact/Header/Experience have field specs now
+    // (specs/editor-redesign.md, Phases 1/3/4) -- their `text`-kind
+    // fields render as <input>s, not a <textarea>, unlike the
+    // still-unmigrated content types below.
     [CONTENT_TYPES.CONTACT, { name: 'Ada' }, 'input'],
     [CONTENT_TYPES.HEADER, { header: 'Summary' }, 'input'],
-    [CONTENT_TYPES.EXPERIENCE, { company: 'Acme', title: 'Eng' }, 'textarea'],
+    [CONTENT_TYPES.EXPERIENCE, { company: 'Acme', title: 'Eng' }, 'input'],
     [CONTENT_TYPES.PARAGRAPH, { paragraph: 'Bio' }, 'textarea'],
     [CONTENT_TYPES.ANY_LIST, { list: ['a'] }, 'textarea'],
   ] as const)(

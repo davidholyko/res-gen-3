@@ -18,13 +18,17 @@ test.describe('page load', () => {
   test('shows the JSON editors panel and prepopulated resume content', async ({
     page,
   }) => {
-    // Contact and Header have field specs now (specs/editor-redesign.md,
-    // Phases 1/3) -- their `text`-kind fields render as <input>s, not a
-    // <textarea>, unlike the other still-unmigrated content types.
+    // Contact/Header/Experience have field specs now
+    // (specs/editor-redesign.md, Phases 1/3/4) -- their `text`-kind
+    // fields render as <input>s, not a <textarea>. Paragraph's field is
+    // the `textarea` kind, and AnyList is the one type still on the
+    // raw-JSON editor.
     await expect(page.locator('.contact-editor input[name="name"]')).toBeVisible();
     await expect(page.locator('.header-editor input[name="header"]')).toBeVisible();
     await expect(page.locator('.paragraph-editor textarea')).toBeVisible();
-    await expect(page.locator('.experience-editor textarea')).toBeVisible();
+    await expect(
+      page.locator('.experience-editor input[name="title"]'),
+    ).toBeVisible();
     await expect(page.locator('.any-list-editor textarea')).toBeVisible();
 
     // Fresh localStorage falls back to a prepopulated example resume

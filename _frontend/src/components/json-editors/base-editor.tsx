@@ -183,7 +183,11 @@ export default function BaseEditor(props: BaseEditorProps) {
   );
 
   const onFieldChange = useCallback(
-    (name: string, value: string) => {
+    // `unknown`, not `string`: tags/list field kinds hand back a whole
+    // string[] (and record-of-lists later, a Record<string, string[]>) --
+    // this only ever places the value into the content object; the zod
+    // schema is what vouches for its shape.
+    (name: string, value: unknown) => {
       const next = { ...formValue, [name]: value };
       setFormValue(next);
       const isValid = validateContent(next);

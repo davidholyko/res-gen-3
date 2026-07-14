@@ -6,9 +6,10 @@ import { expect, test } from './fixtures';
 // Paragraph now render generated form fields (a text input and a
 // textarea respectively) instead of a raw-JSON textarea, in both
 // IN_EDITOR_MANAGER (the ribbon) and IN_LAYOUT_MANAGER (a focused
-// block's inline editor) modes. Experience/AnyList are unmigrated and
-// keep the JSON editor -- covered separately in json-editors.spec.ts.
-// Contact (Phase 3) is covered in its own describe below.
+// block's inline editor) modes. AnyList is unmigrated and keeps the
+// JSON editor -- covered separately in json-editors.spec.ts. Contact
+// (Phase 3) and Experience (Phase 4) are covered in their own
+// describes below.
 test.describe('editor forms (specs/editor-redesign.md, Phase 1)', () => {
   test('the ribbon renders a labelled text input for Header and a labelled textarea for Paragraph, not raw JSON', async ({
     page,
@@ -175,6 +176,117 @@ test.describe('contact form (specs/editor-redesign.md, Phase 3)', () => {
       .locator('.contact-editor input[name="email"]')
       .fill('not-an-email');
     await expect(macro.getByRole('alert')).toBeVisible();
+
+    const results = await new AxeBuilder({ page }).analyze();
+    expect(results.violations).toEqual([]);
+  });
+});
+
+// Phase 4: Experience -- introduces the `tags` (chip entry) and `list`
+// (repeating rows) field kinds.
+test.describe('experience form (specs/editor-redesign.md, Phase 4)', () => {
+  // The first prepopulated experience block ("Red Hair Pirates",
+  // experience-1.json): empty tags, three descriptions.
+  function experienceMacro(page: import('@playwright/test').Page) {
+    return page
+      .locator('.layout-single [role="group"]')
+      .filter({ hasText: 'Red Hair Pirates' })
+      .first();
+  }
+
+  test('typing a tag and pressing Enter draws the chip on the canvas immediately', async ({
+    page,
+  }) => {
+    const macro = experienceMacro(page);
+    await macro.click();
+
+    const tagsInput = macro.locator('.experience-editor input[name="tags"]');
+    await tagsInput.fill('Navigation');
+    await tagsInput.press('Enter');
+
+    // The chip appears both in the form and in the rendered block; the
+    // rendered block's pill is the one that proves the content saved.
+    await expect(
+      macro.locator('span.bg-black', { hasText: 'Navigation' }).first(),
+    ).toBeVisible();
+    // The entry input cleared, ready for the next tag.
+    await expect(tagsInput).toHaveValue('');
+  });
+
+  test("removing a chip via its × removes the tag from the block's content", async ({
+    page,
+  }) => {
+    const macro = experienceMacro(page);
+    await macro.click();
+
+    const tagsInput = macro.locator('.experience-editor input[name="tags"]');
+    await tagsInput.fill('Sailing');
+    await tagsInput.press('Enter');
+    await expect(
+      macro.locator('span.bg-black', { hasText: 'Sailing' }).first(),
+    ).toBeVisible();
+
+    await macro.getByRole('button', { name: 'Remove Tags Sailing' }).click();
+
+    await expect(
+      macro.locator('span.bg-black', { hasText: 'Sailing' }),
+    ).toHaveCount(0);
+  });
+
+  test('adding, editing, and reordering description rows updates the rendered bullets', async ({
+    page,
+  }) => {
+    const macro = experienceMacro(page);
+    await macro.click();
+
+    await macro.getByRole('button', { name: 'Add Descriptions entry' }).click();
+    const newRow = macro.getByRole('textbox', {
+      name: 'Descriptions 4',
+      exact: true,
+    });
+    await newRow.fill('Learned to tie knots');
+    await expect(macro.locator('li').last()).toContainText(
+      'Learned to tie knots',
+    );
+
+    await macro
+      .getByRole('button', { name: 'Move Descriptions 4 up' })
+      .click();
+    await expect(macro.locator('li').nth(2)).toContainText(
+      'Learned to tie knots',
+    );
+
+    await macro
+      .getByRole('button', { name: 'Remove Descriptions 3' })
+      .click();
+    await expect(macro.locator('li')).toHaveCount(3);
+    await expect(
+      macro.locator('li', { hasText: 'Learned to tie knots' }),
+    ).toHaveCount(0);
+  });
+
+  test('clearing the required company field flags it inline without wiping the block', async ({
+    page,
+  }) => {
+    const macro = experienceMacro(page);
+    await macro.click();
+
+    const company = macro.locator('.experience-editor input[name="company"]');
+    await company.fill('');
+
+    await expect(macro.getByRole('alert')).toContainText(/company is required/i);
+    // The block still renders its last valid content.
+    await expect(macro).toContainText('Red Hair Pirates');
+  });
+
+  test('has no automatically detectable accessibility violations with the experience form open', async ({
+    page,
+  }) => {
+    const macro = experienceMacro(page);
+    await macro.click();
+    await expect(
+      macro.locator('.experience-editor input[name="title"]'),
+    ).toBeVisible();
 
     const results = await new AxeBuilder({ page }).analyze();
     expect(results.violations).toEqual([]);
