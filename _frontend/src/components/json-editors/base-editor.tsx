@@ -178,10 +178,24 @@ export default function BaseEditor(props: BaseEditorProps) {
       'cursor-text': mode === EDITOR_MODES.IN_LAYOUT_MANAGER,
       'opacity-50': isDragging,
       'p-1': true,
+      // Anchors the floating panel below (see collapseWrapperClassName)
+      // to this specific ribbon item, not the whole ribbon row
+      // (specs/ribbon-layout.md).
+      relative: mode === EDITOR_MODES.IN_EDITOR_MANAGER,
     });
 
     return className;
   }, [isDragging, mode, props.className]);
+
+  const collapseWrapperClassName = useMemo(() => {
+    // Only in IN_EDITOR_MANAGER mode (the ribbon) -- IN_LAYOUT_MANAGER's
+    // inline editor (a focused block's own JSON editor) stays in normal
+    // flow, unrelated to this ribbon redesign (specs/ribbon-layout.md).
+    return c({
+      'absolute top-full left-0 z-20 shadow-lg rounded':
+        mode === EDITOR_MODES.IN_EDITOR_MANAGER,
+    });
+  }, [mode]);
 
   return (
     <div className={containerClassName}>
@@ -206,32 +220,37 @@ export default function BaseEditor(props: BaseEditorProps) {
         react-collapse's Collapse doesn't forward arbitrary props (like
         `id`) to its rendered div despite its types claiming to extend
         React.HTMLProps -- the id EditorTopBar's aria-controls needs has
-        to live on the form inside instead.
+        to live on the form inside instead. The outer div here (not
+        Collapse itself) carries the floating-panel positioning for the
+        same reason -- safer than relying on prop forwarding that's
+        already known to be unreliable on this component.
       */}
-      <Collapse isOpened={isOpen}>
-        <form id={`editor-collapse-${formId}`} className="flex">
-          <textarea
-            id={`editor-textarea-${formId}`}
-            className={textAreaClassName}
-            name={contentType}
-            spellCheck="false"
-            onBlur={onBlur}
-            onChange={onChange}
-            value={text}
-            ref={textAreaRef}
-            // Collapse marks its wrapper aria-hidden when closed, but only
-            // hides it visually (height 0) -- a focusable descendant left
-            // in the tab order would still be reachable, landing keyboard
-            // users on a control an AT announces as hidden. -1 while
-            // collapsed keeps it out of the tab order until reopened.
-            tabIndex={isOpen ? 0 : -1}
-            aria-invalid={!!errorMessage}
-            aria-describedby={
-              errorMessage ? `error-message-${formId}` : undefined
-            }
-          />
-        </form>
-      </Collapse>
+      <div className={collapseWrapperClassName}>
+        <Collapse isOpened={isOpen}>
+          <form id={`editor-collapse-${formId}`} className="flex">
+            <textarea
+              id={`editor-textarea-${formId}`}
+              className={textAreaClassName}
+              name={contentType}
+              spellCheck="false"
+              onBlur={onBlur}
+              onChange={onChange}
+              value={text}
+              ref={textAreaRef}
+              // Collapse marks its wrapper aria-hidden when closed, but only
+              // hides it visually (height 0) -- a focusable descendant left
+              // in the tab order would still be reachable, landing keyboard
+              // users on a control an AT announces as hidden. -1 while
+              // collapsed keeps it out of the tab order until reopened.
+              tabIndex={isOpen ? 0 : -1}
+              aria-invalid={!!errorMessage}
+              aria-describedby={
+                errorMessage ? `error-message-${formId}` : undefined
+              }
+            />
+          </form>
+        </Collapse>
+      </div>
     </div>
   );
 }

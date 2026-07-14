@@ -105,6 +105,10 @@ export const EditorTopBar = forwardRef<HTMLDivElement, EditorTopBarProps>(
     );
 
     const editorDragContainerClassName = useMemo(() => {
+      return c('flex bg-gray-600 rounded text-white justify-between p-2');
+    }, []);
+
+    const dragHandleClassName = useMemo(() => {
       // No `opacity-50` for the error state: compositing a translucent
       // bg-gray-600 + white text over the page background drops the
       // already-borderline contrast to ~2.3:1 (needs 4.5:1) -- caught by
@@ -112,7 +116,7 @@ export const EditorTopBar = forwardRef<HTMLDivElement, EditorTopBarProps>(
       // rendered contrast. The error text below (bright red, role="alert")
       // is already the primary "something's wrong" signal; the cursor
       // change already covers "you can't drag this right now".
-      return c('flex bg-gray-600 rounded text-white justify-between p-2', {
+      return c('flex grow items-center', {
         'cursor-grab': !errorMessage && isInEditor,
       });
     }, [errorMessage, isInEditor]);
@@ -133,13 +137,21 @@ export const EditorTopBar = forwardRef<HTMLDivElement, EditorTopBarProps>(
           violation (AT can't sensibly announce a "button" that itself
           contains a select and two more buttons).
         */}
-        <div
-          className={editorDragContainerClassName}
-          draggable="true"
-          ref={ref} //
-        >
+        <div className={editorDragContainerClassName}>
+          {/*
+            draggable/ref scoped to just this drag-handle+label region, not
+            the whole top bar: in the wide left-panel card this used to be,
+            the whole bar's own center point safely landed on this region.
+            The ribbon's much narrower items (specs/ribbon-layout.md) moved
+            that center point onto the "Add to layout" <select> instead --
+            confirmed live, a real drag regression, not just a test
+            artifact, since a real drag gesture starting there would hit
+            the select instead of triggering a drag too.
+          */}
           <div
-            className="flex grow items-center"
+            className={dragHandleClassName}
+            draggable="true"
+            ref={ref}
             role="button"
             tabIndex={0}
             onClick={onClickTopBar}

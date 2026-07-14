@@ -101,7 +101,13 @@ export default function BaseMenu({ children, name }: BaseMenuProps) {
       {isMenuOpen && (
         <div
           id={`${name.toLocaleLowerCase()}-menu`}
-          className="flex flex-col absolute bg-cyan-300 min-w-[100px] gap-1 mt-2 p-2 rounded"
+          // z-30: without an explicit z-index this stacked below the
+          // ribbon's floating editor panels (z-20, specs/ribbon-layout.md)
+          // in their shared stacking context, even collapsed/height-0 --
+          // confirmed live, a real click-interception regression, not
+          // hypothetical. A transient dropdown menu should always render
+          // above ordinary page content regardless of DOM position.
+          className="flex flex-col absolute z-30 bg-cyan-300 min-w-[100px] gap-1 mt-2 p-2 rounded"
           role="menu"
           tabIndex={-1}
           ref={menuRef}
