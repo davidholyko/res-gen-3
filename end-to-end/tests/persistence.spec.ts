@@ -9,10 +9,12 @@ test.describe('localStorage persistence', () => {
 
     const macro = page.locator('.layout-single [role="group"]').first();
     await macro.click();
+    // The contact block edits through real form fields now
+    // (specs/editor-redesign.md, Phase 3), saving live as you type -- no
+    // blur needed.
     await macro
-      .locator('.contact-editor textarea')
-      .fill(JSON.stringify({ name: 'Ada Lovelace', email: 'ada@example.com' }));
-    await macro.locator('.contact-editor textarea').blur();
+      .locator('.contact-editor input[name="name"]')
+      .fill('Ada Lovelace');
     await expect(macro.locator('h1')).toContainText('Ada Lovelace');
 
     // A real reload, not client-side navigation -- exercises the same

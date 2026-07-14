@@ -240,6 +240,18 @@ describe('EditorTopBar', () => {
     expect(getByLabelText('Add Macro Button')).toBeDisabled();
   });
 
+  it('disables the add button on per-field errors too, without showing the banner', () => {
+    // The generated-form path (specs/editor-redesign.md) reports errors
+    // under individual fields inside ContentForm, never through
+    // errorMessage -- but an invalid block still must not be addable.
+    const { container, getByLabelText } = render(
+      <EditorTopBar {...baseProps({ hasFieldErrors: true })} />,
+    );
+
+    expect(getByLabelText('Add Macro Button')).toBeDisabled();
+    expect(container.querySelector('[role="alert"]')).toBeNull();
+  });
+
   it('swaps between the collapse and uncollapse icons based on isOpen', () => {
     const { getByLabelText, rerender } = render(
       <EditorTopBar {...baseProps({ isOpen: false })} />,

@@ -20,10 +20,10 @@ function item(contentType: string, content: Record<string, unknown>) {
 
 describe('EditorItem', () => {
   it.each([
-    [CONTENT_TYPES.CONTACT, { name: 'Ada' }, 'textarea'],
-    // Header has a field spec now (specs/editor-redesign.md, Phase 1) --
-    // its single `text`-kind field renders as an <input>, not a
-    // <textarea>, unlike the other still-unmigrated content types below.
+    // Contact and Header have field specs now (specs/editor-redesign.md,
+    // Phases 1/3) -- their `text`-kind fields render as <input>s, not a
+    // <textarea>, unlike the still-unmigrated content types below.
+    [CONTENT_TYPES.CONTACT, { name: 'Ada' }, 'input'],
     [CONTENT_TYPES.HEADER, { header: 'Summary' }, 'input'],
     [CONTENT_TYPES.EXPERIENCE, { company: 'Acme', title: 'Eng' }, 'textarea'],
     [CONTENT_TYPES.PARAGRAPH, { paragraph: 'Bio' }, 'textarea'],

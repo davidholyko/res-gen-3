@@ -6,9 +6,9 @@ import { expect, test } from './fixtures';
 // Paragraph now render generated form fields (a text input and a
 // textarea respectively) instead of a raw-JSON textarea, in both
 // IN_EDITOR_MANAGER (the ribbon) and IN_LAYOUT_MANAGER (a focused
-// block's inline editor) modes. Contact/Experience/AnyList are
-// unmigrated and keep the JSON editor -- covered separately in
-// json-editors.spec.ts.
+// block's inline editor) modes. Experience/AnyList are unmigrated and
+// keep the JSON editor -- covered separately in json-editors.spec.ts.
+// Contact (Phase 3) is covered in its own describe below.
 test.describe('editor forms (specs/editor-redesign.md, Phase 1)', () => {
   test('the ribbon renders a labelled text input for Header and a labelled textarea for Paragraph, not raw JSON', async ({
     page,
@@ -114,6 +114,67 @@ test.describe('editor forms (specs/editor-redesign.md, Phase 1)', () => {
     // computing contrast against a partially-transparent, blended color,
     // not the settled one. Not a real violation, just a timing artifact.
     await page.waitForTimeout(350);
+
+    const results = await new AxeBuilder({ page }).analyze();
+    expect(results.violations).toEqual([]);
+  });
+});
+
+// Phase 3: Contact -- the first migrated type with real per-field
+// constraints (required name, well-formed email), so this is also where
+// the per-field inline error UX becomes observable end-to-end.
+test.describe('contact form (specs/editor-redesign.md, Phase 3)', () => {
+  test("editing the focused contact block's name updates the canvas live", async ({
+    page,
+  }) => {
+    const macro = page.locator('.layout-single [role="group"]').first();
+    await expect(macro.locator('h1')).toContainText('Monkey D. Luffy');
+
+    await macro.click();
+    const name = macro.locator('.contact-editor input[name="name"]');
+    await expect(name).toBeVisible();
+    await expect(macro.locator('.contact-editor textarea')).toHaveCount(0);
+
+    await name.fill('Ada Lovelace');
+
+    await expect(macro.locator('h1')).toContainText('Ada Lovelace');
+  });
+
+  test('a malformed email flags just the email field, inline, and does not save', async ({
+    page,
+  }) => {
+    const macro = page.locator('.layout-single [role="group"]').first();
+    await macro.click();
+    const email = macro.locator('.contact-editor input[name="email"]');
+
+    await email.fill('not-an-email');
+
+    const alert = macro.getByRole('alert');
+    await expect(alert).toBeVisible();
+    await expect(alert).toContainText(/valid email/i);
+    await expect(email).toHaveAttribute('aria-invalid', 'true');
+    // Only the email field is implicated...
+    await expect(
+      macro.locator('.contact-editor input[name="name"]'),
+    ).toHaveAttribute('aria-invalid', 'false');
+    // ...and the invalid value was not saved into the rendered block.
+    await expect(macro).not.toContainText('not-an-email');
+
+    // Fixing the field clears the error and saves.
+    await email.fill('ada@example.com');
+    await expect(macro.getByRole('alert')).toHaveCount(0);
+    await expect(macro).toContainText('ada@example.com');
+  });
+
+  test('has no automatically detectable accessibility violations with a field error shown', async ({
+    page,
+  }) => {
+    const macro = page.locator('.layout-single [role="group"]').first();
+    await macro.click();
+    await macro
+      .locator('.contact-editor input[name="email"]')
+      .fill('not-an-email');
+    await expect(macro.getByRole('alert')).toBeVisible();
 
     const results = await new AxeBuilder({ page }).analyze();
     expect(results.violations).toEqual([]);

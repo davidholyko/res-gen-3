@@ -11,7 +11,7 @@ import {
 import { Collapse } from 'react-collapse';
 import { useDrag } from 'react-dnd';
 import { v4 as uuidv4 } from 'uuid';
-import { ZodObject, ZodRecord } from 'zod';
+import { ZodError, ZodObject, ZodRecord } from 'zod';
 
 import { CONTENT_TYPES, EDITOR_MODES } from '@/constants';
 import { useAppContext } from '@/context/app-context';
@@ -69,6 +69,12 @@ export default function BaseEditor(props: BaseEditorProps) {
   const text = fields ? JSON.stringify(formValue, null, 2) : rawText;
   const [isOpen, setIsOpen] = useState(mode === EDITOR_MODES.IN_LAYOUT_MANAGER);
   const [errorMessage, setErrorMessage] = useState('');
+  // Per-field errors for the generated-form path, keyed by field name
+  // (specs/editor-redesign.md, Validation UX) -- the raw-JSON textarea
+  // path keeps the single errorMessage banner above, since a JSON parse
+  // failure has no field to attach to.
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const hasFieldErrors = Object.keys(fieldErrors).length > 0;
   const [contentId, setContentId] = useState<ContentId>(
     props.contentId || DEFAULT_CONTENT_ID,
   );
@@ -78,7 +84,10 @@ export default function BaseEditor(props: BaseEditorProps) {
   const [{ isDragging }, ref] = useDrag({
     type: contentType,
     item: { contentType, contentId },
-    canDrag: !errorMessage && mode === EDITOR_MODES.IN_EDITOR_MANAGER,
+    canDrag:
+      !errorMessage &&
+      !hasFieldErrors &&
+      mode === EDITOR_MODES.IN_EDITOR_MANAGER,
     collect: (monitor) => ({
       isDragging: !!monitor.isDragging(),
     }),
@@ -152,12 +161,21 @@ export default function BaseEditor(props: BaseEditorProps) {
     (contentToValidate: unknown) => {
       try {
         schema.parse(contentToValidate);
-        setErrorMessage('');
+        setFieldErrors({});
         return true;
       } catch (error) {
-        const e = error as Error;
-        console.error(e.message);
-        setErrorMessage(e.message);
+        // schema.parse only ever throws ZodError, and the form always
+        // hands it a structured object, so every issue's path names the
+        // offending field -- surfaced under that field alone instead of
+        // one opaque message for the whole block (specs/editor-redesign.md,
+        // Validation UX).
+        const { issues, message } = error as ZodError;
+        const nextFieldErrors: Record<string, string> = {};
+        for (const issue of issues) {
+          nextFieldErrors[String(issue.path[0])] = issue.message;
+        }
+        console.error(message);
+        setFieldErrors(nextFieldErrors);
         return false;
       }
     },
@@ -273,6 +291,7 @@ export default function BaseEditor(props: BaseEditorProps) {
         mode={mode}
         macro={macro}
         errorMessage={errorMessage}
+        hasFieldErrors={hasFieldErrors}
         text={text}
         contentType={contentType}
         contentId={contentId}
@@ -304,7 +323,7 @@ export default function BaseEditor(props: BaseEditorProps) {
               formId={formId}
               isOpen={isOpen}
               mode={mode}
-              errorMessage={errorMessage}
+              fieldErrors={fieldErrors}
             />
           ) : (
             <form id={`editor-collapse-${formId}`} className="flex">

@@ -12,17 +12,20 @@ type ContentFormProps = {
   formId: string;
   isOpen: boolean;
   mode: keyof typeof EDITOR_MODES;
-  errorMessage: string;
+  // Validation problems keyed by field name (specs/editor-redesign.md,
+  // Validation UX): each one renders as an inline message under just the
+  // offending field, not a single banner for the whole block.
+  fieldErrors: Record<string, string>;
 };
 
 // The generic form renderer for specs/editor-redesign.md: each content
 // type supplies a declarative field spec instead of BaseEditor rendering
 // a raw-JSON textarea for it. Only `text`/`textarea` kinds exist so far
-// (Phase 1, proven against Header/Paragraph); `tags`/`list`/
-// `record-of-lists` land as later phases migrate Contact/Experience/
-// AnyList off the JSON editor.
+// (Phases 1/3, proven against Header/Paragraph/Contact); `tags`/`list`/
+// `record-of-lists` land as later phases migrate Experience/AnyList off
+// the JSON editor.
 export default function ContentForm(props: ContentFormProps) {
-  const { fields, value, onFieldChange, formId, isOpen, mode, errorMessage } =
+  const { fields, value, onFieldChange, formId, isOpen, mode, fieldErrors } =
     props;
 
   const onChange = useCallback(
@@ -82,19 +85,18 @@ export default function ContentForm(props: ContentFormProps) {
   return (
     <form id={`editor-collapse-${formId}`} className="flex flex-col gap-2 p-2">
       {fields.map((field, index) => {
-        // The first (and, for every Phase 1 content type, only) field
-        // reuses the id the old raw-JSON textarea had
+        // The first field reuses the id the old raw-JSON textarea had
         // (`editor-textarea-${formId}`) -- EditorTopBar's macro-name
-        // <label> and aria-invalid/aria-describedby wiring already point
-        // at that id and are untouched by this change. Content types
-        // with more than one field (Contact et al., later phases) will
-        // need EditorTopBar's label wiring revisited; every field here
-        // already has its own explicit label regardless.
+        // <label> and its htmlFor wiring already point at that id and
+        // are untouched by this change. Every field here already has its
+        // own explicit label regardless.
         const fieldId =
           index === 0
             ? `editor-textarea-${formId}`
             : `editor-field-${formId}-${field.name}`;
         const fieldValue = (value[field.name] as string | undefined) ?? '';
+        const error = fieldErrors[field.name] ?? '';
+        const errorId = `${fieldId}-error`;
         const sharedProps = {
           id: fieldId,
           name: field.name,
@@ -106,11 +108,15 @@ export default function ContentForm(props: ContentFormProps) {
           // wrapper visually (height 0), so a still-focusable field would
           // remain in the tab order while collapsed.
           tabIndex: isOpen ? 0 : -1,
-          'aria-invalid': !!errorMessage,
-          'aria-describedby': errorMessage
-            ? `error-message-${formId}`
-            : undefined,
+          'aria-invalid': !!error,
+          'aria-describedby': error ? errorId : undefined,
         };
+        // outline, not border: a border would change the field's box size
+        // and nudge the rest of the form down a pixel each time an error
+        // appears/clears.
+        const errorOutlineClassName = c({
+          'outline outline-2 outline-red-700': !!error,
+        });
 
         return (
           <div key={field.name} className="flex flex-col">
@@ -122,11 +128,31 @@ export default function ContentForm(props: ContentFormProps) {
             </label>
             {field.kind === 'textarea' ? (
               <textarea
-                className={c(fieldClassName, 'h-[9ch] font-mono resize-none')}
+                className={c(
+                  fieldClassName,
+                  errorOutlineClassName,
+                  'h-[9ch] font-mono resize-none',
+                )}
                 {...sharedProps}
               />
             ) : (
-              <input type="text" className={fieldClassName} {...sharedProps} />
+              <input
+                type="text"
+                className={c(fieldClassName, errorOutlineClassName)}
+                {...sharedProps}
+              />
+            )}
+            {error && (
+              // text-red-700, matching layout-header.tsx's precedent for
+              // red text that must clear 4.5:1 on this page's light
+              // backgrounds.
+              <p
+                id={errorId}
+                role="alert"
+                className="text-xs font-bold text-red-700 mt-1"
+              >
+                {error}
+              </p>
             )}
           </div>
         );

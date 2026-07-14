@@ -93,7 +93,7 @@ describe('BaseMacro', () => {
     );
 
     expect(container.querySelector('.border-2')).toBeNull();
-    expect(container.querySelector('textarea')).toBeNull();
+    expect(container.querySelector('input')).toBeNull();
     expect(queryByText('child content')).not.toBeNull();
   });
 
@@ -110,7 +110,9 @@ describe('BaseMacro', () => {
     fireEvent.click(getByText('child content'));
 
     expect(container.querySelector('.border-2')).not.toBeNull();
-    expect(container.querySelector('textarea')).not.toBeNull();
+    // The inline editor: a Contact item renders form inputs now
+    // (specs/editor-redesign.md, Phase 3), not a JSON textarea.
+    expect(container.querySelector('input')).not.toBeNull();
   });
 
   it('focuses via keyboard (Tab) and shows the top bar and inline editor', () => {
@@ -130,7 +132,7 @@ describe('BaseMacro', () => {
     fireEvent.focus(wrapper);
 
     expect(container.querySelector('.border-2')).not.toBeNull();
-    expect(container.querySelector('textarea')).not.toBeNull();
+    expect(container.querySelector('input')).not.toBeNull();
   });
 
   it('stays focused when focus moves to a child control (e.g. the revealed top bar)', () => {

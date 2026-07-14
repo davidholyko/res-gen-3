@@ -18,10 +18,10 @@ test.describe('page load', () => {
   test('shows the JSON editors panel and prepopulated resume content', async ({
     page,
   }) => {
-    await expect(page.locator('.contact-editor textarea')).toBeVisible();
-    // Header has a field spec now (specs/editor-redesign.md, Phase 1) --
-    // its single `text`-kind field renders as an <input>, not a
+    // Contact and Header have field specs now (specs/editor-redesign.md,
+    // Phases 1/3) -- their `text`-kind fields render as <input>s, not a
     // <textarea>, unlike the other still-unmigrated content types.
+    await expect(page.locator('.contact-editor input[name="name"]')).toBeVisible();
     await expect(page.locator('.header-editor input[name="header"]')).toBeVisible();
     await expect(page.locator('.paragraph-editor textarea')).toBeVisible();
     await expect(page.locator('.experience-editor textarea')).toBeVisible();

@@ -15,6 +15,11 @@ type EditorTopBarProps = {
   contentId: ContentId;
   contentType: keyof typeof CONTENT_TYPES;
   errorMessage: string;
+  // The generated-form path reports validation problems per field inside
+  // ContentForm rather than through the errorMessage banner above -- this
+  // flag still has to disable add/drag so an invalid block can't be
+  // placed (specs/editor-redesign.md, Validation UX).
+  hasFieldErrors?: boolean;
   formId: string;
   isOpen: boolean;
   macro: string;
@@ -29,6 +34,7 @@ export const EditorTopBar = forwardRef<HTMLDivElement, EditorTopBarProps>(
     const {
       macro,
       errorMessage,
+      hasFieldErrors = false,
       text,
       formId,
       contentType,
@@ -37,6 +43,8 @@ export const EditorTopBar = forwardRef<HTMLDivElement, EditorTopBarProps>(
       setIsOpen,
       mode,
     } = props;
+
+    const hasError = !!errorMessage || hasFieldErrors;
 
     const isInEditor = useMemo(
       () => mode === EDITOR_MODES.IN_EDITOR_MANAGER,
@@ -117,15 +125,15 @@ export const EditorTopBar = forwardRef<HTMLDivElement, EditorTopBarProps>(
       // is already the primary "something's wrong" signal; the cursor
       // change already covers "you can't drag this right now".
       return c('flex grow items-center', {
-        'cursor-grab': !errorMessage && isInEditor,
+        'cursor-grab': !hasError && isInEditor,
       });
-    }, [errorMessage, isInEditor]);
+    }, [hasError, isInEditor]);
 
     const labelClassName = useMemo(() => {
       return c('grow p-1 font-bold', {
-        'cursor-grab': !errorMessage && isInEditor,
+        'cursor-grab': !hasError && isInEditor,
       });
-    }, [errorMessage, isInEditor]);
+    }, [hasError, isInEditor]);
 
     return (
       <>
@@ -216,7 +224,7 @@ export const EditorTopBar = forwardRef<HTMLDivElement, EditorTopBarProps>(
                 title="Add this block to the selected layout"
                 type="button"
                 onClick={onAdd}
-                disabled={!!errorMessage || !selectedZone}
+                disabled={hasError || !selectedZone}
               >
                 <PlusIcon />
               </button>

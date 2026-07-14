@@ -20,7 +20,7 @@ function baseProps(overrides: Record<string, unknown> = {}) {
     formId: 'f1',
     isOpen: true,
     mode: EDITOR_MODES.IN_LAYOUT_MANAGER,
-    errorMessage: '',
+    fieldErrors: {},
     ...overrides,
   };
 }
@@ -106,19 +106,33 @@ describe('ContentForm', () => {
     expect(input.tabIndex).toBe(-1);
   });
 
-  it('marks fields invalid and describes them by the shared error message when errorMessage is set', () => {
+  it('renders an inline error under only the offending field and wires aria to it', () => {
     const { container } = render(
-      <ContentForm {...baseProps({ errorMessage: 'Required' })} />,
+      <ContentForm
+        {...baseProps({ fieldErrors: { title: 'Title is required' } })}
+      />,
     );
     const input = container.querySelector(
       'input[name="title"]',
     ) as HTMLInputElement;
+    const textarea = container.querySelector(
+      'textarea[name="body"]',
+    ) as HTMLTextAreaElement;
 
     expect(input).toHaveAttribute('aria-invalid', 'true');
-    expect(input).toHaveAttribute('aria-describedby', 'error-message-f1');
+    const describedById = input.getAttribute('aria-describedby');
+    expect(describedById).toBeTruthy();
+    expect(container.querySelector(`#${describedById}`)?.textContent).toBe(
+      'Title is required',
+    );
+
+    // The other field is untouched -- no banner-for-the-whole-block.
+    expect(textarea).toHaveAttribute('aria-invalid', 'false');
+    expect(textarea).not.toHaveAttribute('aria-describedby');
+    expect(container.querySelectorAll('[role="alert"]')).toHaveLength(1);
   });
 
-  it('has no aria-describedby and reports valid when there is no error message', () => {
+  it('has no aria-describedby and reports valid when there are no field errors', () => {
     const { container } = render(<ContentForm {...baseProps()} />);
     const input = container.querySelector(
       'input[name="title"]',
@@ -126,10 +140,18 @@ describe('ContentForm', () => {
 
     expect(input).toHaveAttribute('aria-invalid', 'false');
     expect(input).not.toHaveAttribute('aria-describedby');
+    expect(container.querySelector('[role="alert"]')).toBeNull();
   });
 
-  it('has no automatically detectable accessibility violations', async () => {
-    const { container } = render(<ContentForm {...baseProps()} />);
+  it('has no automatically detectable accessibility violations, with and without a field error', async () => {
+    const { container, rerender } = render(<ContentForm {...baseProps()} />);
+    expect((await axe.run(container)).violations).toEqual([]);
+
+    rerender(
+      <ContentForm
+        {...baseProps({ fieldErrors: { title: 'Title is required' } })}
+      />,
+    );
     expect((await axe.run(container)).violations).toEqual([]);
   });
 });
