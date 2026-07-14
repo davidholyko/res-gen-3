@@ -287,9 +287,20 @@ rather than one cutover:
    *today's* drag mechanic, not something waiting on a later phase to
    exist. **Done.**
 3. **Contact form** — flat fields only, no repeating structures; next
-   simplest.
-4. **Experience form** — introduces `tags` and `list`.
+   simplest. **Done** — and, per the Phase 1 scope note, this is where
+   per-field inline errors landed: Contact's schema gained real
+   constraints (non-empty `name`, well-formed `email`), and
+   `BaseEditor` now maps zod issues to the offending field
+   (`fieldErrors`) instead of one whole-block message.
+4. **Experience form** — introduces `tags` and `list`. **Done** —
+   `title`/`company` gained non-empty constraints for the same reason
+   as Contact's.
 5. **AnyList form** — introduces `record-of-lists`, the hardest shape.
+   **Done** — and with it the last raw-JSON surface: the spec's
+   "raw-JSON fallback: removed, not kept" decision was executed in the
+   same PR (BaseEditor's textarea path, EditorTopBar's error banner,
+   and the `json-editors.spec.ts` E2E suite all retired; `fields` is a
+   required BaseEditor prop now).
 6. **Layout direct manipulation** — insert-at-position, drag-to-reorder
    layouts, per-zone "+ Add block" (with plain-language type names), the
    hover affordance on placed blocks, and retiring the Template ribbon
@@ -302,7 +313,7 @@ use the JSON textarea while Header/Paragraph/Contact already have forms).
 
 ## Acceptance criteria
 
-- [ ] Every content type is editable via real form fields — no content
+- [x] Every content type is editable via real form fields — no content
       type still requires hand-editing JSON in the default flow
 - [ ] Adding a new block of any content type happens from a control on
       the layout/zone itself, not a separate template panel — and once
@@ -421,6 +432,41 @@ One real regression a live-browser check caught, not just unit tests:
   `end-to-end/tests/editor-forms.spec.ts`'s "backspace inside a form
   field edits the text, not the macro" test, which a component-level
   test alone could not have caught.
+
+## Findings from implementation (Phases 3–5)
+
+- **A native stopPropagation keydown listener on a field silently
+  disables React's own `onKeyDown` on that same field.** The Phase 1
+  fix (a real `addEventListener('keydown')` on the field, stopping
+  propagation before BaseMacro's document-level delete listener sees
+  it) also stops the event from ever reaching React's root-delegated
+  dispatch — so TagsField's first implementation, which paired that
+  listener with a React `onKeyDown` for Enter/comma chip commits, never
+  received a single commit keystroke. The two behaviors have to live in
+  the *same* native listener; TagsField routes it through a ref
+  (`keydownRef`) so the mounted-once listener always reads the current
+  pending text instead of its mount-time closure.
+- **`record-of-lists` renames can silently destroy a group.** The
+  record is a plain object, so rebuilding it with `Object.fromEntries`
+  after renaming a group to a name another group already has would
+  merge the two and drop one group's entries without a trace. Rather
+  than allowing that, a colliding rename is *blocked* with an inline
+  "already a group name" error under the group's name input, and
+  nothing is committed until the name is unique. (Covered by a
+  dedicated E2E test asserting both groups' entries survive the
+  attempt.)
+- **The keyboard-trap E2E heuristic false-positived on the Contact
+  form.** `keyboard.spec.ts` detected a "trap" whenever two consecutive
+  Tab stops looked identical by tag/text/aria-label — and a focused
+  contact block is 8 consecutive `<input>`s with no text content and no
+  aria-label (each is labelled by a separate `<label>` element). The
+  focus fingerprint now includes the element's `id`, which distinguishes
+  real stuck-focus from adjacent same-looking fields.
+- **Playwright's `hasText` filters are substring- and case-insensitive.**
+  An E2E locator targeting a block renamed to "Powers" matched the
+  example *paragraph* block instead ("...powers of the Gum-Gum
+  Fruit..."). Worth remembering when filtering macros by visible text:
+  pick words that don't appear in the example content.
 
 ## Findings from implementation (Phase 2)
 
