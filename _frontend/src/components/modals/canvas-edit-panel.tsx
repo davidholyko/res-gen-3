@@ -51,10 +51,9 @@ export default function CanvasEditPanel() {
       aria-label="Edit block"
       // Sticky inside its animated gutter (see main.tsx): the panel
       // follows the viewport while the (much taller) canvas scrolls
-      // past. Sized as a percentage of the gutter so the gutter's width
-      // in main.tsx is the single knob for how much room the panel gets;
-      // the leftover 5% splits into the side gaps.
-      className="sticky top-2 mx-auto w-[95%] max-h-[calc(100vh-1rem)] overflow-y-auto bg-white border border-gray-300 rounded shadow-lg p-3 flex flex-col gap-3"
+      // past. 30rem + 18px canvas-side gap + 8px edge margin fits the
+      // 506px gutter exactly.
+      className="sticky top-2 ml-[18px] mr-2 w-[95%] max-h-[calc(100vh-1rem)] overflow-y-auto bg-white border border-gray-300 rounded shadow-lg p-3 flex flex-col gap-3"
     >
       <EditorItem key={editingItem.contentId} {...editingItem} />
       <button

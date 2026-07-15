@@ -32,12 +32,17 @@ export default function Main() {
       <div
         data-testid="edit-panel-gutter"
         className={c('shrink-0 transition-[width] duration-300 ease-out', {
-          // 30rem panel + 18px canvas-side gap + 8px edge margin.
           'w-[506px]': isPanelOpen,
           'w-0': !isPanelOpen,
         })}
       >
-        <CanvasEditPanel />
+        {/* Fixed-width inner wrapper, matching the gutter's open width:
+            the panel sizes against this (95%), NOT the animating gutter
+            -- sizing against the animation resizes the form every frame
+            and drops keystrokes typed mid-slide (see the panel). */}
+        <div className="w-[506px]">
+          <CanvasEditPanel />
+        </div>
       </div>
     </main>
   );

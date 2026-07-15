@@ -109,6 +109,15 @@ you type, without a single layout shift inside it.
   back to it). Arguably safer than before -- a stray Backspace
   immediately after clicking a block used to delete the whole block.
   Covered explicitly in undo.spec.ts.
+- **The panel's width must not track the animating gutter.** Sizing
+  the panel as a percentage of the gutter resizes the form every frame
+  of the 300ms slide, and keystrokes typed into a mid-resize input get
+  dropped -- deterministically reproduced (Backspace no-op'd in e2e,
+  3/3 failing vs 3/3 passing on the fixed width alone). The panel's
+  percentage width references a fixed-width inner wrapper instead, so
+  it slides as one rigid unit. Same family as the editor-redesign
+  finding that drop targets must keep their geometry at dragstart:
+  interactive surfaces must not change size mid-interaction.
 - **Focus centralization paid for itself immediately**: with
   `canvasEditingContentId` in app context, the panel's Done button, a
   click on another block, a click on empty canvas, and keyboard blur
