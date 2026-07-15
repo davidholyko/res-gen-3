@@ -9,11 +9,10 @@ test.describe('localStorage persistence', () => {
 
     const macro = page.locator('.layout-single [role="group"]').first();
     await macro.click();
-    // The contact block edits through real form fields now
-    // (specs/editor-redesign.md, Phase 3), saving live as you type -- no
-    // blur needed.
-    await macro
-      .locator('.contact-editor input[name="name"]')
+    // The form docks in the canvas-side panel (specs/canvas-edit-panel.md),
+    // saving live as you type -- no blur needed.
+    await page
+      .locator('#canvas-edit-panel input[name="name"]')
       .fill('Ada Lovelace');
     await expect(macro.locator('h1')).toContainText('Ada Lovelace');
 

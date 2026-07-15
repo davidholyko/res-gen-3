@@ -53,10 +53,14 @@ test.describe('layout direct manipulation (specs/editor-redesign.md, Phase 6)', 
     const newLayout = page.locator('.layout-single').last();
     await newLayout.getByRole('button', { name: '+ Add block' }).click();
     await page.getByRole('menuitem', { name: 'Section heading' }).click();
-    const heading = newLayout.locator('input[name="header"]');
+    const heading = page.locator('#canvas-edit-panel input[name="header"]');
     await heading.fill('Marker Section');
-    // Unfocus the block so the drag isn't fighting an open editor.
+    // Unfocus the block so the drag isn't fighting an open editor, and
+    // let the edit panel's gutter finish its ~300ms close animation --
+    // the canvas recenters during it, and drag coordinates measured
+    // mid-slide point at where things used to be.
     await page.locator('header').first().click();
+    await page.waitForTimeout(400);
 
     // Drag Layout 2's header (the marker layout) into the gap above
     // Layout 1 -- a real multi-step gesture, not dragTo()'s single-shot
@@ -116,13 +120,13 @@ test.describe('zone-aware content reordering (specs/editor-redesign.md, Phase 7)
     const layout2 = page.locator('.layout-single').last();
     await layout2.getByRole('button', { name: '+ Add block' }).click();
     await page.getByRole('menuitem', { name: 'Section heading' }).click();
-    await layout2.locator('input[name="header"]').fill('Marker');
+    await page.locator('#canvas-edit-panel input[name="header"]').fill('Marker');
 
     const layout1 = page.locator('.layout-single').first();
     await layout1.getByRole('button', { name: '+ Add block' }).click();
     await page.getByRole('menuitem', { name: 'Section heading' }).click();
     const mover = layout1.locator('[role="group"]').last();
-    await mover.locator('input[name="header"]').fill('Mover');
+    await page.locator('#canvas-edit-panel input[name="header"]').fill('Mover');
 
     // One press. The flat-adjacent item is Marker (layout 2) -- the old
     // splice would have swapped with it invisibly, making the first

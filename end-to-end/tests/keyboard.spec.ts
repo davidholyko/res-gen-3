@@ -112,17 +112,23 @@ test.describe('keyboard navigation', () => {
     await expect(page.getByText('Download JSON')).not.toBeVisible();
   });
 
-  test('Tab reaches a focused macro\'s revealed controls', async ({
+  test("focusing a block reveals its controls and lands typing focus in the edit panel", async ({
     page,
   }) => {
     const macro = page.locator('.layout-single [role="group"]').first();
     await macro.focus();
-    await expect(macro).toBeFocused();
 
-    // Reveals MacroTopBar (move up/down/delete) and the inline editor.
+    // Reveals MacroTopBar (move up/down/delete)...
     await expect(macro.getByLabel('Delete block')).toBeVisible();
+    // ...while typing focus moves into the docked panel's first field
+    // (specs/canvas-edit-panel.md) -- the block is immediately typable.
+    const firstField = page
+      .locator('#canvas-edit-panel input, #canvas-edit-panel textarea')
+      .first();
+    await expect(firstField).toBeFocused();
 
+    // And Tab keeps advancing from there -- no trap.
     await page.keyboard.press('Tab');
-    await expect(macro.getByLabel('Move block up')).toBeFocused();
+    await expect(firstField).not.toBeFocused();
   });
 });

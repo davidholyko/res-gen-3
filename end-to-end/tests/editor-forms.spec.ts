@@ -3,11 +3,11 @@ import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from './fixtures';
 
 // Happy-path coverage for specs/editor-redesign.md: every content type
-// edits through generated form fields inside a focused block's inline
-// editor -- the only editing surface since the raw-JSON textarea
-// (Phase 5) and the Template ribbon (Phase 6) retired. Blocks are placed
-// via each zone's "+ Add block" control (add-block.spec.ts covers that
-// flow itself). Contact (Phase 3), Experience (Phase 4), and AnyList
+// edits through generated form fields. Since specs/canvas-edit-panel.md
+// the focused block's form renders in the #canvas-edit-panel docked
+// beside the canvas, not inline inside the block. Blocks are placed via
+// each zone's "+ Add block" control (add-block.spec.ts covers that flow
+// itself). Contact (Phase 3), Experience (Phase 4), and AnyList
 // (Phase 5) each have their own describe below.
 test.describe('editor forms (specs/editor-redesign.md, Phase 1)', () => {
   // Adds a blank Section heading block into the first layout and returns
@@ -23,8 +23,8 @@ test.describe('editor forms (specs/editor-redesign.md, Phase 1)', () => {
   test("editing a focused block's form field updates the canvas live, without needing to blur", async ({
     page,
   }) => {
-    const block = await addHeaderBlock(page);
-    const input = block.locator('input[name="header"]');
+    await addHeaderBlock(page);
+    const input = page.locator('#canvas-edit-panel input[name="header"]');
 
     // No .blur()/.press('Tab') here on purpose -- this is the point of
     // the test: the form saves as you type, unlike the raw-JSON textarea
@@ -40,7 +40,7 @@ test.describe('editor forms (specs/editor-redesign.md, Phase 1)', () => {
     page,
   }) => {
     const block = await addHeaderBlock(page);
-    const input = block.locator('input[name="header"]');
+    const input = page.locator('#canvas-edit-panel input[name="header"]');
     await input.fill('Some Title');
     await input.press('Backspace');
 
@@ -53,8 +53,8 @@ test.describe('editor forms (specs/editor-redesign.md, Phase 1)', () => {
   test('has no automatically detectable accessibility violations with a focused header form', async ({
     page,
   }) => {
-    const block = await addHeaderBlock(page);
-    await block.locator('input[name="header"]').fill('Skills');
+    await addHeaderBlock(page);
+    await page.locator('#canvas-edit-panel input[name="header"]').fill('Skills');
     // SavedIndicator's opacity fades in over 300ms (saved-indicator.tsx)
     // after a save -- scanning mid-transition catches axe computing
     // contrast against a partially-transparent, blended color, not the
@@ -77,9 +77,11 @@ test.describe('contact form (specs/editor-redesign.md, Phase 3)', () => {
     await expect(macro.locator('h1')).toContainText('Monkey D. Luffy');
 
     await macro.click();
-    const name = macro.locator('.contact-editor input[name="name"]');
+    // The form docks in the canvas-side panel (specs/canvas-edit-panel.md).
+    const panel = page.locator('#canvas-edit-panel');
+    const name = panel.locator('input[name="name"]');
     await expect(name).toBeVisible();
-    await expect(macro.locator('.contact-editor textarea')).toHaveCount(0);
+    await expect(panel.locator('textarea')).toHaveCount(0);
 
     await name.fill('Ada Lovelace');
 
@@ -91,24 +93,26 @@ test.describe('contact form (specs/editor-redesign.md, Phase 3)', () => {
   }) => {
     const macro = page.locator('.layout-single [role="group"]').first();
     await macro.click();
-    const email = macro.locator('.contact-editor input[name="email"]');
+    const panel = page.locator('#canvas-edit-panel');
+    const email = panel.locator('input[name="email"]');
 
     await email.fill('not-an-email');
 
-    const alert = macro.getByRole('alert');
+    const alert = panel.getByRole('alert');
     await expect(alert).toBeVisible();
     await expect(alert).toContainText(/valid email/i);
     await expect(email).toHaveAttribute('aria-invalid', 'true');
     // Only the email field is implicated...
-    await expect(
-      macro.locator('.contact-editor input[name="name"]'),
-    ).toHaveAttribute('aria-invalid', 'false');
+    await expect(panel.locator('input[name="name"]')).toHaveAttribute(
+      'aria-invalid',
+      'false',
+    );
     // ...and the invalid value was not saved into the rendered block.
     await expect(macro).not.toContainText('not-an-email');
 
     // Fixing the field clears the error and saves.
     await email.fill('ada@example.com');
-    await expect(macro.getByRole('alert')).toHaveCount(0);
+    await expect(panel.getByRole('alert')).toHaveCount(0);
     await expect(macro).toContainText('ada@example.com');
   });
 
@@ -117,10 +121,9 @@ test.describe('contact form (specs/editor-redesign.md, Phase 3)', () => {
   }) => {
     const macro = page.locator('.layout-single [role="group"]').first();
     await macro.click();
-    await macro
-      .locator('.contact-editor input[name="email"]')
-      .fill('not-an-email');
-    await expect(macro.getByRole('alert')).toBeVisible();
+    const panel = page.locator('#canvas-edit-panel');
+    await panel.locator('input[name="email"]').fill('not-an-email');
+    await expect(panel.getByRole('alert')).toBeVisible();
 
     const results = await new AxeBuilder({ page }).analyze();
     expect(results.violations).toEqual([]);
@@ -145,7 +148,7 @@ test.describe('experience form (specs/editor-redesign.md, Phase 4)', () => {
     const macro = experienceMacro(page);
     await macro.click();
 
-    const tagsInput = macro.locator('.experience-editor input[name="tags"]');
+    const tagsInput = page.locator('#canvas-edit-panel input[name="tags"]');
     await tagsInput.fill('Navigation');
     await tagsInput.press('Enter');
 
@@ -164,14 +167,17 @@ test.describe('experience form (specs/editor-redesign.md, Phase 4)', () => {
     const macro = experienceMacro(page);
     await macro.click();
 
-    const tagsInput = macro.locator('.experience-editor input[name="tags"]');
+    const tagsInput = page.locator('#canvas-edit-panel input[name="tags"]');
     await tagsInput.fill('Sailing');
     await tagsInput.press('Enter');
     await expect(
       macro.locator('span.bg-black', { hasText: 'Sailing' }).first(),
     ).toBeVisible();
 
-    await macro.getByRole('button', { name: 'Remove Tags Sailing' }).click();
+    await page
+      .locator('#canvas-edit-panel')
+      .getByRole('button', { name: 'Remove Tags Sailing' })
+      .click();
 
     await expect(
       macro.locator('span.bg-black', { hasText: 'Sailing' }),
@@ -184,8 +190,9 @@ test.describe('experience form (specs/editor-redesign.md, Phase 4)', () => {
     const macro = experienceMacro(page);
     await macro.click();
 
-    await macro.getByRole('button', { name: 'Add Descriptions entry' }).click();
-    const newRow = macro.getByRole('textbox', {
+    const panel = page.locator('#canvas-edit-panel');
+    await panel.getByRole('button', { name: 'Add Descriptions entry' }).click();
+    const newRow = panel.getByRole('textbox', {
       name: 'Descriptions 4',
       exact: true,
     });
@@ -194,16 +201,12 @@ test.describe('experience form (specs/editor-redesign.md, Phase 4)', () => {
       'Learned to tie knots',
     );
 
-    await macro
-      .getByRole('button', { name: 'Move Descriptions 4 up' })
-      .click();
+    await panel.getByRole('button', { name: 'Move Descriptions 4 up' }).click();
     await expect(macro.locator('li').nth(2)).toContainText(
       'Learned to tie knots',
     );
 
-    await macro
-      .getByRole('button', { name: 'Remove Descriptions 3' })
-      .click();
+    await panel.getByRole('button', { name: 'Remove Descriptions 3' }).click();
     await expect(macro.locator('li')).toHaveCount(3);
     await expect(
       macro.locator('li', { hasText: 'Learned to tie knots' }),
@@ -216,10 +219,13 @@ test.describe('experience form (specs/editor-redesign.md, Phase 4)', () => {
     const macro = experienceMacro(page);
     await macro.click();
 
-    const company = macro.locator('.experience-editor input[name="company"]');
+    const panel = page.locator('#canvas-edit-panel');
+    const company = panel.locator('input[name="company"]');
     await company.fill('');
 
-    await expect(macro.getByRole('alert')).toContainText(/company is required/i);
+    await expect(panel.getByRole('alert')).toContainText(
+      /company is required/i,
+    );
     // The block still renders its last valid content.
     await expect(macro).toContainText('Red Hair Pirates');
   });
@@ -230,7 +236,7 @@ test.describe('experience form (specs/editor-redesign.md, Phase 4)', () => {
     const macro = experienceMacro(page);
     await macro.click();
     await expect(
-      macro.locator('.experience-editor input[name="title"]'),
+      page.locator('#canvas-edit-panel input[name="title"]'),
     ).toBeVisible();
 
     const results = await new AxeBuilder({ page }).analyze();
@@ -256,9 +262,10 @@ test.describe('any-list form (specs/editor-redesign.md, Phase 5)', () => {
     const macro = anyListMacro(page);
     await macro.click();
 
-    const name = macro.getByRole('textbox', { name: 'Group 1 name' });
+    const panel = page.locator('#canvas-edit-panel');
+    const name = panel.getByRole('textbox', { name: 'Group 1 name' });
     await expect(name).toHaveValue('Gears');
-    await expect(macro.locator('.any-list-editor textarea')).toHaveCount(0);
+    await expect(panel.locator('textarea')).toHaveCount(0);
 
     // 'Techniques', not e.g. 'Powers': hasText matching is substring-based
     // and case-insensitive, and the example paragraph block happens to
@@ -279,8 +286,9 @@ test.describe('any-list form (specs/editor-redesign.md, Phase 5)', () => {
     const macro = anyListMacro(page);
     await macro.click();
 
-    await macro.getByRole('button', { name: 'Add entry to group 2' }).click();
-    await macro
+    const panel = page.locator('#canvas-edit-panel');
+    await panel.getByRole('button', { name: 'Add entry to group 2' }).click();
+    await panel
       .getByRole('textbox', { name: 'Group 2 entry 4' })
       .fill('Nico Robin');
 
@@ -293,10 +301,11 @@ test.describe('any-list form (specs/editor-redesign.md, Phase 5)', () => {
     const macro = anyListMacro(page);
     await macro.click();
 
-    await macro.getByRole('button', { name: 'Add group' }).click();
+    const panel = page.locator('#canvas-edit-panel');
+    await panel.getByRole('button', { name: 'Add group' }).click();
     await expect(macro).toContainText('New group:');
 
-    await macro.getByRole('button', { name: 'Remove group 3' }).click();
+    await panel.getByRole('button', { name: 'Remove group 3' }).click();
     await expect(macro).not.toContainText('New group:');
     // The original groups are untouched.
     await expect(macro).toContainText('Gears:');
@@ -308,10 +317,11 @@ test.describe('any-list form (specs/editor-redesign.md, Phase 5)', () => {
     const macro = anyListMacro(page);
     await macro.click();
 
-    const name = macro.getByRole('textbox', { name: 'Group 1 name' });
+    const panel = page.locator('#canvas-edit-panel');
+    const name = panel.getByRole('textbox', { name: 'Group 1 name' });
     await name.fill('Acquaintances');
 
-    await expect(macro.getByRole('alert')).toContainText(
+    await expect(panel.getByRole('alert')).toContainText(
       /already a group name/i,
     );
     // Both groups still exist with their entries -- nothing merged.
@@ -325,7 +335,9 @@ test.describe('any-list form (specs/editor-redesign.md, Phase 5)', () => {
     const macro = anyListMacro(page);
     await macro.click();
     await expect(
-      macro.getByRole('textbox', { name: 'Group 1 name' }),
+      page
+        .locator('#canvas-edit-panel')
+        .getByRole('textbox', { name: 'Group 1 name' }),
     ).toBeVisible();
 
     const results = await new AxeBuilder({ page }).analyze();

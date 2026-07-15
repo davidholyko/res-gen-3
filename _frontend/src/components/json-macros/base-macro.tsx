@@ -1,29 +1,42 @@
 import c from 'classnames';
-import {
-  FocusEvent,
-  ReactNode,
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-} from 'react';
+import { FocusEvent, ReactNode, useCallback, useEffect, useRef } from 'react';
 
+import { CANVAS_EDIT_PANEL_ID } from '@/constants';
 import { useAppContext } from '@/context/app-context';
 import type { ContentAll } from '@/types/content-all';
 
-import EditorItem from '../content/editor-item';
 import { MacroTopBar } from '../sub-components/macro-top-bar';
 
 type BaseMacroProps = ContentAll & {
   children: ReactNode;
 };
 
+// The canvas-side edit panel counts as an extension of the focused
+// block (specs/canvas-edit-panel.md): clicking or tabbing into it must
+// not read as "clicked outside", or the first keystroke's target would
+// close the panel out from under the cursor.
+function isInsideEditPanel(target: EventTarget | null): boolean {
+  return Boolean(
+    target instanceof Element && target.closest(`#${CANVAS_EDIT_PANEL_ID}`),
+  );
+}
+
 export default function BaseMacro(props: BaseMacroProps) {
   const { children, contentId } = props;
 
-  const { onDelete, lastCreatedContentId, pushUndoSnapshot } = useAppContext();
+  const {
+    onDelete,
+    lastCreatedContentId,
+    pushUndoSnapshot,
+    canvasEditingContentId,
+    focusCanvasBlock,
+    blurCanvasBlock,
+  } = useAppContext();
 
-  const [isFocused, setIsFocused] = useState(false);
+  // Derived from app state, not a local flag (specs/canvas-edit-panel.md):
+  // the docked panel, a click on another block, and the panel's own Done
+  // button all have to agree on which block is focused.
+  const isFocused = canvasEditingContentId === contentId;
 
   const divRef = useRef<HTMLDivElement>(null);
 
@@ -39,46 +52,64 @@ export default function BaseMacro(props: BaseMacroProps) {
     divRef.current?.focus({ preventScroll: true });
   }, [lastCreatedContentId, contentId]);
 
-  // Function to handle clicks outside of the div
-  const handleClick = useCallback((event: MouseEvent) => {
-    // The document click listener is only attached (see the effect below)
-    // once this component -- and therefore divRef.current -- has mounted,
-    // so this guard can't actually be false.
-    /* v8 ignore next */
-    if (!divRef.current) return;
+  // mousedown, not click (same convention as BaseMenu's outside-close):
+  // a click's target is the common ancestor of where the mouse went DOWN
+  // and where it came UP -- and this app's own reactions to the
+  // mousedown (the focused block growing its toolbar, the previously
+  // focused block collapsing, the browser scrolling the newly focused
+  // block into view) reflow the page between those two moments. With a
+  // real mouse (which always travels a few pixels and holds for
+  // ~100ms), the click target could resolve to a container outside
+  // every block, reading as "clicked outside" and closing the panel
+  // that the very same gesture had just opened. At mousedown time the
+  // layout is still pristine and the target unambiguous.
+  const handleMouseDown = useCallback(
+    (event: MouseEvent) => {
+      // This listener is only attached (see the effect below) once this
+      // component -- and therefore divRef.current -- has mounted, so
+      // this guard can't actually be false.
+      /* v8 ignore next */
+      if (!divRef.current) return;
 
-    if (divRef.current?.contains(event.target as Node)) {
-      setIsFocused(true);
-    }
+      if (divRef.current.contains(event.target as Node)) {
+        focusCanvasBlock(contentId);
+      } else if (!isInsideEditPanel(event.target)) {
+        blurCanvasBlock(contentId);
+      }
+    },
+    [contentId, focusCanvasBlock, blurCanvasBlock],
+  );
 
-    if (!divRef.current?.contains(event.target as Node)) {
-      setIsFocused(false);
-    }
-  }, []);
-
-  // Attach the click event listener when the component mounts
   useEffect(() => {
-    document.addEventListener('click', handleClick);
+    document.addEventListener('mousedown', handleMouseDown);
 
     return () => {
-      // Clean up the event listener when the component unmounts
-      document.removeEventListener('click', handleClick);
+      document.removeEventListener('mousedown', handleMouseDown);
     };
-  }, [handleClick]);
+  }, [handleMouseDown]);
 
-  // The click listener above only reveals this macro's controls for mouse
-  // users (a keyboard user tabbing onto the div never dispatches a click,
-  // so isFocused would never flip and the delete/reorder/edit controls
-  // would stay permanently unreachable without a mouse -- WCAG 2.1.1).
-  // These focus/blur handlers give keyboard users the same reveal, while
-  // treating focus moving to a child (e.g. into the revealed top bar or
-  // inline editor) as still "inside".
-  const onFocus = useCallback(() => setIsFocused(true), []);
-  const onBlur = useCallback((event: FocusEvent<HTMLDivElement>) => {
-    if (!divRef.current?.contains(event.relatedTarget as Node)) {
-      setIsFocused(false);
-    }
-  }, []);
+  // The mousedown listener above only reveals this macro's controls for
+  // mouse users (a keyboard user tabbing onto the div never presses the
+  // mouse, so focus would never move and the delete/reorder/edit controls
+  // would stay permanently unreachable without a mouse -- WCAG 2.1.1). These
+  // focus/blur handlers give keyboard users the same reveal, while
+  // treating focus moving to a child (e.g. into the revealed top bar) or
+  // into the docked edit panel as still "inside".
+  const onFocus = useCallback(
+    () => focusCanvasBlock(contentId),
+    [contentId, focusCanvasBlock],
+  );
+  const onBlur = useCallback(
+    (event: FocusEvent<HTMLDivElement>) => {
+      if (
+        !divRef.current?.contains(event.relatedTarget as Node) &&
+        !isInsideEditPanel(event.relatedTarget)
+      ) {
+        blurCanvasBlock(contentId);
+      }
+    },
+    [contentId, blurCanvasBlock],
+  );
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -119,6 +150,10 @@ export default function BaseMacro(props: BaseMacroProps) {
     // jsx-a11y's isInteractiveRole check only allows ARIA "widget" roles
     // with tabIndex, and "group" is a structural role, not a widget --
     // hence the disable below despite this being intentional and correct.
+    //
+    // No inline editor anymore: the focused block's form renders in the
+    // canvas-side edit panel (specs/canvas-edit-panel.md), so opening it
+    // never reflows the preview.
     <div
       className={className}
       role="group"
@@ -130,7 +165,6 @@ export default function BaseMacro(props: BaseMacroProps) {
     >
       {isFocused && <MacroTopBar contentId={contentId} />}
       {children}
-      {isFocused && <EditorItem {...props} />}
     </div>
   );
 }

@@ -39,6 +39,11 @@ export const LAYOUTS = {
   DOUBLE_RIGHT: 'DOUBLE_RIGHT',
 } as const;
 
+// DOM id of the canvas-side edit panel (specs/canvas-edit-panel.md) --
+// BaseMacro's outside-click/blur logic treats anything inside it as
+// "inside the focused block".
+export const CANVAS_EDIT_PANEL_ID = 'canvas-edit-panel';
+
 // react-dnd item type for dragging a whole layout container to reorder
 // it -- distinct from the CONTENT_TYPES values, which are the item types
 // for dragging content blocks, so layout drags and content drags can
