@@ -66,6 +66,19 @@ export type AppContextType = {
    */
   editingContentId: ContentId | null;
   /**
+   * The block whose form is docked in the canvas-side edit panel
+   * (specs/canvas-edit-panel.md) -- the single source of truth for
+   * "which block is focused on the canvas", derived by every BaseMacro
+   * instead of each keeping its own local focus flag.
+   */
+  canvasEditingContentId: ContentId | null;
+  focusCanvasBlock: (contentId: ContentId) => void;
+  /**
+   * Clears canvas focus only if `contentId` still owns it -- so a stale
+   * blur from block A can never stomp a fresh focus on block B.
+   */
+  blurCanvasBlock: (contentId: ContentId) => void;
+  /**
    * Opens the editing view on a block (or switches blocks if it's
    * already open). The first open of a session captures the pre-session
    * state; closing the modal pushes it as a "Block edited" undo
@@ -103,6 +116,8 @@ export function AppProvider({ children }: AppProviderProps) {
   const [editingContentId, setEditingContentId] = useState<ContentId | null>(
     null,
   );
+  const [canvasEditingContentId, setCanvasEditingContentId] =
+    useState<ContentId | null>(null);
   // Pre-session state, captured on the first openEditingView of a
   // session and pushed as the undo snapshot when the modal closes --
   // push-on-close rather than push-on-open/first-save so the toast is
@@ -300,6 +315,16 @@ export function AppProvider({ children }: AppProviderProps) {
     );
   }, []);
 
+  const focusCanvasBlock = useCallback((contentId: ContentId) => {
+    setCanvasEditingContentId(contentId);
+  }, []);
+
+  const blurCanvasBlock = useCallback((contentId: ContentId) => {
+    setCanvasEditingContentId((current) =>
+      current === contentId ? null : current,
+    );
+  }, []);
+
   const openEditingView = useCallback(
     (contentId: ContentId) => {
       // Switching blocks mid-session keeps the original capture: one
@@ -398,6 +423,9 @@ export function AppProvider({ children }: AppProviderProps) {
         togglePdfModal,
         editingContentId,
         openEditingView,
+        canvasEditingContentId,
+        focusCanvasBlock,
+        blurCanvasBlock,
         lastCreatedContentId,
         undoSnapshot,
         pushUndoSnapshot,

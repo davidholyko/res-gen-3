@@ -445,6 +445,32 @@ describe('useAppContext', () => {
     });
   });
 
+  describe('canvas focus (specs/canvas-edit-panel.md)', () => {
+    it('focusCanvasBlock selects a block; blurCanvasBlock clears only if it still owns focus', () => {
+      const { result } = renderAppContext();
+
+      act(() => {
+        result.current.focusCanvasBlock(CONTACT_ITEM.contentId);
+      });
+      expect(result.current.canvasEditingContentId).toBe(
+        CONTACT_ITEM.contentId,
+      );
+
+      // A stale blur from a different block never stomps fresh focus.
+      act(() => {
+        result.current.blurCanvasBlock(HEADER_ITEM.contentId);
+      });
+      expect(result.current.canvasEditingContentId).toBe(
+        CONTACT_ITEM.contentId,
+      );
+
+      act(() => {
+        result.current.blurCanvasBlock(CONTACT_ITEM.contentId);
+      });
+      expect(result.current.canvasEditingContentId).toBeNull();
+    });
+  });
+
   describe('editing sessions (specs/edit-with-live-pdf-preview.md)', () => {
     it('openEditingView selects the block and opens the modal', () => {
       const { result } = renderAppContext();

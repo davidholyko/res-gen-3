@@ -97,7 +97,7 @@ describe('BaseMacro', () => {
     expect(queryByText('child content')).not.toBeNull();
   });
 
-  it('focuses on click inside and shows the top bar and inline editor', () => {
+  it('focuses on click inside and shows the top bar, with no inline editor in the block', () => {
     seedLocalStorage();
     const { container, getByText } = render(
       <AllProviders>
@@ -110,12 +110,13 @@ describe('BaseMacro', () => {
     fireEvent.click(getByText('child content'));
 
     expect(container.querySelector('.border-2')).not.toBeNull();
-    // The inline editor: a Contact item renders form inputs now
-    // (specs/editor-redesign.md, Phase 3), not a JSON textarea.
-    expect(container.querySelector('input')).not.toBeNull();
+    expect(getByText('Edit with preview')).not.toBeNull();
+    // The form lives in the canvas-side edit panel now
+    // (specs/canvas-edit-panel.md) -- nothing renders inside the block.
+    expect(container.querySelector('input')).toBeNull();
   });
 
-  it('focuses via keyboard (Tab) and shows the top bar and inline editor', () => {
+  it('focuses via keyboard (Tab) and shows the top bar', () => {
     // The reveal used to be driven only by a mouse-click listener, which
     // left keyboard-only users with no way to ever open the controls
     // (WCAG 2.1.1). This exercises the focus-event based path instead.
@@ -132,7 +133,39 @@ describe('BaseMacro', () => {
     fireEvent.focus(wrapper);
 
     expect(container.querySelector('.border-2')).not.toBeNull();
-    expect(container.querySelector('input')).not.toBeNull();
+  });
+
+  it('stays focused when clicking into the canvas edit panel', () => {
+    // The docked panel counts as an extension of the focused block
+    // (specs/canvas-edit-panel.md) -- clicking into a form field there
+    // must not close the panel out from under the cursor.
+    seedLocalStorage();
+    const panel = document.createElement('div');
+    panel.id = 'canvas-edit-panel';
+    const panelChild = document.createElement('button');
+    panel.appendChild(panelChild);
+    document.body.appendChild(panel);
+
+    const { container, getByText } = render(
+      <AllProviders>
+        <BaseMacro {...props}>
+          <p>child content</p>
+        </BaseMacro>
+      </AllProviders>,
+    );
+
+    fireEvent.click(getByText('child content'));
+    expect(container.querySelector('.border-2')).not.toBeNull();
+
+    fireEvent.click(panelChild);
+    expect(container.querySelector('.border-2')).not.toBeNull();
+
+    fireEvent.blur(container.firstElementChild as HTMLElement, {
+      relatedTarget: panelChild,
+    });
+    expect(container.querySelector('.border-2')).not.toBeNull();
+
+    document.body.removeChild(panel);
   });
 
   it('stays focused when focus moves to a child control (e.g. the revealed top bar)', () => {

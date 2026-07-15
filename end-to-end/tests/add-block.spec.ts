@@ -44,11 +44,11 @@ test.describe('per-zone Add block (specs/editor-redesign.md, Phase 6)', () => {
     await newLayout.getByRole('button', { name: '+ Add block' }).click();
     await page.getByRole('menuitem', { name: 'Section heading' }).click();
 
-    // The block landed in the new layout, focused, with its form
-    // revealed (BaseMacro's focus-on-create) -- and blank, not seeded
-    // with example content.
+    // The block landed in the new layout, focused, with its form open in
+    // the canvas-side panel (specs/canvas-edit-panel.md) -- and blank,
+    // not seeded with example content.
     const block = newLayout.locator('[role="group"]').first();
-    const input = block.locator('input[name="header"]');
+    const input = page.locator('#canvas-edit-panel input[name="header"]');
     await expect(input).toBeVisible();
     await expect(input).toHaveValue('');
 
@@ -68,15 +68,16 @@ test.describe('per-zone Add block (specs/editor-redesign.md, Phase 6)', () => {
     await page.getByRole('menuitem', { name: 'Contact details' }).click();
 
     const block = newLayout.locator('[role="group"]').first();
-    await expect(block.locator('input[name="name"]')).toHaveValue('');
+    const panel = page.locator('#canvas-edit-panel');
+    await expect(panel.locator('input[name="name"]')).toHaveValue('');
 
     // Filling just the name flags the still-invalid email inline...
-    await block.locator('input[name="name"]').fill('Ada Lovelace');
-    await expect(block.getByRole('alert')).toContainText(/valid email/i);
+    await panel.locator('input[name="name"]').fill('Ada Lovelace');
+    await expect(panel.getByRole('alert')).toContainText(/valid email/i);
 
     // ...and completing the email saves the block onto the canvas.
-    await block.locator('input[name="email"]').fill('ada@example.com');
-    await expect(block.getByRole('alert')).toHaveCount(0);
+    await panel.locator('input[name="email"]').fill('ada@example.com');
+    await expect(panel.getByRole('alert')).toHaveCount(0);
     await expect(block.locator('h1')).toContainText('Ada Lovelace');
   });
 

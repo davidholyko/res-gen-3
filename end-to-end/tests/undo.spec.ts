@@ -116,7 +116,16 @@ test.describe('undo destructive actions', () => {
       .locator('.layout-single .macro-manager > *')
       .count();
 
-    await page.locator('.layout-single [role="group"]').first().click();
+    const macro = page.locator('.layout-single [role="group"]').first();
+    await macro.click();
+    // Clicking a block lands typing focus in the edit panel's first
+    // field (specs/canvas-edit-panel.md), where Backspace edits text --
+    // the delete shortcut applies to the block itself, so put focus
+    // back on it first.
+    await expect(
+      page.locator('#canvas-edit-panel input, #canvas-edit-panel textarea').first(),
+    ).toBeFocused();
+    await macro.focus();
     await page.keyboard.press('Backspace');
     await expect(
       page.locator('.layout-single .macro-manager > *'),
@@ -162,7 +171,9 @@ test.describe('undo destructive actions', () => {
     const newLayout = page.locator('.layout-single').last();
     await newLayout.getByRole('button', { name: '+ Add block' }).click();
     await page.getByRole('menuitem', { name: 'Section heading' }).click();
-    await newLayout.locator('input[name="header"]').fill('Marker Section');
+    await page
+      .locator('#canvas-edit-panel input[name="header"]')
+      .fill('Marker Section');
     await page.locator('header').first().click();
 
     const handle = page.getByTitle('Drag to move Layout 2');
