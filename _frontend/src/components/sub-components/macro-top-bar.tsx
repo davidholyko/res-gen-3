@@ -19,7 +19,8 @@ type MacroTopBarProps = {
 export const MacroTopBar = forwardRef<HTMLDivElement, MacroTopBarProps>(
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   (props: MacroTopBarProps, _ref: Ref<HTMLDivElement>) => {
-    const { onMove, onDelete, pushUndoSnapshot } = useAppContext();
+    const { onMove, onDelete, pushUndoSnapshot, openEditingView } =
+      useAppContext();
     const { contentId } = props;
 
     const editorDragContainerClassName = useMemo(() => {
@@ -64,7 +65,17 @@ export const MacroTopBar = forwardRef<HTMLDivElement, MacroTopBarProps>(
           <ArrowDownIcon className="m-1 p-1" />
         </button>
         <button
-          className="ml-auto p-1 bg-red-400 hover:bg-red-500 rounded"
+          // The way into the docked-form-beside-live-preview editing
+          // view (specs/edit-with-live-pdf-preview.md); the inline form
+          // below stays the quick-fix path.
+          className="ml-auto mr-3 px-2 text-sm underline-offset-2 hover:underline"
+          type="button"
+          onClick={() => openEditingView(contentId)}
+        >
+          Edit with preview
+        </button>
+        <button
+          className="p-1 bg-red-400 hover:bg-red-500 rounded"
           aria-label="Delete block"
           title="Delete this block"
           type="button"

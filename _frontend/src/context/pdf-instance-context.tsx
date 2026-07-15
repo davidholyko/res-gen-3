@@ -21,6 +21,11 @@ import PdfDocument from '@/pdf/pdf-document';
 // preview modal, not just the modal on demand
 // (specs/multi-page-indicator.md).
 const RENDER_DEBOUNCE_MS = 1750;
+// While the editing view is open, the preview is a typing companion --
+// 1750ms reads as broken. ~450ms is the reviewed starting point
+// (specs/edit-with-live-pdf-preview.md); re-measure on a large document
+// before trusting it further.
+const LIVE_RENDER_DEBOUNCE_MS = 450;
 
 type UsePdfReturn = ReturnType<typeof usePDF>;
 type PdfInstanceState = UsePdfReturn[0];
@@ -42,7 +47,7 @@ type PdfInstanceProviderProps = {
 };
 
 export function PdfInstanceProvider({ children }: PdfInstanceProviderProps) {
-  const { items, layouts, title } = useAppContext();
+  const { items, layouts, title, editingContentId } = useAppContext();
   const { styles } = usePdfPreviewContext();
   const [instance, updateInstance] = usePDF();
   const [pageCount, setPageCount] = useState<number | null>(null);
@@ -73,6 +78,9 @@ export function PdfInstanceProvider({ children }: PdfInstanceProviderProps) {
       clearTimeout(timeoutRef.current);
     }
 
+    const debounceMs =
+      editingContentId !== null ? LIVE_RENDER_DEBOUNCE_MS : RENDER_DEBOUNCE_MS;
+
     timeoutRef.current = setTimeout(() => {
       updateInstance(
         <PdfDocumentProvider
@@ -84,7 +92,7 @@ export function PdfInstanceProvider({ children }: PdfInstanceProviderProps) {
           <PdfDocument onRender={onRender} />
         </PdfDocumentProvider>,
       );
-    }, RENDER_DEBOUNCE_MS);
+    }, debounceMs);
 
     return () => {
       // timeoutRef.current is always set by this point -- it was just
@@ -96,7 +104,15 @@ export function PdfInstanceProvider({ children }: PdfInstanceProviderProps) {
         clearTimeout(timeoutRef.current);
       }
     };
-  }, [styles, items, layouts, title, updateInstance, onRender]);
+  }, [
+    styles,
+    items,
+    layouts,
+    title,
+    editingContentId,
+    updateInstance,
+    onRender,
+  ]);
 
   return (
     <PdfInstanceContext.Provider value={{ instance, pageCount }}>

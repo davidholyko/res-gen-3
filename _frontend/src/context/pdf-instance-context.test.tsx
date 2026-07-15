@@ -113,6 +113,24 @@ describe('usePdfInstance', () => {
     expect(updateInstanceMock).toHaveBeenCalledTimes(1);
   });
 
+  it('drops to the ~450ms live debounce while the editing view is open', () => {
+    const { result } = renderHook(() => useTestHarness(), { wrapper });
+
+    act(() => {
+      result.current.appContext.openEditingView('c1' as never);
+    });
+
+    act(() => {
+      vi.advanceTimersByTime(449);
+    });
+    expect(updateInstanceMock).not.toHaveBeenCalled();
+
+    act(() => {
+      vi.advanceTimersByTime(1);
+    });
+    expect(updateInstanceMock).toHaveBeenCalledTimes(1);
+  });
+
   it('clears the pending timeout on unmount without calling updateInstance', () => {
     const { unmount } = renderHook(() => usePdfInstance(), { wrapper });
 

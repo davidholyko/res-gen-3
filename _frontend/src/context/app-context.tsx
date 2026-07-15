@@ -5,6 +5,7 @@ import React, {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from 'react';
 import { v4 as uuidv4 } from 'uuid';
@@ -59,6 +60,19 @@ export type AppContextType = {
   onMove: (action: MOVE_ACTION, contentId: ContentId) => void;
   togglePdfModal: (value?: boolean) => void;
   /**
+   * The block whose form is docked beside the live PDF preview, or null
+   * when the modal is closed / in view-only mode
+   * (specs/edit-with-live-pdf-preview.md).
+   */
+  editingContentId: ContentId | null;
+  /**
+   * Opens the editing view on a block (or switches blocks if it's
+   * already open). The first open of a session captures the pre-session
+   * state; closing the modal pushes it as a "Block edited" undo
+   * snapshot -- but only if something was actually saved meanwhile.
+   */
+  openEditingView: (contentId: ContentId) => void;
+  /**
    * The contentId most recently created via onCreate -- lets the newly
    * added block scroll itself into view and reveal its edit controls,
    * since it can land in a layout that's off-screen with no other
@@ -86,6 +100,19 @@ export function AppProvider({ children }: AppProviderProps) {
   );
   const [items, setItems] = useState<ContentAll[]>(localStorageUtil.items);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingContentId, setEditingContentId] = useState<ContentId | null>(
+    null,
+  );
+  // Pre-session state, captured on the first openEditingView of a
+  // session and pushed as the undo snapshot when the modal closes --
+  // push-on-close rather than push-on-open/first-save so the toast is
+  // actually visible (and its auto-dismiss window running) when the
+  // user is back where they can click it, not hidden behind the modal
+  // (specs/edit-with-live-pdf-preview.md).
+  const editSessionRef = useRef<{
+    items: ContentAll[];
+    layouts: LayoutItem[];
+  } | null>(null);
   const [lastCreatedContentId, setLastCreatedContentId] =
     useState<ContentId | null>(null);
   const [undoSnapshot, setUndoSnapshot] = useState<UndoSnapshot | null>(null);
@@ -273,11 +300,39 @@ export function AppProvider({ children }: AppProviderProps) {
     );
   }, []);
 
+  const openEditingView = useCallback(
+    (contentId: ContentId) => {
+      // Switching blocks mid-session keeps the original capture: one
+      // session, one snapshot, regardless of how many blocks it touched.
+      if (!editSessionRef.current) {
+        editSessionRef.current = { items, layouts };
+      }
+      setEditingContentId(contentId);
+      setIsModalOpen(true);
+    },
+    [items, layouts],
+  );
+
   const togglePdfModal = useCallback(
     (value?: boolean) => {
-      setIsModalOpen(value === undefined ? !isModalOpen : value);
+      const next = value === undefined ? !isModalOpen : value;
+
+      if (!next) {
+        const session = editSessionRef.current;
+        // Items identity only changes when a save actually landed, so
+        // this is exactly the "nothing saved -> no snapshot" rule.
+        // (layouts can't change while the modal is open -- the canvas
+        // is unreachable behind it.)
+        if (session && session.items !== items) {
+          setUndoSnapshot({ ...session, description: 'Block edited' });
+        }
+        editSessionRef.current = null;
+        setEditingContentId(null);
+      }
+
+      setIsModalOpen(next);
     },
-    [isModalOpen],
+    [isModalOpen, items],
   );
 
   const title = useMemo(() => {
@@ -341,6 +396,8 @@ export function AppProvider({ children }: AppProviderProps) {
         onCreate,
         onMove,
         togglePdfModal,
+        editingContentId,
+        openEditingView,
         lastCreatedContentId,
         undoSnapshot,
         pushUndoSnapshot,

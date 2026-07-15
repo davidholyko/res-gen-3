@@ -1,5 +1,5 @@
 ---
-status: draft
+status: implemented
 ---
 
 # Edit beside a live PDF preview
@@ -112,36 +112,39 @@ Two facts about today's pipeline shape this design:
   `lastCreatedContentId`-style scroll/focus plumbing already knows how
   to do this for creation; the same treatment applies here).
 - No commit/cancel semantics: edits save live exactly as they do in
-  the canvas's inline editor today. As the safety net, **opening the
-  editing view pushes a "Block edited" undo snapshot** (decided in
-  review): one Undo after closing restores the block to its pre-session
-  state. Same single-snapshot model as everything else — a destructive
-  action mid-session replaces the snapshot, and no snapshot is pushed
-  if the session ends without any change having been saved (the same
-  no-snapshot-for-a-no-op rule the move-undo spec established).
+  the canvas's inline editor today. As the safety net, the session gets
+  a **"Block edited" undo snapshot**: the pre-session state is captured
+  when the view opens and pushed **when the modal closes, if anything
+  was saved meanwhile** (items identity is the tell). Pushing on close
+  rather than on open (the draft decision) is deliberate: the undo
+  toast's visibility and auto-dismiss window only start once the user
+  is back where the toast is actually visible and clickable, instead of
+  burning behind the modal mid-session. Same single-snapshot model as
+  everything else; no snapshot if the session ends with nothing saved
+  (the no-snapshot-for-a-no-op rule).
 
 ## Acceptance criteria
 
-- [ ] A focused block offers an explicit way into the editing view, and
+- [x] A focused block offers an explicit way into the editing view, and
       the view opens with that block's form in a panel beside the
       preview — the panel never overlaps the PDF
-- [ ] Typing a change into the panel's form updates the visible PDF
+- [x] Typing a change into the panel's form updates the visible PDF
       preview without any further user action, within ~1s of the user
       pausing
-- [ ] A preview refresh while the editing view is open never flashes
+- [x] A preview refresh while the editing view is open never flashes
       blank and never yanks the viewer back to page 1 while the user is
       looking at a later page
-- [ ] The block being edited can be switched from within the view,
+- [x] The block being edited can be switched from within the view,
       using the same plain-language block names as "+ Add block"
-- [ ] Per-field validation behaves identically in the panel and the
+- [x] Per-field validation behaves identically in the panel and the
       canvas's inline form; invalid values are flagged inline and never
       reach the preview
-- [ ] Keyboard path: the view is reachable, operable, and dismissible
+- [x] Keyboard path: the view is reachable, operable, and dismissible
       without a mouse; Escape closes it and focus returns to the block
       on the canvas
-- [ ] The page counter, download button, and view-only preview
+- [x] The page counter, download button, and view-only preview
       continue to work unchanged when the editing view is not in use
-- [ ] `_frontend` stays at 100% coverage; axe component/E2E suites stay
+- [x] `_frontend` stays at 100% coverage; axe component/E2E suites stay
       clean; the editing view gets e2e happy-path coverage (open →
       type → preview updates → close)
 
@@ -166,3 +169,28 @@ implementation; each decision is reflected in Design above.
 - **Narrow windows: minimum width + horizontal scroll** — the layout
   never collapses or overlaps; the never-cover rule holds
   unconditionally.
+
+## Findings from implementation
+
+- **Headless Chromium never fires `load` for PDF iframes — at all.**
+  Confirmed live with a bare native iframe pointed at the PDF blob URL:
+  no load event within 5s headless, near-instant headed. The
+  double-buffered swap therefore promotes the staged frame on `load`
+  *or* after a 2.5s fallback timer (`STAGING_FALLBACK_MS`), long enough
+  that a real browser's load always wins the race — without it the
+  preview wedges on "loading" forever in load-less environments,
+  including the e2e suite itself.
+- **The undo snapshot moved from open-time to close-time** (see Focus
+  and dismissal): a snapshot pushed at open/first-save starts the undo
+  toast's 8s auto-dismiss clock while the toast is hidden behind the
+  modal, so by the time the user could click Undo it would already be
+  gone. Capturing at open and pushing at close-if-changed keeps the
+  decided behavior ("one Undo reverts the session") while making the
+  toast actually actionable.
+- **The stepper needed its own contrast chip**: white text directly on
+  the modal top bar's `bg-blue-500` is ~3.8:1 (needs 4.5:1), caught by
+  the real-browser axe scan — the page stepper sits in a `bg-blue-700`
+  chip instead.
+- The `~450ms` live debounce felt responsive against the 2-page example
+  resume in the e2e runs; no backoff was needed yet. Re-measure if
+  real-world resumes grow much larger.
