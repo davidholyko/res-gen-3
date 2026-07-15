@@ -22,6 +22,7 @@ describe('FileMenu', () => {
     fireEvent.click(getByText('File'));
 
     expect(getByText('New')).not.toBeNull();
+    expect(getByText('Reset to Example')).not.toBeNull();
     expect(getByText('Download PDF')).not.toBeNull();
     expect(getByText('Download JSON')).not.toBeNull();
     expect(getByText('Upload JSON')).not.toBeNull();
