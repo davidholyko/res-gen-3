@@ -1,4 +1,4 @@
-import { expect, test } from './fixtures';
+import { addSingleLayout, expect, test } from './fixtures';
 
 // Happy-path coverage for specs/undo-destructive-actions.md's toast-based
 // undo, which replaced window.confirm() on the two finer-grained
@@ -60,7 +60,7 @@ test.describe('undo destructive actions', () => {
       .count();
 
     await page.locator('.layout-single [role="group"]').first().click();
-    await page.getByLabel('Delete Macro Button').click();
+    await page.getByLabel('Delete block').click();
     await expect(
       page.locator('.layout-single .macro-manager > *'),
     ).toHaveCount(before - 1);
@@ -96,7 +96,7 @@ test.describe('undo destructive actions', () => {
     page,
   }) => {
     await page.locator('.layout-single [role="group"]').first().click();
-    await page.getByLabel('Delete Macro Button').click();
+    await page.getByLabel('Delete block').click();
     await expect(
       page.getByRole('status').filter({ hasText: 'Block deleted' }),
     ).toBeVisible();
@@ -106,6 +106,94 @@ test.describe('undo destructive actions', () => {
     await expect(page.getByRole('status')).toHaveCount(1);
     await expect(
       page.getByRole('status').filter({ hasText: 'Layout 1 removed' }),
+    ).toBeVisible();
+  });
+
+  test('deleting a block with the Backspace key shows the same undo toast as the button', async ({
+    page,
+  }) => {
+    const before = await page
+      .locator('.layout-single .macro-manager > *')
+      .count();
+
+    await page.locator('.layout-single [role="group"]').first().click();
+    await page.keyboard.press('Backspace');
+    await expect(
+      page.locator('.layout-single .macro-manager > *'),
+    ).toHaveCount(before - 1);
+
+    const toast = page.getByRole('status').filter({ hasText: 'Block deleted' });
+    await toast.getByText('Undo', { exact: true }).click();
+
+    await expect(
+      page.locator('.layout-single .macro-manager > *'),
+    ).toHaveCount(before);
+  });
+
+  test('moving a block shows a "Block moved" toast, and Undo restores the order', async ({
+    page,
+  }) => {
+    // The second prepopulated block (the "Summary" header) moved up
+    // above the Contact block.
+    const macro = page
+      .locator('.layout-single [role="group"]')
+      .filter({ hasText: 'Summary' })
+      .first();
+    await macro.click();
+    await macro.getByLabel('Move block up').click();
+
+    await expect(
+      page.locator('.layout-single [role="group"]').first(),
+    ).toContainText('Summary');
+
+    const toast = page.getByRole('status').filter({ hasText: 'Block moved' });
+    await toast.getByText('Undo', { exact: true }).click();
+
+    await expect(
+      page.locator('.layout-single [role="group"]').first(),
+    ).toContainText('Monkey D. Luffy');
+  });
+
+  test('dragging a layout to a new position shows a "Layout moved" toast, and Undo restores the order', async ({
+    page,
+  }) => {
+    // A second layout with a marker block, dragged above the first.
+    await addSingleLayout(page);
+    const newLayout = page.locator('.layout-single').last();
+    await newLayout.getByRole('button', { name: '+ Add block' }).click();
+    await page.getByRole('menuitem', { name: 'Section heading' }).click();
+    await newLayout.locator('input[name="header"]').fill('Marker Section');
+    await page.locator('header').first().click();
+
+    const handle = page.getByTitle('Drag to move Layout 2');
+    const src = (await handle.boundingBox())!;
+    const dst = (await page.locator('[data-gap-index="0"]').boundingBox())!;
+    await page.mouse.move(src.x + src.width / 2, src.y + src.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(src.x + src.width / 2, src.y + src.height / 2 + 10, {
+      steps: 5,
+    });
+    await page.mouse.move(dst.x + dst.width / 2, dst.y + dst.height / 2, {
+      steps: 15,
+    });
+    await page.mouse.up();
+
+    await expect(
+      page.locator('.layout-single').first().locator(':text("Marker Section")'),
+    ).toBeVisible();
+
+    const toast = page.getByRole('status').filter({ hasText: 'Layout moved' });
+    await toast.getByText('Undo', { exact: true }).click();
+
+    await expect(
+      page.locator('.layout-single').last().locator(':text("Marker Section")'),
+    ).toBeVisible();
+    await expect(
+      page
+        .locator('.layout-single')
+        .first()
+        .locator(':text("Monkey D. Luffy")')
+        .first(),
     ).toBeVisible();
   });
 

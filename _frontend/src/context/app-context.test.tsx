@@ -220,6 +220,38 @@ describe('useAppContext', () => {
         ]);
       });
 
+      it('a real move pushes a "Block moved" snapshot that performUndo restores', () => {
+        const { result } = renderAppContext();
+        const before = result.current.items;
+
+        act(() => {
+          result.current.onMove(MOVE_ACTION.MACRO_UP, ITEM_B.contentId);
+        });
+        expect(result.current.undoSnapshot?.description).toBe('Block moved');
+
+        act(() => {
+          result.current.performUndo();
+        });
+        expect(result.current.items).toEqual(before);
+      });
+
+      it('a zone-boundary no-op pushes no snapshot and preserves a pending one', () => {
+        const { result } = renderAppContext();
+
+        act(() => {
+          result.current.pushUndoSnapshot('Something real');
+        });
+        act(() => {
+          // X is the only item in its zone -- moving it is a no-op.
+          result.current.onMove(
+            MOVE_ACTION.MACRO_UP,
+            ITEM_X_OTHER_ZONE.contentId,
+          );
+        });
+
+        expect(result.current.undoSnapshot?.description).toBe('Something real');
+      });
+
       it('MACRO_DOWN skips other zones the same way', () => {
         const { result } = renderAppContext();
 
@@ -352,6 +384,34 @@ describe('useAppContext', () => {
           result.current.moveLayout(1, 2); // gap directly below itself
         });
         expect(result.current.layouts).toBe(before);
+      });
+
+      it('a real move pushes a "Layout moved" snapshot that performUndo restores', () => {
+        const { result } = renderWithThreeLayouts();
+        const before = result.current.layouts;
+
+        act(() => {
+          result.current.moveLayout(0, 3);
+        });
+        expect(result.current.undoSnapshot?.description).toBe('Layout moved');
+
+        act(() => {
+          result.current.performUndo();
+        });
+        expect(result.current.layouts).toEqual(before);
+      });
+
+      it('an adjacent-gap no-op pushes no snapshot and preserves a pending one', () => {
+        const { result } = renderWithThreeLayouts();
+
+        act(() => {
+          result.current.pushUndoSnapshot('Something real');
+        });
+        act(() => {
+          result.current.moveLayout(1, 2);
+        });
+
+        expect(result.current.undoSnapshot?.description).toBe('Something real');
       });
     });
 

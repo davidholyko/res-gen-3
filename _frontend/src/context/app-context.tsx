@@ -158,8 +158,15 @@ export function AppProvider({ children }: AppProviderProps) {
           }
 
           // Already first/last within its own zone: nothing to move
-          // past -- a no-op, not a silent cross-zone reorder.
+          // past -- a no-op, not a silent cross-zone reorder, and
+          // (crucially) no undo snapshot: a toast offering to "undo"
+          // nothing would also clobber a real, still-pending snapshot.
           if (neighborIndex === -1) break;
+
+          // Snapshot pushed here, not at the call site: this is the one
+          // place that knows whether the press is a real move
+          // (specs/plain-language-labels-and-move-undo.md).
+          setUndoSnapshot({ items, layouts, description: 'Block moved' });
 
           // A positional swap keeps every other zone's relative order
           // untouched, whereas a splice would shift items between the
@@ -176,7 +183,7 @@ export function AppProvider({ children }: AppProviderProps) {
           throw new Error(`Unsupported move action ${action}`);
       }
     },
-    [items],
+    [items, layouts],
   );
 
   /**
@@ -230,16 +237,20 @@ export function AppProvider({ children }: AppProviderProps) {
     });
   }, []);
 
-  const moveLayout = useCallback((fromIndex: number, toGapIndex: number) => {
-    setLayouts((prevLayouts) => {
+  const moveLayout = useCallback(
+    (fromIndex: number, toGapIndex: number) => {
       // The gaps directly above and below the dragged layout both mean
-      // "leave it where it is" -- bail with the same reference so
-      // nothing downstream misreads the drop as a change.
+      // "leave it where it is" -- no move, and no undo snapshot either:
+      // a toast offering to "undo" nothing would also clobber a real,
+      // still-pending snapshot
+      // (specs/plain-language-labels-and-move-undo.md).
       if (toGapIndex === fromIndex || toGapIndex === fromIndex + 1) {
-        return prevLayouts;
+        return;
       }
 
-      const next = [...prevLayouts];
+      setUndoSnapshot({ items, layouts, description: 'Layout moved' });
+
+      const next = [...layouts];
       const [moved] = next.splice(fromIndex, 1);
       // Removing the layout first shifts every gap below it up by one.
       next.splice(
@@ -247,9 +258,10 @@ export function AppProvider({ children }: AppProviderProps) {
         0,
         moved,
       );
-      return next;
-    });
-  }, []);
+      setLayouts(next);
+    },
+    [items, layouts],
+  );
 
   // Removes a specific layout by id, not just the last one -- the
   // canvas-level "remove this layout" affordance next to each layout

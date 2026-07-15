@@ -10,16 +10,20 @@ import { EditorTopBar } from './editor-top-bar';
 // block's editor header.
 describe('EditorTopBar', () => {
   it('shows the block name with an "Editing" badge', () => {
-    const { getByText } = render(<EditorTopBar formId="f1" macro="Contact" />);
+    const { getByText } = render(
+      <EditorTopBar formId="f1" label="Contact details" />,
+    );
 
-    expect(getByText('Contact')).not.toBeNull();
+    expect(getByText('Contact details')).not.toBeNull();
     expect(getByText('Editing')).not.toBeNull();
   });
 
   it("points its label at the form's first field id", () => {
-    const { getByText } = render(<EditorTopBar formId="f1" macro="Contact" />);
+    const { getByText } = render(
+      <EditorTopBar formId="f1" label="Contact details" />,
+    );
 
-    expect(getByText('Contact').closest('label')).toHaveAttribute(
+    expect(getByText('Contact details').closest('label')).toHaveAttribute(
       'for',
       'editor-textarea-f1',
     );
@@ -31,7 +35,7 @@ describe('EditorTopBar', () => {
     // isolated render doesn't false-positive on a dangling reference.
     const { container } = render(
       <>
-        <EditorTopBar formId="f1" macro="Contact" />
+        <EditorTopBar formId="f1" label="Contact details" />
         <input id="editor-textarea-f1" aria-label="Name" />
       </>,
     );

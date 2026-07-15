@@ -11,7 +11,9 @@ import { EditorTopBar } from '../sub-components/editor-top-bar';
 import ContentForm from './content-form';
 
 type BaseEditorProps = Partial<ContentAll> & {
-  macro: string;
+  // Plain-language block name shown in the editor header (see
+  // EditorTopBar).
+  label: string;
   className: string;
   // zod v4's ZodRecord defaults its key/value type params to "any valid
   // record schema" already, so no explicit (and unsafe) `any` is needed.
@@ -25,7 +27,7 @@ type BaseEditorProps = Partial<ContentAll> & {
 };
 
 export default function BaseEditor(props: BaseEditorProps) {
-  const { content, macro, schema, fields, contentId } = props;
+  const { content, label, schema, fields, contentId } = props;
 
   const { onUpdate } = useAppContext();
   const [formValue, setFormValue] = useState<Record<string, unknown>>(
@@ -102,7 +104,7 @@ export default function BaseEditor(props: BaseEditorProps) {
 
   return (
     <div className={c(props.className, 'cursor-text p-1')}>
-      <EditorTopBar formId={formId} macro={macro} />
+      <EditorTopBar formId={formId} label={label} />
       <ContentForm
         fields={fields}
         value={formValue}

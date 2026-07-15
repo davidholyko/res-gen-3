@@ -1,7 +1,7 @@
 import c from 'classnames';
 import { array, object, string } from 'zod';
 
-import { CONTENT_TYPES } from '@/constants';
+import { CONTENT_TYPE_LABELS, CONTENT_TYPES } from '@/constants';
 import type { ContentExperience } from '@/types/content-experience';
 import type { FieldSpec } from '@/types/field-spec';
 
@@ -43,7 +43,7 @@ export default function ExperienceEditor(props: ExperienceEditorProps) {
       {...props}
       className={className}
       contentType={CONTENT_TYPES.EXPERIENCE}
-      macro="Experience"
+      label={CONTENT_TYPE_LABELS.EXPERIENCE}
       schema={schema}
       fields={fields}
     />

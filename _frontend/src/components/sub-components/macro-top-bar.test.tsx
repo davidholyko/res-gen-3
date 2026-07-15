@@ -29,24 +29,30 @@ beforeEach(() => {
 });
 
 describe('MacroTopBar', () => {
-  it('moves the macro up and down via accessibly-labelled buttons', () => {
+  it('moves the block up and down via plain-language accessible names', () => {
+    // "Move block up", not "Move Macro Up Button": no internal jargon in
+    // accessible names (specs/plain-language-labels-and-move-undo.md).
+    // The undo snapshot for moves is pushed inside onMove itself, which
+    // alone knows whether the press is a real move or a zone-boundary
+    // no-op.
     const { getByLabelText } = render(
       <MacroTopBar contentId={'c1' as never} />,
     );
 
-    fireEvent.click(getByLabelText('Move Macro Up Button'));
+    fireEvent.click(getByLabelText('Move block up'));
     expect(onMoveMock).toHaveBeenCalledWith(MOVE_ACTION.MACRO_UP, 'c1');
 
-    fireEvent.click(getByLabelText('Move Macro Down Button'));
+    fireEvent.click(getByLabelText('Move block down'));
     expect(onMoveMock).toHaveBeenCalledWith(MOVE_ACTION.MACRO_DOWN, 'c1');
+    expect(pushUndoSnapshotMock).not.toHaveBeenCalled();
   });
 
-  it('deletes the macro immediately, after pushing an undo snapshot', () => {
+  it('deletes the block immediately, after pushing an undo snapshot', () => {
     const { getByLabelText } = render(
       <MacroTopBar contentId={'c1' as never} />,
     );
 
-    fireEvent.click(getByLabelText('Delete Macro Button'));
+    fireEvent.click(getByLabelText('Delete block'));
 
     expect(pushUndoSnapshotMock).toHaveBeenCalledWith('Block deleted');
     expect(onDeleteMock).toHaveBeenCalledWith({ contentId: 'c1' });

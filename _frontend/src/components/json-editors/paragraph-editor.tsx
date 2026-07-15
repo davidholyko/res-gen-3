@@ -1,7 +1,7 @@
 import c from 'classnames';
 import { object, string } from 'zod';
 
-import { CONTENT_TYPES } from '@/constants';
+import { CONTENT_TYPE_LABELS, CONTENT_TYPES } from '@/constants';
 import type { ContentParagraph } from '@/types/content-paragraph';
 import type { FieldSpec } from '@/types/field-spec';
 
@@ -28,7 +28,7 @@ export default function ParagraphEditor(props: ParagraphEditorProps) {
       {...props}
       className={className}
       contentType={CONTENT_TYPES.PARAGRAPH}
-      macro="Paragraph"
+      label={CONTENT_TYPE_LABELS.PARAGRAPH}
       schema={schema}
       fields={fields}
     />

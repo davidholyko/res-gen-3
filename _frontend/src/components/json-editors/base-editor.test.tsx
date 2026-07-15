@@ -32,7 +32,7 @@ const schema = object({ name: string().min(1) });
 
 function baseProps(overrides: Record<string, unknown> = {}) {
   return {
-    macro: 'Contact',
+    label: 'Contact details',
     className: 'contact-editor',
     schema,
     fields,
@@ -64,7 +64,7 @@ describe('BaseEditor', () => {
   it("the top bar's macro label points at the form's first field", () => {
     const { container, getByText } = render(<BaseEditor {...baseProps()} />);
 
-    const label = getByText('Contact').closest('label');
+    const label = getByText('Contact details').closest('label');
     const forId = label?.getAttribute('for');
     expect(forId).toBeTruthy();
     expect(container.querySelector(`#${forId}`)?.tagName).toBe('INPUT');

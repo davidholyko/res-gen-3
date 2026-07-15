@@ -21,7 +21,7 @@ type BaseMacroProps = ContentAll & {
 export default function BaseMacro(props: BaseMacroProps) {
   const { children, contentId } = props;
 
-  const { onDelete, lastCreatedContentId } = useAppContext();
+  const { onDelete, lastCreatedContentId, pushUndoSnapshot } = useAppContext();
 
   const [isFocused, setIsFocused] = useState(false);
 
@@ -82,10 +82,11 @@ export default function BaseMacro(props: BaseMacroProps) {
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      // event.stopImmediatePropagation();
-      // event.stopPropagation();
-
       if ((event.key === 'Backspace' || event.key === 'Delete') && isFocused) {
+        // The same snapshot the toolbar delete pushes (macro-top-bar.tsx)
+        // -- both delete paths are equally destructive, so both get the
+        // same undo (specs/plain-language-labels-and-move-undo.md).
+        pushUndoSnapshot('Block deleted');
         onDelete({ contentId });
       }
     };
@@ -95,7 +96,7 @@ export default function BaseMacro(props: BaseMacroProps) {
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
     };
-  }, [contentId, isFocused, onDelete]);
+  }, [contentId, isFocused, onDelete, pushUndoSnapshot]);
 
   const className = c('mb-2 rounded', {
     'border-2': isFocused,

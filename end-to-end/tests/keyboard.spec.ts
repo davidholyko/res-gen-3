@@ -120,9 +120,9 @@ test.describe('keyboard navigation', () => {
     await expect(macro).toBeFocused();
 
     // Reveals MacroTopBar (move up/down/delete) and the inline editor.
-    await expect(macro.getByLabel('Delete Macro Button')).toBeVisible();
+    await expect(macro.getByLabel('Delete block')).toBeVisible();
 
     await page.keyboard.press('Tab');
-    await expect(macro.getByLabel('Move Macro Up Button')).toBeFocused();
+    await expect(macro.getByLabel('Move block up')).toBeFocused();
   });
 });
