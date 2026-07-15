@@ -212,6 +212,34 @@ test.describe('undo destructive actions', () => {
     ).toBeVisible();
   });
 
+  test('Reset to Example restores the demo resume, and Undo brings back your work', async ({
+    page,
+  }) => {
+    // Mangle the resume first so the reset visibly changes something.
+    const macro = page.locator('.layout-single [role="group"]').first();
+    await macro.click();
+    await page
+      .locator('#canvas-edit-panel input[name="name"]')
+      .fill('Changed Name');
+    await expect(macro.locator('h1')).toContainText('Changed Name');
+
+    // The suite's fixtures already auto-accept native dialogs.
+    await page.getByText('File', { exact: true }).click();
+    await page.getByText('Reset to Example').click();
+
+    // The demo content is back...
+    await expect(page.locator('.layout-single h1')).toContainText(
+      'Monkey D. Luffy',
+    );
+
+    // ...and Undo restores the mangled version.
+    const toast = page.getByRole('status').filter({ hasText: 'Resume reset' });
+    await toast.getByText('Undo', { exact: true }).click();
+    await expect(page.locator('.layout-single h1')).toContainText(
+      'Changed Name',
+    );
+  });
+
   test('the toast auto-dismisses on its own after a while', async ({
     page,
   }) => {
