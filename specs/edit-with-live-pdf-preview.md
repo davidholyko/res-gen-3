@@ -32,14 +32,14 @@ Edit and result, visible at the same time.
   surface — add/move/delete blocks, insert/reorder layouts, the hover
   and focus affordances all stay. This spec adds a *focused editing
   view*; it doesn't make the PDF the primary editing surface. (A fuller
-  "PDF-first" editor is flagged in Open questions as a possible future,
-  not assumed.)
+  "PDF-first" editor is a possible later spec informed by usage, not
+  assumed here — see Decisions on the inline editor.)
 - **Not a new form system.** The same generated `ContentForm` (field
   specs, per-field validation, live-save via `onUpdate`) renders in the
   panel — this spec relocates it, not redesigns it.
 - **No mobile/responsive work**, same as all prior UX specs.
-  Desktop-only; narrow-window behavior is an open question, not a
-  requirement.
+  Desktop-only; narrow windows just get a minimum width with horizontal
+  scroll (see Decisions), not a responsive layout.
 - **No change to export.** Download PDF / Download JSON stay as they
   are.
 - **No react-pdf renderer changes.** The shared `PdfInstanceProvider`
