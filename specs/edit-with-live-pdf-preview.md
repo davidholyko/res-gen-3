@@ -52,9 +52,12 @@ Edit and result, visible at the same time.
 ### The editing view
 
 - The existing PDF modal grows an **editing mode**: the live preview
-  keeps the main area, and a form panel docks beside it (default:
-  right; see Open questions). The panel and preview share the modal's
-  width — the panel never overlaps or covers the preview.
+  keeps the main area, and a form panel docks to its **right** (decided
+  in review: content first, controls follow). The panel and preview
+  share the modal's width — the panel never overlaps or covers the
+  preview. Below a sane minimum width the modal content scrolls
+  horizontally rather than collapsing or overlapping (decided in
+  review; desktop-only scope).
 - **Entry points**:
   - From the canvas: an "Edit with preview" affordance on a focused
     block (exact placement at implementation time — the block's
@@ -68,9 +71,10 @@ Edit and result, visible at the same time.
   today, saving live via the existing `onUpdate` path. Per-field
   validation renders identically; invalid values are never saved, so
   the preview only ever reflects valid states.
-- The canvas's inline editor **stays** — the panel is an additional
-  place the same form appears, not a replacement (revisit once real
-  usage shows which one people reach for; see Open questions).
+- The canvas's inline editor **stays** (decided in review) — the
+  panel is an additional place the same form appears, for polish work
+  against the real render; the inline form remains the quick-fix path.
+  Whether it eventually retires is a later spec informed by usage.
 
 ### Making "live" actually feel live
 
@@ -79,22 +83,25 @@ Two facts about today's pipeline shape this design:
 - **The render debounce is 1750ms** (`pdf-instance-context.tsx`,
   `RENDER_DEBOUNCE_MS`) — tuned for a background page counter, not for
   watching your own keystrokes land. While the editing view is open,
-  the debounce should drop to something conversational (~400–500ms);
-  the constant becomes a parameter the editing view can lower. When
-  the view closes, the background cadence returns.
+  the debounce drops to **~450ms** (decided in review); the constant
+  becomes a parameter the editing view can lower, and the background
+  cadence returns when the view closes. Implementation must re-measure
+  on a large multi-page document and back off if renders visibly lag —
+  the number is a starting point, not a contract.
 - **Every re-render mints a new blob URL**, and the preview is an
   `<iframe src={instance.url}>` — a naive URL swap reloads the frame
   on every render: a white flash, and the browser PDF viewer's scroll
   position resets to page 1. That's unusable as a typing companion.
-  Default plan: **double-buffer the iframe** — keep the current frame
-  visible until the incoming one has loaded, then swap. Scroll
-  preservation across swaps is genuinely hard with the native viewer
-  (its scroll state lives inside the PDF plugin, unreachable from JS);
-  the `#page=N` URL fragment is the coarse-grained tool available —
-  reopen the incoming frame at the page the user was viewing (tracked
+  Decided plan (review): **double-buffer the iframe** — keep the
+  current frame visible until the incoming one has loaded, then swap —
+  with **page-level re-anchoring** via the `#page=N` URL fragment:
+  the incoming frame reopens at the page the user was viewing (tracked
   as best we can) or, failing that, at the page containing the block
-  being edited. Flagged in Open questions as the riskiest part of the
-  whole feature.
+  being edited. Within-page scroll snapping to the top of the current
+  page on refresh is accepted; escalating to pdf.js (rendering pages
+  to canvases ourselves for pixel-faithful refreshes) was explicitly
+  deferred — it's a significant dependency that only gets revisited if
+  page-level anchoring proves annoying in real use.
 
 ### Focus and dismissal
 
@@ -105,9 +112,13 @@ Two facts about today's pipeline shape this design:
   `lastCreatedContentId`-style scroll/focus plumbing already knows how
   to do this for creation; the same treatment applies here).
 - No commit/cancel semantics: edits save live exactly as they do in
-  the canvas's inline editor today. Undo remains the safety net; see
-  Open questions for whether opening the editing view should push a
-  snapshot so one Undo reverts the whole session.
+  the canvas's inline editor today. As the safety net, **opening the
+  editing view pushes a "Block edited" undo snapshot** (decided in
+  review): one Undo after closing restores the block to its pre-session
+  state. Same single-snapshot model as everything else — a destructive
+  action mid-session replaces the snapshot, and no snapshot is pushed
+  if the session ends without any change having been saved (the same
+  no-snapshot-for-a-no-op rule the move-undo spec established).
 
 ## Acceptance criteria
 
@@ -134,32 +145,24 @@ Two facts about today's pipeline shape this design:
       clean; the editing view gets e2e happy-path coverage (open →
       type → preview updates → close)
 
-## Open questions
+## Decisions (from spec review)
 
-- **Panel side**: dock the form left or right of the preview? Right
-  matches "content, then controls" reading order; left matches where
-  the canvas's inline editor sits today. (Direction said "left or
-  right" — pick one at implementation, or make it a toggle?)
-- **Scroll preservation fidelity**: is `#page=N` re-anchoring good
-  enough, or does losing within-page scroll position on every refresh
-  sink the experience? If it does, the fallback is rendering pages to
-  canvases ourselves (pdf.js directly) — a much bigger dependency and
-  scope step that should be its own decision, not an implementation
-  detail.
-- **Debounce while typing**: is ~450ms right, or does a full-document
-  react-pdf render per pause make even that feel heavy on a large
-  resume? May need measuring on a real multi-page document before
-  committing to a number.
-- **Undo granularity**: push a snapshot when the editing view opens
-  ("Block edited"), so one Undo reverts the whole editing session? Or
-  keep the current model where undo only covers destructive actions
-  and moves?
-- **Does the inline canvas editor eventually retire?** Two homes for
-  the same form is a transitional state. If the docked-panel-plus-
-  preview becomes the way people edit, the inline editor could go the
-  way of the ribbon — but that's a later spec informed by usage, not
-  this one.
-- **Narrow windows**: below what width does side-by-side stop being
-  viable, and what happens then (panel overlays after all? stacking?)
-  — desktop-only scope makes this deferrable, but the breakpoint
-  behavior should at least fail gracefully.
+All six open questions were put to review and resolved before
+implementation; each decision is reflected in Design above.
+
+- **Panel docks right** — content first, controls follow. No toggle.
+- **Page-level scroll anchoring is enough**: double-buffered iframe +
+  `#page=N`. Within-page scroll snapping to the page top on refresh is
+  accepted; pdf.js is the named escalation only if that proves
+  annoying in practice.
+- **~450ms live debounce**, with an explicit instruction to re-measure
+  on a large multi-page document during implementation and back off if
+  renders visibly lag.
+- **Opening the editing view pushes a "Block edited" undo snapshot**,
+  so one Undo reverts the session. Same single-snapshot model; no
+  snapshot if nothing was saved during the session.
+- **The inline canvas editor stays** alongside the new view; its
+  retirement is a possible later spec informed by usage.
+- **Narrow windows: minimum width + horizontal scroll** — the layout
+  never collapses or overlaps; the never-cover rule holds
+  unconditionally.
