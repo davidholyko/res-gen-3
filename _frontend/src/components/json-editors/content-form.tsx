@@ -116,7 +116,10 @@ export default function ContentForm(props: ContentFormProps) {
                   className={c(
                     fieldClassName,
                     errorOutlineClassName,
-                    'h-[9ch] font-mono resize-none',
+                    // 18ch, doubled from the raw-JSON era's 9ch: a
+                    // paragraph of ordinary resume length was clipping
+                    // its fourth line in the edit panel.
+                    'h-[18ch] font-mono resize-none',
                   )}
                   {...sharedProps}
                 />
