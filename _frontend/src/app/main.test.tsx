@@ -37,7 +37,7 @@ describe('Main', () => {
     );
 
     expect(container.querySelector('.layout-single')).not.toBeNull();
-    expect(getByTestId('edit-panel-gutter')).toHaveClass('w-0');
+    expect(getByTestId('edit-panel-gutter')).not.toHaveClass('basis-[506px]');
   });
 
   it('opens the gutter when a block gains canvas focus', () => {
@@ -50,7 +50,6 @@ describe('Main', () => {
 
     fireEvent.click(getByText('Summary'));
 
-    expect(getByTestId('edit-panel-gutter')).toHaveClass('w-[506px]');
-    expect(getByTestId('edit-panel-gutter')).not.toHaveClass('w-0');
+    expect(getByTestId('edit-panel-gutter')).toHaveClass('basis-[506px]');
   });
 });

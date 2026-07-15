@@ -16,31 +16,34 @@ export default function Main() {
     // crops the panel while its gutter animates open, without doing
     // that.
     <main className="flex flex-row overflow-x-clip">
-      {/* grow, not justify-center on the row: centering the canvas and
-          gutter as a pair strands the leftover space to the right of
-          the panel. Growing the canvas area instead pins the panel
-          flush against the viewport's right edge, and the canvas
-          centers in everything that remains. */}
-      <div className="grow flex flex-col items-center min-w-0">
+      {/* Mirrored spacers center the canvas while idle; when the panel
+          opens, its region's flex-basis animates up, so the canvas
+          slides left and the panel region absorbs the reserved width
+          PLUS its half of the leftover space -- which is what lets the
+          panel sit centered between the canvas and the viewport edge
+          instead of pinned flush right (specs/canvas-edit-panel.md). */}
+      <div className="grow basis-0" />
+      <div className="flex flex-col items-center min-w-0">
         <LayoutManager />
       </div>
-      {/* The panel's gutter animates open on focus: the canvas sits
-          centered while idle and slides left to make room
-          (specs/canvas-edit-panel.md). A permanently reserved gutter and
-          a fixed-position panel were both tried first -- see the spec's
-          findings for why each was rejected. */}
       <div
         data-testid="edit-panel-gutter"
-        className={c('shrink-0 transition-[width] duration-300 ease-out', {
-          'w-[506px]': isPanelOpen,
-          'w-0': !isPanelOpen,
-        })}
+        // min-w-0: without it, the fixed-width inner wrapper sets the
+        // region's min-content floor and holds it at 506px even while
+        // idle, shoving the canvas off-center.
+        className={c(
+          'grow basis-0 min-w-0 transition-[flex-basis] duration-300 ease-out',
+          { 'basis-[506px]': isPanelOpen },
+        )}
       >
-        {/* Fixed-width inner wrapper, matching the gutter's open width:
-            the panel sizes against this (95%), NOT the animating gutter
-            -- sizing against the animation resizes the form every frame
-            and drops keystrokes typed mid-slide (see the panel). */}
-        <div className="w-[506px]">
+        {/* Fixed-width inner wrapper, matching the reserved basis: the
+            panel sizes against this (95%), NOT the animating region --
+            sizing against the animation resizes the form every frame
+            and drops keystrokes typed mid-slide (see the panel).
+            mx-auto centers it once the region exceeds it; auto margins
+            never go negative, so mid-animation it overflows rightward
+            (clipped by main) rather than over the canvas. */}
+        <div className="w-[506px] mx-auto">
           <CanvasEditPanel />
         </div>
       </div>
