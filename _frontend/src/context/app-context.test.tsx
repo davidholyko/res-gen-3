@@ -445,6 +445,104 @@ describe('useAppContext', () => {
     });
   });
 
+  describe('editing sessions (specs/edit-with-live-pdf-preview.md)', () => {
+    it('openEditingView selects the block and opens the modal', () => {
+      const { result } = renderAppContext();
+
+      act(() => {
+        result.current.openEditingView(CONTACT_ITEM.contentId);
+      });
+
+      expect(result.current.editingContentId).toBe(CONTACT_ITEM.contentId);
+      expect(result.current.isModalOpen).toBe(true);
+    });
+
+    it('closing after a save pushes a "Block edited" snapshot that restores the pre-session state', () => {
+      const { result } = renderAppContext();
+      const before = result.current.items;
+
+      act(() => {
+        result.current.openEditingView(CONTACT_ITEM.contentId);
+      });
+      act(() => {
+        result.current.onUpdate({
+          ...CONTACT_ITEM,
+          content: { name: 'Grace Hopper' },
+        } as ContentAll);
+      });
+      act(() => {
+        result.current.togglePdfModal(false);
+      });
+
+      expect(result.current.editingContentId).toBeNull();
+      expect(result.current.undoSnapshot?.description).toBe('Block edited');
+
+      act(() => {
+        result.current.performUndo();
+      });
+      expect(result.current.items).toEqual(before);
+    });
+
+    it('closing without a save pushes no snapshot', () => {
+      const { result } = renderAppContext();
+
+      act(() => {
+        result.current.openEditingView(CONTACT_ITEM.contentId);
+      });
+      act(() => {
+        result.current.togglePdfModal(false);
+      });
+
+      expect(result.current.undoSnapshot).toBeNull();
+    });
+
+    it('switching blocks mid-session keeps the original capture: one undo reverts everything', () => {
+      const { result } = renderAppContext();
+      const before = result.current.items;
+
+      act(() => {
+        result.current.openEditingView(CONTACT_ITEM.contentId);
+      });
+      act(() => {
+        result.current.onUpdate({
+          ...CONTACT_ITEM,
+          content: { name: 'Grace Hopper' },
+        } as ContentAll);
+      });
+      act(() => {
+        result.current.openEditingView(HEADER_ITEM.contentId);
+      });
+      act(() => {
+        result.current.onUpdate({
+          ...HEADER_ITEM,
+          content: { header: 'Objectives' },
+        } as ContentAll);
+      });
+      act(() => {
+        result.current.togglePdfModal(false);
+      });
+
+      act(() => {
+        result.current.performUndo();
+      });
+      expect(result.current.items).toEqual(before);
+    });
+
+    it('a view-only open/close never pushes a snapshot', () => {
+      const { result } = renderAppContext();
+
+      act(() => {
+        result.current.togglePdfModal(true);
+      });
+      act(() => {
+        result.current.togglePdfModal(false);
+      });
+
+      expect(result.current.undoSnapshot).toBeNull();
+      expect(result.current.editingContentId).toBeNull();
+    });
+  });
+
   describe('visibility toggles', () => {
     it('togglePdfModal with no argument flips isModalOpen', () => {
       const { result } = renderAppContext();

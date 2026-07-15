@@ -10,8 +10,11 @@ test.describe('PDF preview modal', () => {
     const modal = page.locator('.ReactModal__Content');
     await expect(modal).toBeVisible();
 
-    const iframe = modal.locator('iframe');
-    await expect(iframe).toBeVisible();
+    // The visible frame specifically: the preview is double-buffered
+    // now (specs/edit-with-live-pdf-preview.md), so a hidden staging
+    // iframe can coexist with it during refreshes.
+    const iframe = modal.locator('[data-testid="pdf-frame-visible"]');
+    await expect(iframe).toBeVisible({ timeout: 10000 });
     const title = await iframe.getAttribute('title');
     expect(title).toBeTruthy();
     expect(title).toMatch(/\.pdf$/);

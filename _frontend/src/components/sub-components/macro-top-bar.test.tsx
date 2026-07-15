@@ -2,11 +2,13 @@ import { fireEvent, render } from '@testing-library/react';
 import axe from 'axe-core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { onMoveMock, onDeleteMock, pushUndoSnapshotMock } = vi.hoisted(() => ({
-  onMoveMock: vi.fn(),
-  onDeleteMock: vi.fn(),
-  pushUndoSnapshotMock: vi.fn(),
-}));
+const { onMoveMock, onDeleteMock, pushUndoSnapshotMock, openEditingViewMock } =
+  vi.hoisted(() => ({
+    onMoveMock: vi.fn(),
+    onDeleteMock: vi.fn(),
+    pushUndoSnapshotMock: vi.fn(),
+    openEditingViewMock: vi.fn(),
+  }));
 vi.mock('@/context/app-context', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/context/app-context')>();
   return {
@@ -15,6 +17,7 @@ vi.mock('@/context/app-context', async (importOriginal) => {
       onMove: onMoveMock,
       onDelete: onDeleteMock,
       pushUndoSnapshot: pushUndoSnapshotMock,
+      openEditingView: openEditingViewMock,
     }),
   };
 });
@@ -26,6 +29,7 @@ beforeEach(() => {
   onMoveMock.mockReset();
   onDeleteMock.mockReset();
   pushUndoSnapshotMock.mockReset();
+  openEditingViewMock.mockReset();
 });
 
 describe('MacroTopBar', () => {
@@ -56,6 +60,14 @@ describe('MacroTopBar', () => {
 
     expect(pushUndoSnapshotMock).toHaveBeenCalledWith('Block deleted');
     expect(onDeleteMock).toHaveBeenCalledWith({ contentId: 'c1' });
+  });
+
+  it('opens the live-preview editing view for this block', () => {
+    const { getByText } = render(<MacroTopBar contentId={'c1' as never} />);
+
+    fireEvent.click(getByText('Edit with preview'));
+
+    expect(openEditingViewMock).toHaveBeenCalledWith('c1');
   });
 
   it('has no automatically detectable accessibility violations', async () => {
