@@ -61,9 +61,10 @@ deliver to every surface.
 - **No undo history stack.** Same single-snapshot model as
   `specs/undo-destructive-actions.md` — only the most recent undoable
   action is restorable.
-- **No changes to internal identifiers** (`CONTENT_TYPES`, `macro` prop
-  name, CSS classes like `.contact-editor`, stored JSON). User-facing
-  strings only.
+- **No changes to internal identifiers** (`CONTENT_TYPES`, component/
+  file names like `MacroTopBar`, CSS classes like `.contact-editor`,
+  stored JSON). The one exception, decided in review, is the `macro`
+  prop, renamed to `label` (see Decisions).
 
 ## Design
 
@@ -80,10 +81,10 @@ deliver to every surface.
   `macro` string. Source them from `CONTENT_TYPE_LABELS` instead, so
   the block is named identically in the "+ Add block" menu that creates
   it and the "Editing" header that edits it: `Contact details`,
-  `Section heading`, `Paragraph`, `Experience`, `Custom list`. (The
-  `macro` prop itself can stay — or be renamed in passing — but its
-  *values* come from the one labels table; a second hand-maintained
-  copy of these strings is the thing to avoid.)
+  `Section heading`, `Paragraph`, `Experience`, `Custom list`. The
+  `macro` prop is renamed to `label` in the same pass (see Decisions),
+  and its values come from the one labels table — a second
+  hand-maintained copy of these strings is the thing to avoid.
 - Test fallout is mechanical: `layout-manipulation.spec.ts` and the
   `macro-top-bar`/editor unit tests select by the old labels.
 
