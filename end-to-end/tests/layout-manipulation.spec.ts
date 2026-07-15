@@ -55,8 +55,12 @@ test.describe('layout direct manipulation (specs/editor-redesign.md, Phase 6)', 
     await page.getByRole('menuitem', { name: 'Section heading' }).click();
     const heading = page.locator('#canvas-edit-panel input[name="header"]');
     await heading.fill('Marker Section');
-    // Unfocus the block so the drag isn't fighting an open editor.
+    // Unfocus the block so the drag isn't fighting an open editor, and
+    // let the edit panel's gutter finish its ~300ms close animation --
+    // the canvas recenters during it, and drag coordinates measured
+    // mid-slide point at where things used to be.
     await page.locator('header').first().click();
+    await page.waitForTimeout(400);
 
     // Drag Layout 2's header (the marker layout) into the gap above
     // Layout 1 -- a real multi-step gesture, not dragTo()'s single-shot

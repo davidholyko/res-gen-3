@@ -174,7 +174,11 @@ test.describe('undo destructive actions', () => {
     await page
       .locator('#canvas-edit-panel input[name="header"]')
       .fill('Marker Section');
+    // Unfocus, and let the edit panel's gutter finish its ~300ms close
+    // animation -- the canvas recenters during it, and drag coordinates
+    // measured mid-slide point at where things used to be.
     await page.locator('header').first().click();
+    await page.waitForTimeout(400);
 
     const handle = page.getByTitle('Drag to move Layout 2');
     const src = (await handle.boundingBox())!;

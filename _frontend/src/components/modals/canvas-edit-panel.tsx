@@ -49,11 +49,10 @@ export default function CanvasEditPanel() {
       id={CANVAS_EDIT_PANEL_ID}
       ref={panelRef}
       aria-label="Edit block"
-      // Sticky inside the permanently reserved gutter (see main.tsx):
-      // the panel follows the viewport while the (much taller) canvas
-      // scrolls past, and its appearance never moves or covers the
-      // canvas.
-      className="sticky top-2 w-full max-h-[calc(100vh-1rem)] overflow-y-auto bg-white border border-gray-300 rounded shadow-lg p-3 flex flex-col gap-3"
+      // Sticky inside its animated gutter (see main.tsx): the panel
+      // follows the viewport while the (much taller) canvas scrolls
+      // past. 26rem + 1rem margins fits the 28rem gutter exactly.
+      className="sticky top-2 mx-2 w-[26rem] max-h-[calc(100vh-1rem)] overflow-y-auto bg-white border border-gray-300 rounded shadow-lg p-3 flex flex-col gap-3"
     >
       <EditorItem key={editingItem.contentId} {...editingItem} />
       <button

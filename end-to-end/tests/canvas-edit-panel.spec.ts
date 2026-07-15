@@ -7,24 +7,30 @@ test.describe('canvas edit panel', () => {
   const panel = (page: import('@playwright/test').Page) =>
     page.locator('#canvas-edit-panel');
 
-  test('opening and closing the panel never moves the canvas', async ({
+  test('the canvas sits centered while idle and slides left while the panel is open', async ({
     page,
   }) => {
     const canvas = page.locator('#layout-manager');
     const before = (await canvas.boundingBox())!;
+    // Idle: centered in the viewport (1280 wide in this suite).
+    const viewport = page.viewportSize()!;
+    expect(Math.abs(before.x + before.width / 2 - viewport.width / 2)).toBeLessThan(2);
 
     await page.locator('.layout-single [role="group"]').first().click();
     await expect(panel(page)).toBeVisible();
-    const whileOpen = (await canvas.boundingBox())!;
-
-    expect(whileOpen.x).toBe(before.x);
-    expect(whileOpen.y).toBe(before.y);
+    // The gutter animates open (~300ms): the canvas slides left to make
+    // room, its vertical position untouched.
+    await expect
+      .poll(async () => (await canvas.boundingBox())!.x)
+      .toBeLessThan(before.x - 100);
+    expect((await canvas.boundingBox())!.y).toBe(before.y);
 
     await panel(page).getByText('Done').click();
     await expect(panel(page)).toHaveCount(0);
-    const afterClose = (await canvas.boundingBox())!;
-    expect(afterClose.x).toBe(before.x);
-    expect(afterClose.y).toBe(before.y);
+    // And recenters once the panel closes.
+    await expect
+      .poll(async () => (await canvas.boundingBox())!.x)
+      .toBe(before.x);
   });
 
   test('clicking into the panel keeps it open; clicking another block switches it', async ({

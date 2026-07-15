@@ -40,8 +40,12 @@ you type, without a single layout shift inside it.
   the modal's panel — content first, controls follow), sticky against
   the viewport with its own scroll. It renders the focused block's form
   (the same `EditorItem` the inline editor used) plus a "Done" button
-  that closes it. It mounts only while a block is focused; the canvas
-  itself never reflows when it opens.
+  that closes it. It mounts only while a block is focused.
+- **The canvas sits centered while idle and slides left when the panel
+  opens** (amended by review after the first cut shipped a permanently
+  reserved gutter): the panel's gutter animates between zero width and
+  the panel's width, so making room is one smooth, deliberate motion —
+  and nothing ever reflows *within* the canvas either way.
 - **Focus becomes app state, not per-block component state.** Which
   block is being edited moves from `BaseMacro`'s local `isFocused` into
   app context (`canvasEditingContentId`, with `focusCanvasBlock`/
@@ -62,8 +66,9 @@ you type, without a single layout shift inside it.
 ## Acceptance criteria
 
 - [x] Clicking a block opens its form in the docked panel; nothing
-      renders inside or below the block, and the canvas content does not
-      shift when the panel opens or closes
+      renders inside or below the block, and nothing reflows within the
+      canvas — it stays centered while idle and slides left as one
+      animated motion when the panel opens, recentering on close
 - [x] Typing in the panel updates the canvas live, exactly as the inline
       editor did (same validation, same live-save, same per-field
       errors)
@@ -87,15 +92,16 @@ you type, without a single layout shift inside it.
 
 ## Findings from implementation
 
-- **A fixed-position panel was tried and rejected.** Fixing the panel to
-  the viewport's right edge satisfies "the canvas never shifts"
-  trivially -- but at ordinary window widths (1280px) it overlapped the
-  canvas's right edge and swallowed clicks on the focused block's own
-  toolbar (Playwright: "subtree intercepts pointer events" on the
-  Delete button). The shipped layout reserves the panel's gutter
-  permanently instead: the canvas centers in the remaining space, so
-  its position is identical whether the panel is open or closed, and
-  nothing ever overlaps.
+- **Three layouts were tried.** (1) A fixed-position panel kept the
+  canvas perfectly still but overlapped it at ordinary window widths
+  (1280px) and swallowed clicks on the focused block's own toolbar
+  (Playwright: "subtree intercepts pointer events" on the Delete
+  button). (2) A permanently reserved gutter fixed the overlap but left
+  the canvas sitting left-of-center all the time. (3) The shipped
+  version, chosen in review: centered while idle, with the gutter
+  animating open on focus — `overflow-x-clip` (not `-hidden`, which
+  would create a scroll container and break the panel's sticky
+  positioning) crops the panel while it slides in.
 - **The panel's autofocus changes what Backspace means right after a
   click.** Clicking a block now lands typing focus in the panel's first
   field, so Backspace edits text there; the keyboard delete-block
