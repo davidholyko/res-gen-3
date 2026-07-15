@@ -82,9 +82,11 @@ export function replaceCSSVariables(cssRule: CssProperties): CssProperties {
 }
 
 export function toHex(rgbString: string) {
-  // Extract RGB values and alpha value
+  // Extract RGB values and alpha value. Accepts both the
+  // space-separated form stylesheets declare (rgb(0 0 0 / 0.5)) and the
+  // comma-separated form getComputedStyle returns (rgb(0, 0, 0)).
   const matches = rgbString.match(
-    /rgba?\((\d+)\s+(\d+)\s+(\d+)(?:\s+\/\s+([\d.]+))?\)/,
+    /rgba?\((\d+)[,\s]+(\d+)[,\s]+(\d+)(?:[\s,/]+([\d.]+))?\)/,
   );
   if (!matches) {
     return rgbString; // leave as is
@@ -139,6 +141,27 @@ function toPx(
     Number(value.replace(replacement, '')) *
     Number(baseFontSizeInPixels.replace('px', ''));
   return pxValue.toString() + 'px';
+}
+
+// For values that arrive from getComputedStyle rather than from a
+// declared rule: the browser has already resolved every var()/calc()/
+// oklch() down to absolute px lengths and rgb() colors, so all that's
+// left is hex conversion plus the same 14/16 web-rem-to-PDF scale the
+// declared-value path applies to rem sizes (the PDF's base font is 14
+// where the browser's is 16 -- res-gen-2 parity).
+export function toPdfComputedFormat(value: string): string {
+  return toHex(value)
+    .split(' ')
+    .map((part) => scaleComputedPx(part))
+    .join(' ');
+}
+
+function scaleComputedPx(value: string, multiplier = 14 / 16): string {
+  if (!/^-?\d*\.?\d+px$/.test(value)) {
+    return value;
+  }
+
+  return `${Number(value.slice(0, -2)) * multiplier}px`;
 }
 
 export function toPdfCssFormat(string: string): string {

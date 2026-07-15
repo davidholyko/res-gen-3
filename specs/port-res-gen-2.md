@@ -265,3 +265,29 @@ Still open:
   output in scope, or is WCAG-for-the-web-app (this spec's actual scope)
   sufficient? `@react-pdf/renderer`'s tagged-PDF support needs research
   if the answer is yes — not assumed here.
+
+## Findings from post-port regressions
+
+- **The PDF rendered unstyled under Tailwind 4 — everything stacked,
+  left-aligned, no flex rows, no centering** (reported against the
+  preview iframe, 2026-07). The port's PDF pipeline resolves each
+  block's Tailwind classes into react-pdf styles by walking
+  `document.styleSheets`, and that walk was written against Tailwind
+  3's output: flat top-level class rules with literal values. Tailwind
+  4 broke it three separate ways: utilities are nested inside
+  `@layer utilities { ... }` blocks (a top-level-only walk finds none
+  of them), values route through global theme variables and calc()
+  (`margin-bottom: calc(var(--spacing) * 2)`), and colors are oklch()
+  — the last two being things react-pdf can't evaluate even if
+  collected. Fixed in `pdf-preview-context.tsx` by (1) recursively
+  flattening class rules out of grouping rules, and (2) resolving each
+  class's values via `getComputedStyle` on a live probe element — the
+  browser does the var/calc/oklch math and hands back absolute px and
+  rgb(), scaled by the same 14/16 web-to-PDF ratio the old
+  declared-value path applied to rem sizes, preserving res-gen-2's
+  sizing. Verified by extracting the generated PDF bytes and rendering
+  them to an image: centered contact block, inline icon row, underlined
+  centered section headings, company|location|dates rows, inline tag
+  pills — and the example resume correctly fits one page again (the
+  "2 pages" earlier tests assumed was unstyled bloat; multi-page tests
+  now build their own second page via a fixture).

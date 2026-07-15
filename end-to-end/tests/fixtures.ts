@@ -53,6 +53,30 @@ export async function removeLastLayout(page: Page) {
   await expect(page.getByText('Remove layout')).toHaveCount(before - 1);
 }
 
+/**
+ * Grows the stored resume past one real PDF page by duplicating the
+ * prepopulated items (fresh contentIds, same layout), then reloading so
+ * the app re-reads localStorage. Needed since the PDF-style fidelity
+ * fix: a properly styled example resume fits a single page, so tests
+ * about multi-page behavior must build their own second page.
+ */
+export async function makeResumeMultiPage(page: Page) {
+  await page.evaluate(() => {
+    const raw = window.localStorage.getItem('res-gen-data');
+    const data = JSON.parse(raw as string);
+    const clones = data.items.map(
+      (item: { contentId: string }, index: number) => ({
+        ...item,
+        contentId: `${item.contentId}-clone-${index}`,
+      }),
+    );
+    data.items = [...data.items, ...clones];
+    window.localStorage.setItem('res-gen-data', JSON.stringify(data));
+  });
+  await page.reload();
+  await page.waitForSelector('#res-gen', { timeout: 15000 });
+}
+
 /** Adds a SINGLE-column layout via the Edit menu and waits for it to render. */
 export async function addSingleLayout(page: Page) {
   const before = await page.locator('.layout-single').count();
