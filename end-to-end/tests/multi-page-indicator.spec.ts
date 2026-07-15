@@ -1,4 +1,4 @@
-import { expect, removeLastLayout, test } from './fixtures';
+import { expect, makeResumeMultiPage, removeLastLayout, test } from './fixtures';
 
 // Happy-path coverage for specs/multi-page-indicator.md. The page count
 // comes from react-pdf's own real render pipeline (shared with the PDF
@@ -8,7 +8,10 @@ test.describe('multi-page indicator', () => {
   test('shows the real page count once the resume spans more than one page', async ({
     page,
   }) => {
-    // The prepopulated example resume is genuinely 2 real PDF pages.
+    // The properly styled example resume fits one page (since the
+    // PDF-style fidelity fix), so grow it to two first.
+    await makeResumeMultiPage(page);
+
     const badge = page.getByText(/^\d+ pages$/);
     await expect(badge).toBeVisible({ timeout: 5000 });
     await expect(badge).toHaveText('2 pages');
@@ -17,6 +20,7 @@ test.describe('multi-page indicator', () => {
   test('disappears once the resume shrinks back to a single page', async ({
     page,
   }) => {
+    await makeResumeMultiPage(page);
     await expect(page.getByText(/^\d+ pages$/)).toBeVisible({
       timeout: 5000,
     });

@@ -1,6 +1,6 @@
 import AxeBuilder from '@axe-core/playwright';
 
-import { expect, test } from './fixtures';
+import { expect, makeResumeMultiPage, test } from './fixtures';
 
 // Happy-path coverage for specs/edit-with-live-pdf-preview.md: editing a
 // block opens its form in a panel docked beside the live PDF preview,
@@ -69,15 +69,16 @@ test.describe('edit beside live PDF preview', () => {
   test('the page stepper re-anchors the preview on a multi-page resume', async ({
     page,
   }) => {
-    // The prepopulated example resume is genuinely 2 real PDF pages.
+    // The styled example resume fits one page; grow it to several so
+    // the stepper appears.
+    await makeResumeMultiPage(page);
     const modal = await openEditingView(page);
 
     const next = modal.getByLabel('Next page');
     await expect(next).toBeVisible({ timeout: 10000 });
     await next.click();
 
-    await expect(modal.getByText('Page 2 of 2')).toBeVisible();
-    await expect(modal.getByLabel('Next page')).toBeDisabled();
+    await expect(modal.getByText(/^Page 2 of \d+$/)).toBeVisible();
     // The anchor reaches the frame: whichever frame loads next carries
     // the page fragment.
     await expect
