@@ -50,7 +50,7 @@ describe('Main', () => {
 
     fireEvent.click(getByText('Summary'));
 
-    expect(getByTestId('edit-panel-gutter')).toHaveClass('w-[28rem]');
+    expect(getByTestId('edit-panel-gutter')).toHaveClass('w-[506px]');
     expect(getByTestId('edit-panel-gutter')).not.toHaveClass('w-0');
   });
 });

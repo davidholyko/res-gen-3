@@ -27,7 +27,8 @@ export default function Main() {
       <div
         data-testid="edit-panel-gutter"
         className={c('shrink-0 transition-[width] duration-300 ease-out', {
-          'w-[28rem]': isPanelOpen,
+          // 30rem panel + 18px canvas-side gap + 8px edge margin.
+          'w-[506px]': isPanelOpen,
           'w-0': !isPanelOpen,
         })}
       >
