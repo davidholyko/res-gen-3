@@ -58,10 +58,6 @@ deliver to every surface.
   `Exit PDF View Button`); the suffix is redundant for AT (the role is
   announced anyway) but harmless. Only the three labels that carry
   actual jargon change here.
-- **No undo for block Move Up/Down.** Pressing the opposite arrow once
-  is a complete, obvious undo already; snapshotting every press would
-  also make the undo toast flicker through rapid repositioning. Called
-  out as an open question below in case that judgment is wrong.
 - **No undo history stack.** Same single-snapshot model as
   `specs/undo-destructive-actions.md` — only the most recent undoable
   action is restorable.
@@ -93,6 +89,9 @@ deliver to every surface.
 
 ### Undo for the missing cases
 
+Every mutation that isn't typing becomes undoable — uniform model, per
+review (see Decisions):
+
 - **Keyboard delete** (`base-macro.tsx`): push
   `pushUndoSnapshot('Block deleted')` before the `onDelete` call in the
   Backspace/Delete keydown handler — the identical snapshot the toolbar
@@ -109,6 +108,17 @@ deliver to every surface.
   `toGapIndex === fromIndex || toGapIndex === fromIndex + 1` test
   before snapshotting. Keeping the no-op guard in exactly one place is
   the implementation's call to make.
+- **Block Move Up/Down** (`macro-top-bar.tsx`): push
+  `pushUndoSnapshot('Block moved')` before `onMove` — but only when the
+  move will actually happen. Zone-aware `onMove` treats the first item
+  of a zone moving up (or last moving down) as a no-op, and the same
+  no-snapshot-for-a-no-op rule applies as for layout drops. Like the
+  gap case, the boundary check needs to be consultable at the call
+  site; a shared "would this move do anything" helper next to `onMove`
+  keeps the guard in one place. Note the single-snapshot model's
+  consequence: rapid repeated presses overwrite the snapshot each time,
+  so Undo steps back exactly one press, not to where the block started
+  — consistent with how every other undoable action behaves.
 
 ## Acceptance criteria
 
@@ -125,21 +135,31 @@ deliver to every surface.
       restores the previous layout order (content intact)
 - [ ] Dropping a layout into one of its own adjacent gaps (the no-op
       case) pushes no snapshot and leaves any pending undo toast alone
+- [ ] Moving a block up/down shows an undo toast, and Undo restores the
+      previous order; pressing move at a zone boundary (the no-op case)
+      pushes no snapshot
+- [ ] The `macro` prop is renamed to `label` across BaseEditor,
+      EditorTopBar, and the five editors — no "macro" left in these
+      components' props or user-facing strings (internal names like
+      `MacroTopBar`/`.macro-manager`/`CONTENT_TYPES` stay)
 - [ ] `_frontend` stays at 100% coverage; the axe component/E2E suites
       stay clean; the new undo paths get e2e happy-path coverage
 
-## Open questions
+## Decisions (from spec review)
 
-- **Should block Move Up/Down get undo too?** Excluded above (the
-  opposite button is a one-press undo, and per-press toasts are noisy),
-  but if consistency-of-model is judged to matter more than toast
-  noise, the same `pushUndoSnapshot` wiring applies.
-- **Toast wording**: "Layout moved" matches the existing terse
-  descriptions ("Block deleted", "Layout 2 removed"). Worth including
-  the position ("Layout 2 moved")? The label is position-derived and
-  changes with the move itself, which may make the message more
-  confusing than helpful.
-- **`macro` prop rename**: while touching every `macro=` call site,
-  renaming the prop itself (e.g. to `label`) is nearly free and removes
-  the last "macro" from these components' public surface — worth doing
-  in the same pass, or is prop-name churn not worth the diff noise?
+All three open questions were put to review and resolved before
+implementation:
+
+- **Block Move Up/Down gets undo too.** Uniformity of the undo model
+  won over toast-noise concerns: every mutation that isn't typing is
+  undoable. The per-press toast is accepted; the single-snapshot model
+  means Undo steps back one press.
+- **Toast wording stays terse and position-free**: "Layout moved" /
+  "Block moved", matching "Block deleted". Position-derived names were
+  rejected because the move itself changes the numbering the message
+  would reference.
+- **The `macro` prop is renamed to `label`** in the same pass — nearly
+  free while every call site is already in the diff, and it removes the
+  last "macro" from these components' public surface. CSS classes,
+  component file names, `CONTENT_TYPES`, and stored JSON stay
+  untouched.
