@@ -15,8 +15,13 @@ export default function Main() {
     // container, which breaks the panel's sticky positioning; clip just
     // crops the panel while its gutter animates open, without doing
     // that.
-    <main className="flex flex-row justify-center overflow-x-clip">
-      <div className="flex flex-col items-center min-w-0">
+    <main className="flex flex-row overflow-x-clip">
+      {/* grow, not justify-center on the row: centering the canvas and
+          gutter as a pair strands the leftover space to the right of
+          the panel. Growing the canvas area instead pins the panel
+          flush against the viewport's right edge, and the canvas
+          centers in everything that remains. */}
+      <div className="grow flex flex-col items-center min-w-0">
         <LayoutManager />
       </div>
       {/* The panel's gutter animates open on focus: the canvas sits
