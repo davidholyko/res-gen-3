@@ -52,12 +52,22 @@ export default function BaseMacro(props: BaseMacroProps) {
     divRef.current?.focus({ preventScroll: true });
   }, [lastCreatedContentId, contentId]);
 
-  // Function to handle clicks outside of the div
-  const handleClick = useCallback(
+  // mousedown, not click (same convention as BaseMenu's outside-close):
+  // a click's target is the common ancestor of where the mouse went DOWN
+  // and where it came UP -- and this app's own reactions to the
+  // mousedown (the focused block growing its toolbar, the previously
+  // focused block collapsing, the browser scrolling the newly focused
+  // block into view) reflow the page between those two moments. With a
+  // real mouse (which always travels a few pixels and holds for
+  // ~100ms), the click target could resolve to a container outside
+  // every block, reading as "clicked outside" and closing the panel
+  // that the very same gesture had just opened. At mousedown time the
+  // layout is still pristine and the target unambiguous.
+  const handleMouseDown = useCallback(
     (event: MouseEvent) => {
-      // The document click listener is only attached (see the effect below)
-      // once this component -- and therefore divRef.current -- has mounted,
-      // so this guard can't actually be false.
+      // This listener is only attached (see the effect below) once this
+      // component -- and therefore divRef.current -- has mounted, so
+      // this guard can't actually be false.
       /* v8 ignore next */
       if (!divRef.current) return;
 
@@ -70,20 +80,18 @@ export default function BaseMacro(props: BaseMacroProps) {
     [contentId, focusCanvasBlock, blurCanvasBlock],
   );
 
-  // Attach the click event listener when the component mounts
   useEffect(() => {
-    document.addEventListener('click', handleClick);
+    document.addEventListener('mousedown', handleMouseDown);
 
     return () => {
-      // Clean up the event listener when the component unmounts
-      document.removeEventListener('click', handleClick);
+      document.removeEventListener('mousedown', handleMouseDown);
     };
-  }, [handleClick]);
+  }, [handleMouseDown]);
 
-  // The click listener above only reveals this macro's controls for mouse
-  // users (a keyboard user tabbing onto the div never dispatches a click,
-  // so focus would never move and the delete/reorder/edit controls would
-  // stay permanently unreachable without a mouse -- WCAG 2.1.1). These
+  // The mousedown listener above only reveals this macro's controls for
+  // mouse users (a keyboard user tabbing onto the div never presses the
+  // mouse, so focus would never move and the delete/reorder/edit controls
+  // would stay permanently unreachable without a mouse -- WCAG 2.1.1). These
   // focus/blur handlers give keyboard users the same reveal, while
   // treating focus moving to a child (e.g. into the revealed top bar) or
   // into the docked edit panel as still "inside".

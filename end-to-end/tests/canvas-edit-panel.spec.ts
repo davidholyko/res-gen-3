@@ -68,6 +68,40 @@ test.describe('canvas edit panel', () => {
     await expect(macro.getByLabel('Delete block')).toHaveCount(0);
   });
 
+  test('a click whose mouseup drifts outside the block still opens (and keeps) its panel', async ({
+    page,
+  }) => {
+    // Regression (user report): focusing a block reflows the page mid-
+    // click -- the toolbar appears, the previously focused block
+    // collapses, the browser may scroll the focused block into view --
+    // so a real click's mousedown and mouseup can land on different
+    // elements. The click event then targets their common ancestor,
+    // outside every block, which used to read as "clicked outside" and
+    // close the panel the same gesture had just opened. Exaggerated
+    // here: press on the block, release over the page header.
+    await page
+      .locator('.layout-single [role="group"]')
+      .filter({ hasText: 'Gears' })
+      .first()
+      .click();
+    await expect(panel(page)).toBeVisible();
+
+    const exp = page
+      .locator('.layout-single [role="group"]')
+      .filter({ hasText: 'Red Hair Pirates' })
+      .first();
+    const src = (await exp.boundingBox())!;
+    await page.mouse.move(src.x + src.width / 2, src.y + 10);
+    await page.mouse.down();
+    await page.waitForTimeout(100);
+    await page.mouse.move(640, 20, { steps: 5 });
+    await page.mouse.up();
+    await page.waitForTimeout(300);
+
+    await expect(panel(page)).toBeVisible();
+    await expect(panel(page).locator('input[name="company"]')).toBeVisible();
+  });
+
   test('nothing renders inline inside a focused block anymore', async ({
     page,
   }) => {

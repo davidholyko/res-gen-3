@@ -107,7 +107,7 @@ describe('BaseMacro', () => {
       </AllProviders>,
     );
 
-    fireEvent.click(getByText('child content'));
+    fireEvent.mouseDown(getByText('child content'));
 
     expect(container.querySelector('.border-2')).not.toBeNull();
     expect(getByText('Edit with preview')).not.toBeNull();
@@ -154,10 +154,10 @@ describe('BaseMacro', () => {
       </AllProviders>,
     );
 
-    fireEvent.click(getByText('child content'));
+    fireEvent.mouseDown(getByText('child content'));
     expect(container.querySelector('.border-2')).not.toBeNull();
 
-    fireEvent.click(panelChild);
+    fireEvent.mouseDown(panelChild);
     expect(container.querySelector('.border-2')).not.toBeNull();
 
     fireEvent.blur(container.firstElementChild as HTMLElement, {
@@ -222,10 +222,10 @@ describe('BaseMacro', () => {
       </AllProviders>,
     );
 
-    fireEvent.click(getByText('child content'));
+    fireEvent.mouseDown(getByText('child content'));
     expect(container.querySelector('.border-2')).not.toBeNull();
 
-    fireEvent.click(getByText('outside'));
+    fireEvent.mouseDown(getByText('outside'));
     expect(container.querySelector('.border-2')).toBeNull();
   });
 
@@ -239,7 +239,7 @@ describe('BaseMacro', () => {
       </AllProviders>,
     );
 
-    fireEvent.click(getByText('child content'));
+    fireEvent.mouseDown(getByText('child content'));
     fireEvent.keyDown(document, { key: 'Backspace' });
 
     expect(readStoredItems().some((item) => item.contentId === 'm1')).toBe(
@@ -257,7 +257,7 @@ describe('BaseMacro', () => {
       </AllProviders>,
     );
 
-    fireEvent.click(getByText('child content'));
+    fireEvent.mouseDown(getByText('child content'));
     fireEvent.keyDown(document, { key: 'Delete' });
 
     expect(readStoredItems().some((item) => item.contentId === 'm1')).toBe(
@@ -276,7 +276,7 @@ describe('BaseMacro', () => {
       </AllProviders>,
     );
 
-    fireEvent.click(getByText('child content'));
+    fireEvent.mouseDown(getByText('child content'));
     fireEvent.keyDown(document, { key: 'Backspace' });
     expect(readStoredItems().some((item) => item.contentId === 'm1')).toBe(
       false,
@@ -319,7 +319,7 @@ describe('BaseMacro', () => {
       </AllProviders>,
     );
 
-    fireEvent.click(getByText('child content'));
+    fireEvent.mouseDown(getByText('child content'));
     fireEvent.keyDown(document, { key: 'a' });
 
     expect(readStoredItems().some((item) => item.contentId === 'm1')).toBe(
@@ -380,7 +380,7 @@ describe('BaseMacro', () => {
 
     expect((await axe.run(container)).violations).toEqual([]);
 
-    fireEvent.click(getByText('child content'));
+    fireEvent.mouseDown(getByText('child content'));
     expect((await axe.run(container)).violations).toEqual([]);
   });
 });

@@ -48,7 +48,9 @@ describe('Main', () => {
       </AllProviders>,
     );
 
-    fireEvent.click(getByText('Summary'));
+    // mousedown, not click: block focus decisions moved to mousedown
+    // (base-macro.tsx) so mid-click reflows can't misread the target.
+    fireEvent.mouseDown(getByText('Summary'));
 
     expect(getByTestId('edit-panel-gutter')).toHaveClass('basis-[506px]');
   });
