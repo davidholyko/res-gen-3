@@ -127,7 +127,7 @@ test.describe('zone-aware content reordering (specs/editor-redesign.md, Phase 7)
     // One press. The flat-adjacent item is Marker (layout 2) -- the old
     // splice would have swapped with it invisibly, making the first
     // press appear to do nothing.
-    await mover.getByRole('button', { name: 'Move Macro Up Button' }).click();
+    await mover.getByRole('button', { name: 'Move block up' }).click();
 
     // Mover moved above layout 1's last prepopulated block...
     await expect(layout1.locator('[role="group"]').last()).toContainText(

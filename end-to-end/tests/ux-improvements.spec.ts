@@ -59,11 +59,11 @@ test.describe('UX improvements', () => {
       .locator('.layout-single .macro-manager > *')
       .count();
 
-    // Delete Macro Button only renders once a block is focused (BaseMacro
+    // Delete block only renders once a block is focused (BaseMacro
     // only mounts MacroTopBar while isFocused), same trigger used by
     // accessibility.spec.ts's "with a macro focused" test.
     await page.locator('.layout-single [role="group"]').first().click();
-    await page.getByLabel('Delete Macro Button').click();
+    await page.getByLabel('Delete block').click();
 
     await expect(page.locator('.layout-single .macro-manager > *')).toHaveCount(
       before - 1,

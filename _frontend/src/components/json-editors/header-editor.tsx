@@ -1,7 +1,7 @@
 import c from 'classnames';
 import { object, string } from 'zod';
 
-import { CONTENT_TYPES } from '@/constants';
+import { CONTENT_TYPE_LABELS, CONTENT_TYPES } from '@/constants';
 import type { ContentHeader } from '@/types/content-header';
 import type { FieldSpec } from '@/types/field-spec';
 
@@ -26,7 +26,7 @@ export default function HeaderEditor(props: HeaderEditorProps) {
       {...props}
       className={className}
       contentType={CONTENT_TYPES.HEADER}
-      macro="Header"
+      label={CONTENT_TYPE_LABELS.HEADER}
       schema={schema}
       fields={fields}
     />

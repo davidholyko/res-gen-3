@@ -1,7 +1,7 @@
 import c from 'classnames';
 import { array, record, string } from 'zod';
 
-import { CONTENT_TYPES } from '@/constants';
+import { CONTENT_TYPE_LABELS, CONTENT_TYPES } from '@/constants';
 import { ContentAnyList } from '@/types/content-any-list';
 import type { FieldSpec } from '@/types/field-spec';
 
@@ -31,7 +31,7 @@ export default function AnyListEditor(props: AnyListProps) {
       {...props}
       className={className}
       contentType={CONTENT_TYPES.ANY_LIST}
-      macro="AnyList"
+      label={CONTENT_TYPE_LABELS.ANY_LIST}
       schema={schema}
       fields={fields}
     />

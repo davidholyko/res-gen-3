@@ -1,7 +1,7 @@
 import c from 'classnames';
 import { email, object, string } from 'zod';
 
-import { CONTENT_TYPES } from '@/constants';
+import { CONTENT_TYPE_LABELS, CONTENT_TYPES } from '@/constants';
 import type { ContentContact } from '@/types/content-contact';
 import type { FieldSpec } from '@/types/field-spec';
 
@@ -54,7 +54,7 @@ export default function ContactEditor(props: ContactEditorProps) {
       {...props}
       className={className}
       contentType={CONTENT_TYPES.CONTACT}
-      macro="Contact"
+      label={CONTENT_TYPE_LABELS.CONTACT}
       schema={schema}
       fields={fields}
     />

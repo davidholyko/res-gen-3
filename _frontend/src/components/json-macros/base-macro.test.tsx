@@ -3,6 +3,7 @@ import axe from 'axe-core';
 import { useEffect, useRef } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import UndoToast from '@/components/undo-toast';
 import { CONTENT_TYPES } from '@/constants';
 import { useAppContext } from '@/context/app-context';
 import { AllProviders } from '@/test-providers';
@@ -228,6 +229,33 @@ describe('BaseMacro', () => {
 
     expect(readStoredItems().some((item) => item.contentId === 'm1')).toBe(
       false,
+    );
+  });
+
+  it('keyboard deletion pushes the same undo snapshot as the toolbar delete', () => {
+    seedLocalStorage();
+    const { getByText } = render(
+      <AllProviders>
+        <BaseMacro {...props}>
+          <p>child content</p>
+        </BaseMacro>
+        <UndoToast />
+      </AllProviders>,
+    );
+
+    fireEvent.click(getByText('child content'));
+    fireEvent.keyDown(document, { key: 'Backspace' });
+    expect(readStoredItems().some((item) => item.contentId === 'm1')).toBe(
+      false,
+    );
+
+    // The toast offers the same 'Block deleted' undo the toolbar delete
+    // shows (specs/plain-language-labels-and-move-undo.md), and clicking
+    // it restores the block.
+    expect(getByText('Block deleted')).not.toBeNull();
+    fireEvent.click(getByText('Undo'));
+    expect(readStoredItems().some((item) => item.contentId === 'm1')).toBe(
+      true,
     );
   });
 

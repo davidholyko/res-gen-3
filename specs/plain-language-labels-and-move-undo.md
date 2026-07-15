@@ -1,5 +1,5 @@
 ---
-status: draft
+status: implemented
 ---
 
 # Plain-language block labels and undo for moves
@@ -97,53 +97,47 @@ review (see Decisions):
   `pushUndoSnapshot('Block deleted')` before the `onDelete` call in the
   Backspace/Delete keydown handler — the identical snapshot the toolbar
   delete already pushes, so both delete paths behave the same.
-- **Layout drag-reorder** (`layout-gap-inserter.tsx`): in the drop
-  handler, push `pushUndoSnapshot('Layout moved')` before calling
-  `moveLayout`. One wrinkle the one-liner framing hides: `moveLayout`
-  treats a drop into the dragged layout's own adjacent gaps as a no-op,
-  and a snapshot must not be pushed for a no-op (the toast would offer
-  to "undo" nothing, and would clobber a real, still-pending snapshot).
-  The adjacent-gap check therefore needs to be consultable at the call
-  site — either exposed as a small helper alongside `moveLayout`, or by
-  having the drop handler perform the same
-  `toGapIndex === fromIndex || toGapIndex === fromIndex + 1` test
-  before snapshotting. Keeping the no-op guard in exactly one place is
-  the implementation's call to make.
-- **Block Move Up/Down** (`macro-top-bar.tsx`): push
-  `pushUndoSnapshot('Block moved')` before `onMove` — but only when the
-  move will actually happen. Zone-aware `onMove` treats the first item
-  of a zone moving up (or last moving down) as a no-op, and the same
-  no-snapshot-for-a-no-op rule applies as for layout drops. Like the
-  gap case, the boundary check needs to be consultable at the call
-  site; a shared "would this move do anything" helper next to `onMove`
-  keeps the guard in one place. Note the single-snapshot model's
-  consequence: rapid repeated presses overwrite the snapshot each time,
-  so Undo steps back exactly one press, not to where the block started
-  — consistent with how every other undoable action behaves.
+- **Layout drag-reorder and block Move Up/Down**: both have a no-op
+  case (a drop into the dragged layout's own adjacent gaps; a press at
+  a zone boundary), and a snapshot must not be pushed for a no-op — the
+  toast would offer to "undo" nothing, and would clobber a real,
+  still-pending snapshot. Rather than exposing the no-op checks to call
+  sites, the implementation pushes the snapshots *inside* `moveLayout`
+  ("Layout moved") and `onMove` ("Block moved") in `app-context.tsx`,
+  after their existing no-op guards — the one place that already knows
+  whether the gesture is a real move. (This is the "keep the guard in
+  exactly one place" resolution the draft left to the implementation;
+  it required `moveLayout` to read `layouts` from its closure rather
+  than a functional state update, since a snapshot is a side effect
+  that can't live inside a React state updater.) Note the
+  single-snapshot model's consequence: rapid repeated presses overwrite
+  the snapshot each time, so Undo steps back exactly one press, not to
+  where the block started — consistent with how every other undoable
+  action behaves.
 
 ## Acceptance criteria
 
-- [ ] No user-facing string or accessible name anywhere in `_frontend`
+- [x] No user-facing string or accessible name anywhere in `_frontend`
       contains "Macro" or an internal type identifier ("AnyList") —
       checkable by grepping rendered strings/aria-labels, and asserted
       for the toolbar by the e2e suite
-- [ ] A focused block's editor header shows the same plain-language name
+- [x] A focused block's editor header shows the same plain-language name
       as the "+ Add block" menu entry that creates it, sourced from the
       same constant
-- [ ] Deleting a focused block with Backspace/Delete shows the same
+- [x] Deleting a focused block with Backspace/Delete shows the same
       undo toast as the toolbar delete, and Undo restores the block
-- [ ] Dropping a layout into a new gap shows an undo toast, and Undo
+- [x] Dropping a layout into a new gap shows an undo toast, and Undo
       restores the previous layout order (content intact)
-- [ ] Dropping a layout into one of its own adjacent gaps (the no-op
+- [x] Dropping a layout into one of its own adjacent gaps (the no-op
       case) pushes no snapshot and leaves any pending undo toast alone
-- [ ] Moving a block up/down shows an undo toast, and Undo restores the
+- [x] Moving a block up/down shows an undo toast, and Undo restores the
       previous order; pressing move at a zone boundary (the no-op case)
       pushes no snapshot
-- [ ] The `macro` prop is renamed to `label` across BaseEditor,
+- [x] The `macro` prop is renamed to `label` across BaseEditor,
       EditorTopBar, and the five editors — no "macro" left in these
       components' props or user-facing strings (internal names like
       `MacroTopBar`/`.macro-manager`/`CONTENT_TYPES` stay)
-- [ ] `_frontend` stays at 100% coverage; the axe component/E2E suites
+- [x] `_frontend` stays at 100% coverage; the axe component/E2E suites
       stay clean; the new undo paths get e2e happy-path coverage
 
 ## Decisions (from spec review)

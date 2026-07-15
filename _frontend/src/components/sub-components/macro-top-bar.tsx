@@ -48,7 +48,7 @@ export const MacroTopBar = forwardRef<HTMLDivElement, MacroTopBarProps>(
     return (
       <div className={editorDragContainerClassName} draggable="true">
         <button
-          aria-label="Move Macro Up Button"
+          aria-label="Move block up"
           title="Move up"
           type="button"
           onClick={onMoveUp}
@@ -56,7 +56,7 @@ export const MacroTopBar = forwardRef<HTMLDivElement, MacroTopBarProps>(
           <ArrowUpIcon className="m-1 p-1" />
         </button>
         <button
-          aria-label="Move Macro Down Button"
+          aria-label="Move block down"
           title="Move down"
           type="button"
           onClick={onMoveDown}
@@ -65,7 +65,7 @@ export const MacroTopBar = forwardRef<HTMLDivElement, MacroTopBarProps>(
         </button>
         <button
           className="ml-auto p-1 bg-red-400 hover:bg-red-500 rounded"
-          aria-label="Delete Macro Button"
+          aria-label="Delete block"
           title="Delete this block"
           type="button"
           onClick={onDestroy}
