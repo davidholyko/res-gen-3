@@ -102,6 +102,26 @@ test.describe('canvas edit panel', () => {
     await expect(panel(page).locator('input[name="company"]')).toBeVisible();
   });
 
+  test('focusing a block near the bottom of the page does not scroll the page to the top', async ({
+    page,
+  }) => {
+    // Regression (user report): the docked panel is sticky near the top,
+    // and it used to focus its first field with a plain focus() -- which
+    // yanked the sticky panel (and the whole page) to the top the moment
+    // you clicked a block near the bottom. A short viewport so the
+    // one-page resume overflows and the page actually scrolls.
+    await page.setViewportSize({ width: 1280, height: 700 });
+    await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+    const before = await page.evaluate(() => window.scrollY);
+    expect(before).toBeGreaterThan(100);
+
+    await page.locator('.layout-single [role="group"]').last().click();
+    await expect(panel(page)).toBeVisible();
+
+    const after = await page.evaluate(() => window.scrollY);
+    expect(Math.abs(after - before)).toBeLessThan(50);
+  });
+
   test('nothing renders inline inside a focused block anymore', async ({
     page,
   }) => {
