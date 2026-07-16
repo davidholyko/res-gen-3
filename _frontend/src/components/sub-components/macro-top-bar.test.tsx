@@ -18,6 +18,12 @@ vi.mock('@/context/app-context', async (importOriginal) => {
       onDelete: onDeleteMock,
       pushUndoSnapshot: pushUndoSnapshotMock,
       openEditingView: openEditingViewMock,
+      // MoveToControl reads these; with no layouts it has nowhere to
+      // move to and renders nothing -- its own behavior is covered in
+      // move-to-control.test.tsx.
+      items: [],
+      layouts: [],
+      moveContentToZone: vi.fn(),
     }),
   };
 });

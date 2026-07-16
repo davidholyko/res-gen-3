@@ -10,7 +10,7 @@ import React, {
 } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 
-import { CONTENT_TYPES } from '@/constants';
+import { CONTENT_TYPES, LAYOUTS } from '@/constants';
 import type { ContentAll } from '@/types/content-all';
 import { ContentId, LayoutId } from '@/types/content-base-item';
 import type { LayoutItem } from '@/types/layouts';
@@ -58,6 +58,21 @@ export type AppContextType = {
   onUpdate: (item: ContentAll) => void;
   onDelete: (item: Pick<ContentAll, 'contentId'>) => void;
   onMove: (action: MOVE_ACTION, contentId: ContentId) => void;
+  /**
+   * Reassigns a block to another zone -- a whole SINGLE layout or one
+   * half of a DOUBLE -- and drops it at the end of that zone. The one
+   * cross-zone move (onMove only reorders within a zone); powers the
+   * block toolbar's "Move to…" menu
+   * (specs/move-block-between-layouts.md).
+   */
+  moveContentToZone: (
+    contentId: ContentId,
+    zone: {
+      layoutId: LayoutId;
+      layoutType: keyof typeof LAYOUTS;
+      layoutParentId?: LayoutId;
+    },
+  ) => void;
   togglePdfModal: (value?: boolean) => void;
   /**
    * The block whose form is docked beside the live PDF preview, or null
@@ -224,6 +239,37 @@ export function AppProvider({ children }: AppProviderProps) {
         default:
           throw new Error(`Unsupported move action ${action}`);
       }
+    },
+    [items, layouts],
+  );
+
+  const moveContentToZone = useCallback(
+    (
+      contentId: ContentId,
+      zone: {
+        layoutId: LayoutId;
+        layoutType: keyof typeof LAYOUTS;
+        layoutParentId?: LayoutId;
+      },
+    ) => {
+      const foundIndex = items.findIndex((i) => i.contentId === contentId);
+      const item = items[foundIndex];
+
+      // Undo snapshot before the move, same as onMove / delete
+      // (specs/undo-destructive-actions.md).
+      setUndoSnapshot({ items, layouts, description: 'Block moved' });
+
+      // Re-tag with the destination zone and re-append at the end of the
+      // flat array -- since a zone renders its items in array order, that
+      // lands the block last in its new zone while every other zone's
+      // order is untouched (the same append onCreate does).
+      const moved = {
+        ...item,
+        layoutId: zone.layoutId,
+        layoutType: zone.layoutType,
+        layoutParentId: zone.layoutParentId,
+      };
+      setItems([...items.filter((_, idx) => idx !== foundIndex), moved]);
     },
     [items, layouts],
   );
@@ -420,6 +466,7 @@ export function AppProvider({ children }: AppProviderProps) {
         onUpdate,
         onCreate,
         onMove,
+        moveContentToZone,
         togglePdfModal,
         editingContentId,
         openEditingView,

@@ -7,6 +7,7 @@ import { ContentId } from '@/types/content-base-item';
 import ArrowDownIcon from '../icons/arrow-down-icon';
 import ArrowUpIcon from '../icons/arrow-up-icon';
 import DeleteIcon from '../icons/delete-icon';
+import MoveToControl from './move-to-control';
 
 type MacroTopBarProps = {
   contentId: ContentId;
@@ -64,6 +65,7 @@ export const MacroTopBar = forwardRef<HTMLDivElement, MacroTopBarProps>(
         >
           <ArrowDownIcon className="m-1 p-1" />
         </button>
+        <MoveToControl contentId={contentId} />
         <button
           // The way into the docked-form-beside-live-preview editing
           // view (specs/edit-with-live-pdf-preview.md); the inline form
