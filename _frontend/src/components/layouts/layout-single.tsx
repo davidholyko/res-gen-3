@@ -37,17 +37,24 @@ export default function LayoutSingle(props: LayoutSingleProps) {
     return filteredItems;
   }, [allItems, layoutType, layoutId]);
 
-  // No dashed border box anymore: a box around every layout made the
-  // canvas read as stacked separate pages rather than one continuous
-  // resume (specs/continuous-page-canvas.md). min-h keeps an empty
-  // layout a clickable target.
+  // Filled layouts draw no box: a box around every layout made the canvas
+  // read as stacked separate pages rather than one continuous resume
+  // (specs/continuous-page-canvas.md). But an *empty* layout with no box
+  // is just a 50px sliver of blank page -- indistinguishable from a new
+  // blank page, which is exactly what it looked like. So while empty a
+  // layout (and each empty half of a DOUBLE) shows a dashed drop-zone,
+  // res-gen-2 style: it reads as "a section to fill", visibly attached to
+  // the page, not a void. Once it has content the border is gone and the
+  // continuous-page look is preserved. min-h keeps it a clickable target.
+  const isEmpty = items.length === 0;
   const className = useMemo(
     () =>
       c(props.className, {
         'layout-single': true,
         'min-h-[50px]': true,
+        'rounded border-2 border-dashed border-gray-300': isEmpty,
       }),
-    [props.className],
+    [props.className, isEmpty],
   );
 
   return (
