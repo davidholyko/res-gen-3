@@ -45,11 +45,14 @@ export { expect };
 /**
  * Removes the last layout via its own canvas "Remove layout" link -- the
  * Edit menu's "Remove Last Layout" retired with specs/editor-redesign.md
- * Phase 6.
+ * Phase 6. Removal is now a two-step confirm (specs/confirm-remove-layout.md):
+ * the first click only opens an inline Cancel/Delete confirm (and highlights
+ * the layout), so this clicks "Remove layout" then its "Delete".
  */
 export async function removeLastLayout(page: Page) {
   const before = await page.getByText('Remove layout').count();
   await page.getByText('Remove layout').last().click();
+  await page.getByRole('button', { name: /^Confirm removing .* Button$/ }).click();
   await expect(page.getByText('Remove layout')).toHaveCount(before - 1);
 }
 
