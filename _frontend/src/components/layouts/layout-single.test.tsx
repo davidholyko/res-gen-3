@@ -52,6 +52,24 @@ describe('LayoutSingle', () => {
     expect(queryByText('Other layout')).toBeNull();
   });
 
+  it('draws a dashed drop-zone box only while empty', () => {
+    seedLocalStorage();
+    const { container } = render(
+      <AllProviders>
+        {/* A layout with content and an empty one side by side. */}
+        <LayoutSingle layoutType="SINGLE" layoutId="this-layout" />
+        <LayoutSingle layoutType="SINGLE" layoutId="empty-layout" />
+      </AllProviders>,
+    );
+
+    const [filled, empty] = container.querySelectorAll('.layout-single');
+    // Filled stays borderless so stacked layouts read as one continuous
+    // page (specs/continuous-page-canvas.md); empty shows the dashed
+    // "section to fill" box so it isn't mistaken for a blank page.
+    expect(filled.className).not.toContain('border-dashed');
+    expect(empty.className).toContain('border-dashed');
+  });
+
   it('carries its own "+ Add block" control', () => {
     seedLocalStorage();
     const { getByText } = render(

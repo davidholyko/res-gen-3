@@ -60,10 +60,21 @@ page padding lives on each SINGLE layout via the
 
 **Layouts lose their idle chrome.**
 
-- `LayoutSingle` drops the dashed border / rounded box classes. It
-  still renders its blocks (`MacroManager`) and its footer controls;
-  it just no longer draws a box around itself. The `min-h-[50px]` empty
-  target stays so an empty layout is still a clickable drop zone.
+- `LayoutSingle` drops the dashed border / rounded box classes **once
+  it has content**. It still renders its blocks (`MacroManager`) and
+  its footer controls; a filled layout just no longer draws a box
+  around itself.
+  - **Refinement (empty layouts):** a borderless *empty* layout is a
+    50px sliver of blank page -- indistinguishable from a fresh blank
+    page, which is exactly what a newly added empty layout looked like
+    ("it looks like an entirely new page, not an extension of the
+    preview -- res-gen-2 shows it as a section to fill"). So while a
+    layout (or an empty *half* of a DOUBLE) has no items it shows a
+    dashed drop-zone box (`border-2 border-dashed border-gray-300`),
+    res-gen-2 style, so it reads as "a section to fill" that's visibly
+    attached to the page. The border disappears the moment it gets
+    content, preserving the continuous-page look for filled layouts.
+    The `min-h-[50px]` target stays either way.
 - On `LayoutDouble`, the two halves flow side by side with no boxes.
   A single **hairline vertical divider** marks the column boundary
   (a faint 1px rule between the halves) so the right column's edit
