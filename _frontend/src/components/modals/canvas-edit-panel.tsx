@@ -26,7 +26,11 @@ export default function CanvasEditPanel() {
     const timeoutId = setTimeout(() => {
       panelRef.current
         ?.querySelector<HTMLElement>('form input, form textarea')
-        ?.focus();
+        // preventScroll: the panel is sticky and already in view, so
+        // there's nothing to scroll to -- without this, focusing the
+        // input yanks the page to the top when you click a block near
+        // the bottom (same reason BaseMacro's reveal focus uses it).
+        ?.focus({ preventScroll: true });
     }, 0);
 
     return () => clearTimeout(timeoutId);

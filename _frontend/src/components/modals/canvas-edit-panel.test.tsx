@@ -51,7 +51,7 @@ describe('CanvasEditPanel', () => {
     expect(container.firstElementChild).toBeNull();
   });
 
-  it("renders the focused block's form under the load-bearing panel id, and focuses its first field", () => {
+  it("renders the focused block's form under the load-bearing panel id, and focuses its first field without scrolling the page", () => {
     contextState.canvasEditingContentId = 'h1';
     const { container } = render(<CanvasEditPanel />);
 
@@ -61,10 +61,14 @@ describe('CanvasEditPanel', () => {
     ) as HTMLInputElement;
     expect(input.value).toBe('Summary');
 
+    const focusSpy = vi.spyOn(input, 'focus');
     act(() => {
       vi.runAllTimers();
     });
     expect(document.activeElement).toBe(input);
+    // preventScroll so clicking a block near the bottom doesn't yank the
+    // sticky panel (and the page) to the top.
+    expect(focusSpy).toHaveBeenCalledWith({ preventScroll: true });
   });
 
   it('renders nothing when the focused id no longer matches an item', () => {
