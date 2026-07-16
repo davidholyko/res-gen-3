@@ -3,9 +3,20 @@
   max-width: 725px;
 }
 
-#res-gen .editor-page-container > .layout-single {
-  /* This is an estimation for px value so PDF view looks like a 1:1 comparison */
+/* The canvas is the resume's HTML preview -- a WYSIWYG of the single,
+   continuous PDF page (specs/continuous-page-canvas.md). Once there is
+   at least one layout, the container itself becomes the "paper": one
+   white surface with the page padding applied *once* here (it used to
+   live per-layout on `> .layout-single`, which made each layout read as
+   its own boxed page) and a soft edge so it reads as a sheet against the
+   gray app background. The empty state keeps its own card, so the
+   surface is opt-in via this modifier rather than always-on. */
+#res-gen .editor-page-container.editor-page-surface {
   padding: 17px;
+  background-color: #ffffff;
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.08),
+    0 1px 3px rgba(0, 0, 0, 0.12);
 }
 
 .flex-col {

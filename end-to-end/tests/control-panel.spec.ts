@@ -48,6 +48,13 @@ test.describe('control panel', () => {
     );
     await download.saveAs(savedPath);
 
+    // Downloading a JSON leaves the File menu open; close it before
+    // touching the canvas. Its dropdown (z-30) opens down over the top
+    // layout's gutter toolbar, so an open menu would intercept the
+    // "Remove layout" click (specs/continuous-page-canvas.md moved that
+    // control into the left gutter).
+    await page.keyboard.press('Escape');
+
     // Wipe state, then re-import the exported file -- the resume should
     // come back exactly as it was exported.
     await removeLastLayout(page);

@@ -31,7 +31,7 @@ const { default: LayoutHeader } = await import('./layout-header');
 function latestDragSpec(): DragSourceHookSpec<
   { index: number },
   unknown,
-  { isDragging: boolean }
+  object
 > {
   const { calls } = useDragMock.mock;
   return calls[calls.length - 1][0];
@@ -41,11 +41,7 @@ beforeEach(() => {
   removeLayoutMock.mockReset();
   pushUndoSnapshotMock.mockReset();
   useDragMock.mockReset();
-  useDragMock.mockImplementation(() => [
-    { isDragging: false },
-    vi.fn(),
-    vi.fn(),
-  ]);
+  useDragMock.mockImplementation(() => [{}, vi.fn(), vi.fn()]);
 });
 
 describe('LayoutHeader', () => {
@@ -74,22 +70,22 @@ describe('LayoutHeader', () => {
     const spec = latestDragSpec();
     expect(spec.type).toBe(LAYOUT_DRAG_TYPE);
     expect(spec.item).toEqual({ index: 1 });
-    expect(
-      spec.collect?.({ isDragging: () => true } as never, undefined as never),
-    ).toEqual({ isDragging: true });
   });
 
-  it('dims while it is being dragged', () => {
-    useDragMock.mockImplementation(() => [
-      { isDragging: true },
-      vi.fn(),
-      vi.fn(),
-    ]);
+  it('is a hidden-until-revealed gutter toolbar, not an in-flow header row', () => {
     const { container } = render(
       <LayoutHeader label="Layout 1" layoutId={'a' as never} index={0} />,
     );
 
-    expect(container.firstElementChild).toHaveClass('opacity-50');
+    // opacity-0 by default (idle page shows only content), revealed when
+    // the wrapping layout is hovered or holds focus; absolute so it
+    // floats in the gutter without reflowing the page.
+    expect(container.firstElementChild).toHaveClass(
+      'absolute',
+      'opacity-0',
+      'group-hover:opacity-100',
+      'group-focus-within:opacity-100',
+    );
   });
 
   it('has no automatically detectable accessibility violations', async () => {
