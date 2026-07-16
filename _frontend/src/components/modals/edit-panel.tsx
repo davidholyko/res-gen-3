@@ -1,8 +1,9 @@
 import { useEffect, useRef } from 'react';
 
 import EditorItem from '@/components/content/editor-item';
-import { CONTENT_TYPE_LABELS, LAYOUTS } from '@/constants';
+import { CONTENT_TYPE_LABELS } from '@/constants';
 import { useAppContext } from '@/context/app-context';
+import { deriveZones } from '@/utils/derive-zones';
 
 // Everything a block-picker entry needs to say about a block: the same
 // plain-language type name the "+ Add block" menu uses, plus a snippet
@@ -43,33 +44,9 @@ export default function EditPanel() {
   }, [editingContentId]);
 
   // One picker entry group per zone, mirroring how the canvas labels
-  // layouts.
-  const zones = layouts.flatMap((layout, index) => {
-    const position = index + 1;
-
-    if (layout.layoutType !== LAYOUTS.DOUBLE) {
-      return [
-        {
-          key: layout.layoutId as string,
-          label: `Layout ${position}`,
-          layoutId: layout.layoutId as string,
-        },
-      ];
-    }
-
-    return [
-      {
-        key: layout.layoutLeftId as string,
-        label: `Layout ${position} (Left)`,
-        layoutId: layout.layoutLeftId as string,
-      },
-      {
-        key: layout.layoutRightId as string,
-        label: `Layout ${position} (Right)`,
-        layoutId: layout.layoutRightId as string,
-      },
-    ];
-  });
+  // layouts -- the same derivation the "Move to…" menu uses
+  // (specs/move-block-between-layouts.md).
+  const zones = deriveZones(layouts);
 
   return (
     <div

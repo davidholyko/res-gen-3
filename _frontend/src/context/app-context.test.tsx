@@ -142,6 +142,49 @@ describe('useAppContext', () => {
     });
   });
 
+  describe('moveContentToZone', () => {
+    it('retags the block to the destination zone and appends it there', () => {
+      const { result } = renderAppContext();
+
+      act(() => {
+        result.current.moveContentToZone(CONTACT_ITEM.contentId, {
+          layoutId: 'right-2' as LayoutItem['layoutId'],
+          layoutType: LAYOUTS.DOUBLE_RIGHT,
+          layoutParentId: 'double-2' as LayoutItem['layoutId'],
+        });
+      });
+
+      // HEADER_ITEM keeps its place; the moved block is re-appended last,
+      // now carrying the destination zone's layout fields.
+      expect(result.current.items).toEqual([
+        HEADER_ITEM,
+        {
+          ...CONTACT_ITEM,
+          layoutId: 'right-2',
+          layoutType: LAYOUTS.DOUBLE_RIGHT,
+          layoutParentId: 'double-2',
+        },
+      ]);
+    });
+
+    it('captures an undo snapshot of the pre-move state', () => {
+      const { result } = renderAppContext();
+
+      act(() => {
+        result.current.moveContentToZone(CONTACT_ITEM.contentId, {
+          layoutId: 'a' as LayoutItem['layoutId'],
+          layoutType: LAYOUTS.SINGLE,
+        });
+      });
+
+      expect(result.current.undoSnapshot).toEqual({
+        items: [CONTACT_ITEM, HEADER_ITEM],
+        layouts: [LAYOUT],
+        description: 'Block moved',
+      });
+    });
+  });
+
   describe('onMove', () => {
     it('MACRO_UP moves the item one position earlier', () => {
       const { result } = renderAppContext();
