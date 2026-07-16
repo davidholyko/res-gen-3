@@ -41,7 +41,7 @@ test.describe('accessibility (axe-core, real browser)', () => {
   });
 
   test('with each control panel menu open', async ({ page }) => {
-    for (const menu of ['File', 'Edit', 'View'] as const) {
+    for (const menu of ['File', 'View'] as const) {
       await page.getByText(menu, { exact: true }).click();
       const results = await new AxeBuilder({ page })
         // Known, deferred finding (minor severity): BaseMenu clones

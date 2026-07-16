@@ -52,13 +52,12 @@ test.describe('keyboard navigation', () => {
     await tabUntil(page, 'File');
 
     const seen: FocusInfo[] = [];
-    for (let i = 0; i < 5; i++) {
+    for (let i = 0; i < 4; i++) {
       await page.keyboard.press('Tab');
       seen.push(await currentFocus(page));
     }
 
     expect(seen.map((f) => f.text)).toEqual([
-      'Edit',
       'View',
       // The canvas follows directly -- the Template ribbon retired with
       // specs/editor-redesign.md Phase 6. First the top gap's inserters

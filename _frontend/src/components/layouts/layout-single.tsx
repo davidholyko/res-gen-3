@@ -6,12 +6,17 @@ import { useAppContext } from '@/context/app-context';
 import MacroManager from '@/managers/macro-manager';
 
 import AddBlockControl from './add-block-control';
+import AddLayoutControl from './add-layout-control';
 
 interface LayoutSingleProps {
   layoutType: keyof typeof LAYOUTS;
   className?: string;
   layoutId?: string;
   layoutParentId?: string;
+  // Present only on top-level SINGLE layouts (not the halves of a
+  // DOUBLE): where "+ Add layout" inserts, i.e. this layout's index + 1
+  // (specs/add-layout-beside-add-block.md).
+  addLayoutIndex?: number;
 }
 
 // No longer a react-dnd drop target: dragging content from the Template
@@ -20,7 +25,7 @@ interface LayoutSingleProps {
 // Layout *reorder* drags target the gaps between layouts
 // (layout-gap-inserter.tsx), not the layouts.
 export default function LayoutSingle(props: LayoutSingleProps) {
-  const { layoutType, layoutId, layoutParentId = null } = props;
+  const { layoutType, layoutId, layoutParentId = null, addLayoutIndex } = props;
 
   const { items: allItems } = useAppContext();
 
@@ -48,11 +53,16 @@ export default function LayoutSingle(props: LayoutSingleProps) {
   return (
     <div className={className}>
       <MacroManager items={items} />
-      <AddBlockControl
-        layoutId={layoutId}
-        layoutType={layoutType}
-        layoutParentId={layoutParentId}
-      />
+      <div className="flex flex-row">
+        <AddBlockControl
+          layoutId={layoutId}
+          layoutType={layoutType}
+          layoutParentId={layoutParentId}
+        />
+        {addLayoutIndex !== undefined && (
+          <AddLayoutControl insertIndex={addLayoutIndex} />
+        )}
+      </div>
     </div>
   );
 }

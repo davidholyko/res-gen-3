@@ -3,12 +3,13 @@ import path from 'node:path';
 import { addSingleLayout, expect, removeLastLayout, test } from './fixtures';
 
 test.describe('control panel', () => {
-  test('File/Edit/View menus open on click and close on Escape', async ({
+  test('File/View menus open on click and close on Escape', async ({
     page,
   }) => {
+    // No Edit menu anymore: add-layout moved onto the canvas beside
+    // "+ Add block" (specs/add-layout-beside-add-block.md).
     for (const [menu, item] of [
       ['File', 'Download JSON'],
-      ['Edit', 'Add Single Column Layout'],
       ['View', 'Open PDF View'],
     ] as const) {
       await page.getByText(menu, { exact: true }).click();
@@ -18,7 +19,7 @@ test.describe('control panel', () => {
     }
   });
 
-  test('Edit menu adds layouts; the canvas Remove layout link removes them', async ({
+  test('the canvas adds and removes layouts (no menus involved)', async ({
     page,
   }) => {
     const before = await page.locator('.layout-single').count();
@@ -26,8 +27,6 @@ test.describe('control panel', () => {
     await addSingleLayout(page);
     await expect(page.locator('.layout-single')).toHaveCount(before + 1);
 
-    // Removal is canvas-only now -- the Edit menu's "Remove Last Layout"
-    // retired with specs/editor-redesign.md Phase 6.
     await removeLastLayout(page);
     await expect(page.locator('.layout-single')).toHaveCount(before);
   });

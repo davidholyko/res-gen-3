@@ -27,11 +27,10 @@ test.describe('multi-page indicator', () => {
 
     await removeLastLayout(page);
 
-    await page.getByText('Edit', { exact: true }).click();
-    await page
-      .getByRole('menuitem', { name: 'Add Single Column Layout' })
-      .click();
-    await page.keyboard.press('Escape');
+    // Zero layouts now, so the canvas "+ Add layout" control is gone --
+    // the empty-state CTA is the only add affordance
+    // (specs/add-layout-beside-add-block.md keeps it for exactly this).
+    await page.getByText('+ Add Single Column Layout').click();
 
     await expect(page.getByText(/^\d+ pages$/)).not.toBeVisible({
       timeout: 5000,
