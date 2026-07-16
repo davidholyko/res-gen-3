@@ -23,7 +23,10 @@ export default function LayoutDouble({
 }: LayoutDoubleProps) {
   return (
     <div data-layout-id={layoutId}>
-      <div className="flex layout-double">
+      {/* A single hairline divides the two columns (divide-x) so the
+          right column's edit target is unambiguous, without the boxed
+          panels the layout used to draw (specs/continuous-page-canvas.md). */}
+      <div className="flex layout-double divide-x divide-gray-200">
         <LayoutSingle
           className="grow w-[50%] p-2"
           layoutParentId={layoutId}
@@ -37,7 +40,11 @@ export default function LayoutDouble({
           layoutId={layoutRightId}
         />
       </div>
-      <AddLayoutControl insertIndex={addLayoutIndex} />
+      {/* Hover/focus-revealed like the single's add controls -- one
+          "+ Add layout" for the whole double. */}
+      <div className="flex flex-row opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
+        <AddLayoutControl insertIndex={addLayoutIndex} />
+      </div>
     </div>
   );
 }

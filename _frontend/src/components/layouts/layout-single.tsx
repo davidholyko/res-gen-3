@@ -37,15 +37,15 @@ export default function LayoutSingle(props: LayoutSingleProps) {
     return filteredItems;
   }, [allItems, layoutType, layoutId]);
 
+  // No dashed border box anymore: a box around every layout made the
+  // canvas read as stacked separate pages rather than one continuous
+  // resume (specs/continuous-page-canvas.md). min-h keeps an empty
+  // layout a clickable target.
   const className = useMemo(
     () =>
       c(props.className, {
         'layout-single': true,
         'min-h-[50px]': true,
-        rounded: true,
-        'border-2': true,
-        'border-stone-700': true,
-        'border-dashed': true,
       }),
     [props.className],
   );
@@ -53,7 +53,14 @@ export default function LayoutSingle(props: LayoutSingleProps) {
   return (
     <div className={className}>
       <MacroManager items={items} />
-      <div className="flex flex-row">
+      {/* The add controls are part of the layout's editing chrome, not
+          the resume content -- hidden until the layout is hovered or
+          holds focus so the idle page shows only content
+          (specs/continuous-page-canvas.md). opacity-0 (not `hidden`)
+          keeps them clickable and in the tab order; an open menu holds
+          focus, so focus-within keeps the row revealed even once the
+          pointer leaves. */}
+      <div className="flex flex-row opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
         <AddBlockControl
           layoutId={layoutId}
           layoutType={layoutType}

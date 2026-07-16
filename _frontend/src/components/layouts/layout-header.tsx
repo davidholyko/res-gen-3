@@ -1,4 +1,3 @@
-import c from 'classnames';
 import { useCallback } from 'react';
 import { useDrag } from 'react-dnd';
 
@@ -15,13 +14,17 @@ type LayoutHeaderProps = {
   index: number;
 };
 
-// Addresses two UX findings at once (specs/app-ux-improvements.md):
-// layouts previously had no visible identifier on the canvas itself (only
-// inside each editor card's "Add to layout" <select>), and the only way
-// to remove one was the Edit menu's "Remove Last Layout" -- always the
-// most recently added, never a specific one. Since
-// specs/editor-redesign.md (Phase 6) this row is also the drag handle
-// for reordering the whole layout: grab it and drop it into any gap.
+// A layout's per-layout editing chrome (its label, drag-to-reorder
+// handle, and Remove control). It no longer draws an always-visible
+// header row across the top of the layout -- that made every layout
+// read as its own boxed page (specs/continuous-page-canvas.md). Instead
+// it's a compact toolbar that floats in the left gutter, absolutely
+// positioned so revealing it causes no reflow, and hidden until the
+// layout is hovered or contains keyboard focus (`group-hover` /
+// `focus-within`, gated by the `group` wrapper in layout-manager.tsx).
+// opacity-0 (not `hidden`) keeps it in the tab order and the
+// accessibility tree so keyboard users still reach reorder/remove; the
+// focus-within reveal makes it visible the moment it's focused.
 export default function LayoutHeader({
   label,
   layoutId,
@@ -29,12 +32,9 @@ export default function LayoutHeader({
 }: LayoutHeaderProps) {
   const { removeLayout, pushUndoSnapshot } = useAppContext();
 
-  const [{ isDragging }, drag] = useDrag({
+  const [, drag] = useDrag({
     type: LAYOUT_DRAG_TYPE,
     item: { index },
-    collect: (monitor) => ({
-      isDragging: !!monitor.isDragging(),
-    }),
   });
 
   // Undo, not window.confirm -- see specs/undo-destructive-actions.md.
@@ -44,15 +44,11 @@ export default function LayoutHeader({
   }, [label, layoutId, removeLayout, pushUndoSnapshot]);
 
   return (
-    <div
-      className={c('flex items-center justify-between mt-3 mb-1 first:mt-0', {
-        'opacity-50': isDragging,
-      })}
-    >
-      {/* text-gray-600/text-red-700, not the lighter -500/-600: this row
-          sits directly on the page's bg-gray-100 background (Finding 11),
-          not a white card -- the lighter shades dropped just under 4.5:1
-          against that background, caught by a real-browser axe scan. */}
+    <div className="absolute top-0 right-full z-20 mr-2 flex items-center gap-2 whitespace-nowrap rounded border border-gray-200 bg-white px-2 py-1 shadow-sm opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
+      {/* text-gray-600/text-red-700, not the lighter -500/-600: the
+          contrast floor these were picked against still applies -- on the
+          white toolbar they only read better (specs/accessibility.md,
+          Finding 11). */}
       <span
         className="flex items-center gap-1 text-xs font-bold text-gray-600 uppercase tracking-wide cursor-grab"
         draggable="true"

@@ -1,5 +1,5 @@
 ---
-status: draft
+status: implemented
 ---
 
 # Layouts flow as one continuous page
@@ -104,25 +104,25 @@ hover alone (WCAG).
 
 ## Acceptance criteria
 
-- [ ] Stacking 2+ layouts renders as one continuous white page: no
+- [x] Stacking 2+ layouts renders as one continuous white page: no
       dashed per-layout boxes, no always-visible "LAYOUT N" header rows,
       no inter-layout gaps that read as separate pages.
-- [ ] The canvas visually approximates the generated PDF's single-page
+- [x] The canvas visually approximates the generated PDF's single-page
       flow (the 725px / 17px-padding 1:1 intent is preserved on the
       container).
-- [ ] Each layout's label, remove, and reorder-drag handle live in a
+- [x] Each layout's label, remove, and reorder-drag handle live in a
       left-gutter toolbar reachable on hover **and** via keyboard focus,
       with no content reflow when it appears; reorder and remove still
       work and still push an undo snapshot.
-- [ ] "+ Add block" / "+ Add layout" are hover/focus-revealed (hidden
+- [x] "+ Add block" / "+ Add layout" are hover/focus-revealed (hidden
       on the idle page) but behave exactly as before once shown (same
       menus, same insert positions); an open menu stays revealed while
       the pointer is away. Gap inserters and layout drag-reorder behave
       exactly as before.
-- [ ] A DOUBLE layout shows a single hairline divider between its two
+- [x] A DOUBLE layout shows a single hairline divider between its two
       columns and no per-half boxes.
-- [ ] Empty state is unchanged.
-- [ ] `_frontend` stays at 100% coverage; axe suites stay clean
+- [x] Empty state is unchanged.
+- [x] `_frontend` stays at 100% coverage; axe suites stay clean
       (re-checked against the new white page surface); e2e happy paths
       (add/remove/reorder layout, add block) stay green.
 

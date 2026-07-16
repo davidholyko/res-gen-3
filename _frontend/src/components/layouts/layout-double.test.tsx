@@ -24,6 +24,21 @@ describe('LayoutDouble', () => {
     expect(wrapper?.querySelectorAll('.layout-single')).toHaveLength(2);
   });
 
+  it('separates the two columns with a single hairline divider', () => {
+    const { container } = render(
+      <AllProviders>
+        <LayoutDouble
+          layoutId="a"
+          layoutLeftId="l"
+          layoutRightId="r"
+          addLayoutIndex={1}
+        />
+      </AllProviders>,
+    );
+
+    expect(container.querySelector('.layout-double')).toHaveClass('divide-x');
+  });
+
   it('carries one "+ Add layout" for the whole layout, not one per half', () => {
     const { getAllByText } = render(
       <AllProviders>
