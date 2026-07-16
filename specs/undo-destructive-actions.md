@@ -4,6 +4,13 @@ status: implemented
 
 # Undo destructive actions
 
+> **Follow-up:** layout removal later re-gained a confirm step -- but an
+> inline, non-blocking one with a delete-preview highlight, not the old
+> `window.confirm()` -- because one click could wipe the whole resume on
+> the common single-layout case. Undo still fires on the confirmed
+> delete; the two are complementary. See
+> `specs/confirm-remove-layout.md`.
+
 ## Problem
 
 Deleting a block, removing a layout, and starting a "New" resume are all

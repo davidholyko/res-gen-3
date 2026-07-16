@@ -7,7 +7,7 @@ import { addSingleLayout, expect, test } from './fixtures';
 // keeps both guards). Declined/no-snapshot branches are already covered
 // deterministically by Vitest (app-context.test.tsx, undo-toast.test.tsx).
 test.describe('undo destructive actions', () => {
-  test('removing a layout is not gated behind a confirmation dialog, and shows an undo toast', async ({
+  test('removing a layout uses an inline confirm (no native dialog), and shows an undo toast', async ({
     page,
   }) => {
     let dialogFired = false;
@@ -15,7 +15,12 @@ test.describe('undo destructive actions', () => {
       dialogFired = true;
     });
 
+    // Two-step: the first click opens an inline Cancel/Delete confirm and
+    // highlights the layout (specs/confirm-remove-layout.md); Delete
+    // actually removes it. Neither step is a blocking native dialog.
     await page.getByLabel('Remove Layout 1 Button').click();
+    await expect(page.locator('.layout-single')).toHaveCount(1);
+    await page.getByLabel('Confirm removing Layout 1 Button').click();
 
     expect(dialogFired).toBe(false);
     await expect(page.locator('.layout-single')).toHaveCount(0);
@@ -36,6 +41,7 @@ test.describe('undo destructive actions', () => {
       .textContent();
 
     await page.getByLabel('Remove Layout 1 Button').click();
+    await page.getByLabel('Confirm removing Layout 1 Button').click();
     await expect(page.locator('.layout-single')).toHaveCount(0);
 
     const toast = page
@@ -102,6 +108,7 @@ test.describe('undo destructive actions', () => {
     ).toBeVisible();
 
     await page.getByLabel('Remove Layout 1 Button').click();
+    await page.getByLabel('Confirm removing Layout 1 Button').click();
 
     await expect(page.getByRole('status')).toHaveCount(1);
     await expect(
@@ -244,6 +251,7 @@ test.describe('undo destructive actions', () => {
     page,
   }) => {
     await page.getByLabel('Remove Layout 1 Button').click();
+    await page.getByLabel('Confirm removing Layout 1 Button').click();
     const toast = page
       .getByRole('status')
       .filter({ hasText: 'Layout 1 removed' });

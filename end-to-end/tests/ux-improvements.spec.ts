@@ -34,7 +34,9 @@ test.describe('UX improvements', () => {
     await addSingleLayout(page);
     await expect(page.locator('.layout-single')).toHaveCount(2);
 
+    // Two-step confirm (specs/confirm-remove-layout.md): ask, then Delete.
     await page.getByLabel('Remove Layout 1 Button').click();
+    await page.getByLabel('Confirm removing Layout 1 Button').click();
 
     await expect(page.locator('.layout-single')).toHaveCount(1);
     await expect(

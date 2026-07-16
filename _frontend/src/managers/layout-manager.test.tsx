@@ -1,16 +1,18 @@
-import { render } from '@testing-library/react';
+import { fireEvent, render } from '@testing-library/react';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { addLayoutMock, removeLayoutMock, contextState } = vi.hoisted(() => ({
-  addLayoutMock: vi.fn(),
-  removeLayoutMock: vi.fn(),
-  contextState: {
-    layouts: [] as unknown[],
-    items: [] as unknown[],
-  },
-}));
+const { addLayoutMock, removeLayoutMock, pushUndoSnapshotMock, contextState } =
+  vi.hoisted(() => ({
+    addLayoutMock: vi.fn(),
+    removeLayoutMock: vi.fn(),
+    pushUndoSnapshotMock: vi.fn(),
+    contextState: {
+      layouts: [] as unknown[],
+      items: [] as unknown[],
+    },
+  }));
 vi.mock('@/context/app-context', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/context/app-context')>();
   return {
@@ -22,7 +24,7 @@ vi.mock('@/context/app-context', async (importOriginal) => {
       addLayoutAt: vi.fn(),
       moveLayout: vi.fn(),
       onCreate: vi.fn(),
-      pushUndoSnapshot: vi.fn(),
+      pushUndoSnapshot: pushUndoSnapshotMock,
       removeLayout: removeLayoutMock,
     }),
   };
@@ -41,6 +43,7 @@ function renderLayoutManager() {
 beforeEach(() => {
   addLayoutMock.mockReset();
   removeLayoutMock.mockReset();
+  pushUndoSnapshotMock.mockReset();
   contextState.layouts = [];
   contextState.items = [];
 });
@@ -105,6 +108,41 @@ describe('LayoutManager', () => {
       </DndProvider>,
     );
     expect(container.querySelectorAll('[data-gap-index]')).toHaveLength(0);
+  });
+
+  it('removing a layout is a two-step confirm: first click highlights, Delete removes', () => {
+    contextState.layouts = [{ layoutId: 'a', layoutType: 'SINGLE' }];
+    const { container, getByLabelText } = renderLayoutManager();
+
+    const wrapper = () => container.querySelector('.group.relative') as Element;
+    expect(wrapper().className).not.toContain('ring-red-400');
+
+    // First click only asks -- nothing is removed, and the layout's
+    // region lights up so it's clear what will be deleted.
+    fireEvent.click(getByLabelText('Remove Layout 1 Button'));
+    expect(removeLayoutMock).not.toHaveBeenCalled();
+    expect(wrapper().className).toContain('ring-red-400');
+
+    // Confirming pushes the undo snapshot, then removes.
+    fireEvent.click(getByLabelText('Confirm removing Layout 1 Button'));
+    expect(pushUndoSnapshotMock).toHaveBeenCalledWith('Layout 1 removed');
+    expect(removeLayoutMock).toHaveBeenCalledWith('a');
+  });
+
+  it('cancelling a remove clears the highlight and deletes nothing', () => {
+    contextState.layouts = [{ layoutId: 'a', layoutType: 'SINGLE' }];
+    const { container, getByLabelText } = renderLayoutManager();
+
+    fireEvent.click(getByLabelText('Remove Layout 1 Button'));
+    expect(
+      (container.querySelector('.group.relative') as Element).className,
+    ).toContain('ring-red-400');
+
+    fireEvent.click(getByLabelText('Cancel removing Layout 1'));
+    expect(removeLayoutMock).not.toHaveBeenCalled();
+    expect(
+      (container.querySelector('.group.relative') as Element).className,
+    ).not.toContain('ring-red-400');
   });
 
   it('throws if a DOUBLE layout is missing layoutLeftId', () => {
