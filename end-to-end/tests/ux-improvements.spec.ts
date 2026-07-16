@@ -1,4 +1,4 @@
-import { expect, removeLastLayout, test } from './fixtures';
+import { addSingleLayout, expect, removeLastLayout, test } from './fixtures';
 
 // Happy-path coverage for the new interactive elements added by
 // specs/app-ux-improvements.md. Declined-confirmation branches (still
@@ -31,9 +31,7 @@ test.describe('UX improvements', () => {
     // one (Layout 2) starts empty -- removing Layout 1 specifically and
     // checking the survivor is still empty proves this targeted the first
     // layout, not just whichever was added last.
-    await page.getByText('Edit', { exact: true }).click();
-    await page.getByText('Add Single Column Layout').click();
-    await page.keyboard.press('Escape');
+    await addSingleLayout(page);
     await expect(page.locator('.layout-single')).toHaveCount(2);
 
     await page.getByLabel('Remove Layout 1 Button').click();
@@ -105,9 +103,7 @@ test.describe('UX improvements', () => {
     const indicator = page.getByText('Saved', { exact: true });
     await expect(indicator).not.toBeVisible();
 
-    await page.getByText('Edit', { exact: true }).click();
-    await page.getByText('Add Single Column Layout').click();
-    await page.keyboard.press('Escape');
+    await addSingleLayout(page);
 
     await expect(indicator).toBeVisible();
     await expect(indicator).not.toBeVisible({ timeout: 5000 });

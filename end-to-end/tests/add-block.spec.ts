@@ -1,4 +1,4 @@
-import { addSingleLayout, expect, test } from './fixtures';
+import { addDoubleLayout, addSingleLayout, expect, test } from './fixtures';
 
 // Happy-path coverage for specs/editor-redesign.md, Phase 6: every
 // layout zone carries its own "+ Add block" control -- adding content
@@ -8,9 +8,7 @@ test.describe('per-zone Add block (specs/editor-redesign.md, Phase 6)', () => {
   test('every zone shows the control, including both halves of a double layout', async ({
     page,
   }) => {
-    await page.getByText('Edit', { exact: true }).click();
-    await page.getByText('Add Double Column Layout').click();
-    await page.keyboard.press('Escape');
+    await addDoubleLayout(page);
 
     // 1 prepopulated single + 2 halves of the new double.
     await expect(page.getByRole('button', { name: '+ Add block' })).toHaveCount(
@@ -84,9 +82,7 @@ test.describe('per-zone Add block (specs/editor-redesign.md, Phase 6)', () => {
   test('a block added into a double-layout half lands in that half only', async ({
     page,
   }) => {
-    await page.getByText('Edit', { exact: true }).click();
-    await page.getByText('Add Double Column Layout').click();
-    await page.keyboard.press('Escape');
+    await addDoubleLayout(page);
 
     const double = page.locator('.layout-double').last();
     const left = double.locator('.layout-single').first();
@@ -97,5 +93,64 @@ test.describe('per-zone Add block (specs/editor-redesign.md, Phase 6)', () => {
 
     await expect(left.locator('[role="group"]')).toHaveCount(1);
     await expect(right.locator('[role="group"]')).toHaveCount(0);
+  });
+});
+
+
+// specs/add-layout-beside-add-block.md: "+ Add layout" lives beside each
+// layout's "+ Add block", and inserts the new layout directly below its
+// host layout.
+test.describe('per-layout Add layout (specs/add-layout-beside-add-block.md)', () => {
+  test('every layout footer pairs "+ Add block" with "+ Add layout"', async ({
+    page,
+  }) => {
+    const layout1 = page.locator('.layout-single').first();
+    await expect(
+      layout1.getByRole('button', { name: '+ Add block' }),
+    ).toBeVisible();
+    await expect(
+      layout1.getByRole('button', { name: '+ Add layout' }),
+    ).toBeVisible();
+  });
+
+  test('picking a column count inserts the new layout directly below its host', async ({
+    page,
+  }) => {
+    // Give the first layout a marker block so we can tell layouts apart.
+    const layout1 = page.locator('.layout-single').first();
+    await layout1.getByRole('button', { name: '+ Add block' }).click();
+    await page.getByRole('menuitem', { name: 'Section heading' }).click();
+    await page
+      .locator('#canvas-edit-panel input[name="header"]')
+      .fill('First Layout Marker');
+    await page.locator('header').first().click();
+
+    // Add a layout below layout 1 (the last one here).
+    await layout1.getByRole('button', { name: '+ Add layout' }).click();
+    await page.getByRole('menuitem', { name: 'One column' }).click();
+
+    await expect(page.locator('.layout-single')).toHaveCount(2);
+    await expect(page.locator('.layout-single').first()).toContainText(
+      'First Layout Marker',
+    );
+    await expect(
+      page.locator('.layout-single').last().locator('[role="group"]'),
+    ).toHaveCount(0);
+  });
+
+  test('a double layout carries one "+ Add layout" for the whole layout', async ({
+    page,
+  }) => {
+    await addDoubleLayout(page);
+    const wrapper = page
+      .locator('[data-layout-id]')
+      .filter({ has: page.locator('.layout-double') })
+      .last();
+    await expect(
+      wrapper.getByRole('button', { name: '+ Add layout' }),
+    ).toHaveCount(1);
+    await expect(
+      wrapper.getByRole('button', { name: '+ Add block' }),
+    ).toHaveCount(2);
   });
 });

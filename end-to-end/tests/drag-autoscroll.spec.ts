@@ -18,6 +18,10 @@ test.describe('drag auto-scroll', () => {
     for (let i = 0; i < 6; i++) {
       await addSingleLayout(page);
     }
+    // addSingleLayout clicks the last "+ Add layout" control, which
+    // Playwright scrolls into view once layouts run past the fold --
+    // reset so each test starts from a known scrollY of 0.
+    await page.evaluate(() => window.scrollTo(0, 0));
   });
 
   test('holding a drag near the bottom edge scrolls the page down', async ({

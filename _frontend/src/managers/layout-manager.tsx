@@ -36,6 +36,7 @@ export default function LayoutManager() {
                 <LayoutSingle
                   layoutId={layout.layoutId}
                   layoutType={layout.layoutType}
+                  addLayoutIndex={index + 1}
                 />
               </Fragment>
             );
@@ -58,6 +59,7 @@ export default function LayoutManager() {
                   layoutId={layout.layoutId}
                   layoutLeftId={layout.layoutLeftId}
                   layoutRightId={layout.layoutRightId}
+                  addLayoutIndex={index + 1}
                 />
               </Fragment>
             );

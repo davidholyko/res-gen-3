@@ -77,21 +77,23 @@ export async function makeResumeMultiPage(page: Page) {
   await page.waitForSelector('#res-gen', { timeout: 15000 });
 }
 
-/** Adds a SINGLE-column layout via the Edit menu and waits for it to render. */
+/**
+ * Adds a SINGLE-column layout below the last layout via its canvas
+ * "+ Add layout" control (the Edit menu retired with
+ * specs/add-layout-beside-add-block.md).
+ */
 export async function addSingleLayout(page: Page) {
   const before = await page.locator('.layout-single').count();
-  await page.getByText('Edit', { exact: true }).click();
-  await page.getByText('Add Single Column Layout').click();
-  await page.keyboard.press('Escape');
+  await page.getByRole('button', { name: '+ Add layout' }).last().click();
+  await page.getByRole('menuitem', { name: 'One column' }).click();
   await expect(page.locator('.layout-single')).toHaveCount(before + 1);
 }
 
-/** Adds a DOUBLE-column layout via the Edit menu and waits for it to render. */
+/** Adds a DOUBLE-column layout below the last layout via the canvas control. */
 export async function addDoubleLayout(page: Page) {
   const before = await page.locator('.layout-double').count();
-  await page.getByText('Edit', { exact: true }).click();
-  await page.getByText('Add Double Column Layout').click();
-  await page.keyboard.press('Escape');
+  await page.getByRole('button', { name: '+ Add layout' }).last().click();
+  await page.getByRole('menuitem', { name: 'Two columns' }).click();
   await expect(page.locator('.layout-double')).toHaveCount(before + 1);
 }
 

@@ -2,7 +2,6 @@ import c from 'classnames';
 import { useMemo } from 'react';
 
 import pkg from '../../../package.json';
-import EditMenu from './control-panel-edit-menu';
 import FileMenu from './control-panel-file-menu';
 import PageCountIndicator from './page-count-indicator';
 import ViewMenu from './control-panel-view-menu';
@@ -31,8 +30,10 @@ export default function ControlPanel() {
     // (WCAG 1.3.1 / axe's "region" check).
     <header className={className}>
       <span className="text-xl bold self-center">Res Gen 3</span>
+      {/* No Edit menu anymore: its last actions (add layout) moved
+          onto the canvas beside "+ Add block"
+          (specs/add-layout-beside-add-block.md). */}
       <FileMenu />
-      <EditMenu />
       <ViewMenu />
       <div className="ml-auto flex items-center gap-2">
         <PageCountIndicator />

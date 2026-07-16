@@ -29,7 +29,7 @@ beforeEach(() => {
 
 describe('ControlPanel', () => {
   it('renders the title, menus, and current version', () => {
-    const { getByText } = render(
+    const { getByText, queryByText } = render(
       <AllProviders>
         <ControlPanel />
       </AllProviders>,
@@ -37,7 +37,9 @@ describe('ControlPanel', () => {
 
     expect(getByText('Res Gen 3')).not.toBeNull();
     expect(getByText('File')).not.toBeNull();
-    expect(getByText('Edit')).not.toBeNull();
+    // No Edit menu: its add-layout actions moved onto the canvas
+    // (specs/add-layout-beside-add-block.md).
+    expect(queryByText('Edit')).toBeNull();
     expect(getByText('View')).not.toBeNull();
     expect(getByText(`v${pkg.version}`)).not.toBeNull();
   });

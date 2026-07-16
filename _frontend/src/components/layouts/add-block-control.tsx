@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useId, useRef, useState } from 'react';
+import { useCallback } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 
 import {
@@ -10,6 +10,8 @@ import {
 import { useAppContext } from '@/context/app-context';
 import type { ContentAll } from '@/types/content-all';
 import type { ContentId, LayoutId } from '@/types/content-base-item';
+
+import { useCanvasMenu } from './use-canvas-menu';
 
 type AddBlockControlProps = {
   layoutId?: string;
@@ -28,62 +30,15 @@ export default function AddBlockControl(props: AddBlockControlProps) {
   const { layoutId, layoutType, layoutParentId } = props;
   const { onCreate } = useAppContext();
 
-  const [isOpen, setIsOpen] = useState(false);
-  const menuRef = useRef<HTMLDivElement>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const menuId = useId();
-
-  const close = useCallback(() => setIsOpen(false), []);
-
-  // Mirrors BaseMenu's dismissal behavior (control-panel-base-menu.tsx):
-  // clicking anywhere outside or pressing Escape closes the menu.
-  useEffect(() => {
-    const handleOutsideClick = (event: MouseEvent): void => {
-      // containerRef wraps this whole component and this listener only
-      // exists while it's mounted, so `current` is always set here --
-      // unlike BaseMenu's equivalent, whose ref points at the sometimes-
-      // unmounted menu popup itself.
-      /* v8 ignore next */
-      if (containerRef.current?.contains(event.target as Node)) return;
-      close();
-    };
-
-    const handleEscape = (event: KeyboardEvent): void => {
-      if (event.key === 'Escape') {
-        close();
-      }
-    };
-
-    document.addEventListener('mousedown', handleOutsideClick);
-    document.addEventListener('keydown', handleEscape);
-
-    return () => {
-      document.removeEventListener('mousedown', handleOutsideClick);
-      document.removeEventListener('keydown', handleEscape);
-    };
-  }, [close]);
-
-  // Arrow-key movement between menu items, same as BaseMenu.
-  const onMenuKeyDown = useCallback(
-    (event: React.KeyboardEvent<HTMLDivElement>) => {
-      // Fires only as this node's own onKeyDown handler, so
-      // menuRef.current is always set; `|| []` just satisfies TS.
-      /* v8 ignore next */
-      const items = Array.from(
-        menuRef.current?.querySelectorAll('[role="menuitem"]') || [],
-      );
-      const currentIndex = items.indexOf(document.activeElement as Element);
-
-      if (event.key === 'ArrowDown') {
-        const nextIndex = (currentIndex + 1) % items.length;
-        (items[nextIndex] as HTMLElement).focus();
-      } else if (event.key === 'ArrowUp') {
-        const prevIndex = (currentIndex - 1 + items.length) % items.length;
-        (items[prevIndex] as HTMLElement).focus();
-      }
-    },
-    [],
-  );
+  const {
+    isOpen,
+    setIsOpen,
+    close,
+    menuRef,
+    containerRef,
+    menuId,
+    onMenuKeyDown,
+  } = useCanvasMenu();
 
   const onPick = useCallback(
     (contentType: keyof typeof CONTENT_TYPES) => {
