@@ -133,4 +133,26 @@ test.describe('canvas edit panel', () => {
     await expect(macro.locator('input, textarea')).toHaveCount(0);
     await expect(panel(page).locator('input[name="name"]')).toBeVisible();
   });
+
+  test('the panel stays pinned in the viewport as you scroll a tall page', async ({
+    page,
+  }) => {
+    // Regression (user report): the spec calls for a panel "sticky against
+    // the viewport" so it follows you while you scroll -- e.g. adding a
+    // block at the bottom of a long resume. It shipped inert: the sticky
+    // aside's own wrapper was only as tall as the panel, so `position:
+    // sticky` had no room to travel and the panel just scrolled away.
+    // A short viewport so the one-page resume overflows and scrolls.
+    await page.setViewportSize({ width: 1280, height: 700 });
+    await page.locator('.layout-single [role="group"]').first().click();
+    await expect(panel(page)).toBeVisible();
+
+    await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+    await expect
+      // Pinned near the top of the viewport (top-2 = 8px), not scrolled
+      // off above it -- boundingBox().y is viewport-relative.
+      .poll(async () => (await panel(page).boundingBox())!.y)
+      .toBeLessThan(20);
+    expect((await panel(page).boundingBox())!.y).toBeGreaterThanOrEqual(-1);
+  });
 });
