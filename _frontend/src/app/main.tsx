@@ -31,8 +31,12 @@ export default function Main() {
         // min-w-0: without it, the fixed-width inner wrapper sets the
         // region's min-content floor and holds it at 506px even while
         // idle, shoving the canvas off-center.
+        // flex flex-col: makes the inner wrapper a flex child so it can
+        // stretch to the gutter's full (canvas) height -- the sticky
+        // panel only travels within its own parent's box, so a wrapper
+        // sized to the panel gives it nowhere to stick.
         className={c(
-          'grow basis-0 min-w-0 transition-[flex-basis] duration-300 ease-out',
+          'flex flex-col grow basis-0 min-w-0 transition-[flex-basis] duration-300 ease-out',
           { 'basis-[506px]': isPanelOpen },
         )}
       >
@@ -43,7 +47,7 @@ export default function Main() {
             mx-auto centers it once the region exceeds it; auto margins
             never go negative, so mid-animation it overflows rightward
             (clipped by main) rather than over the canvas. */}
-        <div className="w-[506px] mx-auto">
+        <div className="w-[506px] mx-auto grow">
           <CanvasEditPanel />
         </div>
       </div>

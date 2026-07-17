@@ -124,3 +124,14 @@ you type, without a single layout shift inside it.
   all converge on the same two helpers (`focusCanvasBlock` /
   `blurCanvasBlock`, the latter id-guarded so a stale blur can't stomp
   a fresh focus).
+- **The sticky panel shipped inert (fixed after a user report).** The
+  gutter stretched to the canvas's full height, but the fixed-width
+  inner wrapper the panel lives in did not -- it was only as tall as the
+  panel itself. `position: sticky` can only travel within its own
+  parent's box, so with a wrapper that height it had zero room and the
+  panel just scrolled away with the page (worst felt when adding a block
+  at the bottom of a long resume). Fixed by making the gutter a flex
+  column and letting the wrapper `grow` to fill it, so the panel can
+  stick across the whole scroll. jsdom can't exercise sticky scrolling,
+  so this was invisible to the Vitest suite; an e2e test (scroll a tall
+  page, assert the panel stays pinned near the top) now guards it.
