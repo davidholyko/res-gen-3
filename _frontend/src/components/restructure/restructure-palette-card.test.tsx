@@ -66,7 +66,7 @@ describe('RestructurePaletteCard', () => {
     expect(() => fireEvent.dragEnd(card)).not.toThrow();
   });
 
-  it('reports its own drag start and end to onDraggingChange', () => {
+  it('reports its own drag start and end, and fades while dragging', () => {
     const onDraggingChange = vi.fn();
     const { getByTestId } = render(
       <RestructurePaletteCard
@@ -78,12 +78,16 @@ describe('RestructurePaletteCard', () => {
     );
     const card = getByTestId('palette-card');
 
+    expect(card.className).not.toContain('opacity-40');
     fireEvent.dragStart(card, {
       dataTransfer: { setData: vi.fn(), effectAllowed: '' },
     });
     expect(onDraggingChange).toHaveBeenLastCalledWith(true);
+    expect(card.className).toContain('opacity-40');
+
     fireEvent.dragEnd(card);
     expect(onDraggingChange).toHaveBeenLastCalledWith(false);
+    expect(card.className).not.toContain('opacity-40');
   });
 
   it('hides the "Send to…" menu when there are no zones to send to', () => {
