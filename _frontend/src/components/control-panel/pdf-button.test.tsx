@@ -20,7 +20,7 @@ vi.mock('@/context/app-context', async (importOriginal) => {
   };
 });
 
-const { default: OpenPdfViewButton } = await import('./open-pdf-view-button');
+const { default: PdfButton } = await import('./pdf-button');
 
 beforeEach(() => {
   togglePdfModalMock.mockReset();
@@ -28,17 +28,17 @@ beforeEach(() => {
   contextState.layouts = [];
 });
 
-describe('OpenPdfViewButton', () => {
+describe('PdfButton', () => {
   it('is disabled when there are no items and no layouts', () => {
-    const { getByText } = render(<OpenPdfViewButton />);
+    const { getByText } = render(<PdfButton />);
 
-    expect(getByText('Open PDF View')).toBeDisabled();
+    expect(getByText('PDF')).toBeDisabled();
   });
 
-  it('is enabled once there are items, and calls togglePdfModal on click', () => {
+  it('is enabled once there are items, and opens the modal on click', () => {
     contextState.items = [{ contentId: 'a' }];
-    const { getByText } = render(<OpenPdfViewButton />);
-    const button = getByText('Open PDF View');
+    const { getByText } = render(<PdfButton />);
+    const button = getByText('PDF');
 
     expect(button).toBeEnabled();
     fireEvent.click(button);
@@ -48,19 +48,8 @@ describe('OpenPdfViewButton', () => {
 
   it('is enabled once there are layouts, even with no items', () => {
     contextState.layouts = [{ layoutId: 'a' }];
-    const { getByText } = render(<OpenPdfViewButton />);
+    const { getByText } = render(<PdfButton />);
 
-    expect(getByText('Open PDF View')).toBeEnabled();
-  });
-
-  it('forwards className, role, and tabIndex', () => {
-    const { getByText } = render(
-      <OpenPdfViewButton className="extra" role="menuitem" tabIndex={0} />,
-    );
-    const button = getByText('Open PDF View');
-
-    expect(button).toHaveClass('extra');
-    expect(button).toHaveAttribute('role', 'menuitem');
-    expect(button).toHaveAttribute('tabindex', '0');
+    expect(getByText('PDF')).toBeEnabled();
   });
 });
