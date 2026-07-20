@@ -52,17 +52,19 @@ test.describe('keyboard navigation', () => {
     await tabUntil(page, 'File');
 
     const seen: FocusInfo[] = [];
-    for (let i = 0; i < 3; i++) {
+    for (let i = 0; i < 4; i++) {
       await page.keyboard.press('Tab');
       seen.push(await currentFocus(page));
     }
 
     expect(seen.map((f) => f.text)).toEqual([
       'View',
-      // The canvas follows directly -- the Template ribbon retired with
-      // specs/editor-redesign.md Phase 6. First the top gap's inserters
-      // (revealed by focus, WCAG-reachable without hover). The per-layout
-      // "Remove layout" control that used to follow was removed.
+      // Then the Restructure entry button (specs/restructure-view.md)...
+      'Restructure',
+      // ...then the canvas follows directly -- the Template ribbon retired
+      // with specs/editor-redesign.md Phase 6. First the top gap's
+      // inserters (revealed by focus, WCAG-reachable without hover). The
+      // per-layout "Remove layout" control that used to follow was removed.
       '+ One column',
       '+ Two columns',
     ]);

@@ -525,6 +525,33 @@ describe('useAppContext', () => {
     });
   });
 
+  describe('restructure view (specs/restructure-view.md)', () => {
+    it('starts closed', () => {
+      const { result } = renderAppContext();
+      expect(result.current.isRestructuring).toBe(false);
+    });
+
+    it('toggleRestructure with no argument flips it', () => {
+      const { result } = renderAppContext();
+
+      act(() => result.current.toggleRestructure());
+      expect(result.current.isRestructuring).toBe(true);
+
+      act(() => result.current.toggleRestructure());
+      expect(result.current.isRestructuring).toBe(false);
+    });
+
+    it('toggleRestructure with an explicit value sets it directly', () => {
+      const { result } = renderAppContext();
+
+      act(() => result.current.toggleRestructure(true));
+      expect(result.current.isRestructuring).toBe(true);
+
+      act(() => result.current.toggleRestructure(false));
+      expect(result.current.isRestructuring).toBe(false);
+    });
+  });
+
   describe('title', () => {
     it('slugifies the contact name into the PDF title when a CONTACT item exists', () => {
       const { result } = renderAppContext();

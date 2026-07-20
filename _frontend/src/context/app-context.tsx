@@ -41,6 +41,13 @@ export type AppContextType = {
    */
   title: string;
   isModalOpen: boolean; // maybe move to pdf preview context
+  /**
+   * Whether the side-by-side restructure view is open -- the editor
+   * swaps the normal canvas for a two-pane "rebuild the layout" surface
+   * while true (specs/restructure-view.md).
+   */
+  isRestructuring: boolean;
+  toggleRestructure: (value?: boolean) => void;
   items: ContentAll[]; // rename to contentItems
   layouts: LayoutItem[];
   addLayout: (newLayout: LayoutItem) => void;
@@ -120,6 +127,7 @@ export function AppProvider({ children }: AppProviderProps) {
   );
   const [items, setItems] = useState<ContentAll[]>(localStorageUtil.items);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isRestructuring, setIsRestructuring] = useState(false);
   const [editingContentId, setEditingContentId] = useState<ContentId | null>(
     null,
   );
@@ -362,6 +370,10 @@ export function AppProvider({ children }: AppProviderProps) {
     [isModalOpen, items],
   );
 
+  const toggleRestructure = useCallback((value?: boolean) => {
+    setIsRestructuring((prev) => (value === undefined ? !prev : value));
+  }, []);
+
   const title = useMemo(() => {
     const date = toYearMonthDayFormat();
     const contact = items.find(
@@ -411,6 +423,8 @@ export function AppProvider({ children }: AppProviderProps) {
       value={{
         title,
         isModalOpen,
+        isRestructuring,
+        toggleRestructure,
         items,
         layouts,
         addLayout,

@@ -1,0 +1,151 @@
+import { useState } from 'react';
+import { v4 as uuidv4 } from 'uuid';
+
+import { LAYOUTS } from '@/constants';
+import type { ContentAll } from '@/types/content-all';
+import type { ContentId, LayoutId } from '@/types/content-base-item';
+import type { LayoutItem } from '@/types/layouts';
+import type { Zone } from '@/utils/derive-zones';
+
+// Local, isolated working copy of the resume for the restructure view
+// (specs/restructure-view.md). Nothing here touches the live resume until
+// the view calls its Apply -- this hook only owns the *staging* layouts
+// and items, seeded as a deep copy of the resume when the view opens
+// ("copy of current" start, the resolved Open question). All operations
+// are pure array rebuilds so React sees new references.
+
+export type StagingResume = { layouts: LayoutItem[]; items: ContentAll[] };
+
+// JSON round-trip clone: layouts/items are plain serializable data (it's
+// exactly what localStorage stores), so this fully detaches the staging
+// copy from the live arrays -- edits here can never mutate the resume.
+function clone<T>(value: T): T {
+  return JSON.parse(JSON.stringify(value)) as T;
+}
+
+function makeLayout(type: 'SINGLE' | 'DOUBLE'): LayoutItem {
+  if (type === LAYOUTS.DOUBLE) {
+    return {
+      layoutId: uuidv4() as LayoutId,
+      layoutType: LAYOUTS.DOUBLE,
+      layoutLeftId: uuidv4(),
+      layoutRightId: uuidv4(),
+    };
+  }
+  return { layoutId: uuidv4() as LayoutId, layoutType: LAYOUTS.SINGLE };
+}
+
+// Every zone (layoutId) a layout owns: a SINGLE owns its own id, a DOUBLE
+// owns both halves. Used to drop a layout's items when the layout itself
+// is removed.
+function zoneIdsOf(layout: LayoutItem): string[] {
+  if (layout.layoutType === LAYOUTS.DOUBLE) {
+    // layoutType isn't a literal discriminant, so the union doesn't
+    // narrow to LayoutDouble; the half-ids are declared on it, cast past
+    // the `string | undefined` the union view reports.
+    return [layout.layoutLeftId as string, layout.layoutRightId as string];
+  }
+  return [layout.layoutId];
+}
+
+export function useStagingResume(initial: StagingResume) {
+  const [layouts, setLayouts] = useState<LayoutItem[]>(() =>
+    clone(initial.layouts),
+  );
+  const [items, setItems] = useState<ContentAll[]>(() => clone(initial.items));
+
+  const addLayout = (type: 'SINGLE' | 'DOUBLE') => {
+    setLayouts((prev) => [...prev, makeLayout(type)]);
+  };
+
+  const removeLayout = (layoutId: LayoutId) => {
+    setLayouts((prev) => {
+      const target = prev.find((l) => l.layoutId === layoutId);
+      if (target) {
+        const owned = new Set(zoneIdsOf(target));
+        // Drop the removed layout's blocks too -- they have nowhere to
+        // live once their zone is gone (mirrors the live app dropping
+        // orphaned items).
+        setItems((prevItems) =>
+          prevItems.filter((item) => !owned.has(item.layoutId as string)),
+        );
+      }
+      return prev.filter((l) => l.layoutId !== layoutId);
+    });
+  };
+
+  // Reorder a layout box by one step. dir -1 is up, +1 is down; a no-op
+  // at the ends.
+  const moveLayout = (layoutId: LayoutId, dir: -1 | 1) => {
+    setLayouts((prev) => {
+      const index = prev.findIndex((l) => l.layoutId === layoutId);
+      const target = index + dir;
+      if (index === -1 || target < 0 || target >= prev.length) return prev;
+      const next = [...prev];
+      [next[index], next[target]] = [next[target], next[index]];
+      return next;
+    });
+  };
+
+  // Place a *copy* of a palette macro into a staging zone: a fresh
+  // contentId plus the destination zone's layout fields, appended to the
+  // end of that zone (copy semantics -- the source palette is untouched;
+  // matches how moveContentToZone retags a block, minus the removal).
+  const placeMacro = (source: ContentAll, zone: Zone) => {
+    setItems((prev) => [
+      ...prev,
+      {
+        ...source,
+        contentId: uuidv4() as ContentId,
+        layoutId: zone.layoutId,
+        layoutType: zone.layoutType,
+        layoutParentId: zone.layoutParentId,
+      },
+    ]);
+  };
+
+  const removeItem = (contentId: ContentId) => {
+    setItems((prev) => prev.filter((item) => item.contentId !== contentId));
+  };
+
+  // Reorder a placed macro within its own zone (swap with the nearest
+  // same-zone neighbour in the given direction), skipping over any items
+  // that belong to other zones in the flat array -- same zone-awareness
+  // as the live app's Move up/down (specs/editor-redesign.md, Phase 7).
+  const moveItem = (contentId: ContentId, dir: -1 | 1) => {
+    setItems((prev) => {
+      const index = prev.findIndex((item) => item.contentId === contentId);
+      if (index === -1) return prev;
+      const zoneId = prev[index].layoutId;
+      let neighbour = index + dir;
+      while (
+        neighbour >= 0 &&
+        neighbour < prev.length &&
+        prev[neighbour].layoutId !== zoneId
+      ) {
+        neighbour += dir;
+      }
+      if (neighbour < 0 || neighbour >= prev.length) return prev;
+      const next = [...prev];
+      [next[index], next[neighbour]] = [next[neighbour], next[index]];
+      return next;
+    });
+  };
+
+  const clear = () => {
+    setLayouts([]);
+    setItems([]);
+  };
+
+  return {
+    layouts,
+    items,
+    addLayout,
+    removeLayout,
+    moveLayout,
+    placeMacro,
+    removeItem,
+    moveItem,
+    clear,
+  };
+}

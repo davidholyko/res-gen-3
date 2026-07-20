@@ -1,14 +1,26 @@
 import c from 'classnames';
 
 import CanvasEditPanel from '@/components/modals/canvas-edit-panel';
+import RestructureView from '@/components/restructure/restructure-view';
 import { useAppContext } from '@/context/app-context';
 import LayoutManager from '@/managers/layout-manager';
 
 // No Template ribbon above the canvas anymore (specs/editor-redesign.md,
 // Phase 6): content is added via each zone's "+ Add block" control.
 export default function Main() {
-  const { canvasEditingContentId } = useAppContext();
+  const { canvasEditingContentId, isRestructuring } = useAppContext();
   const isPanelOpen = canvasEditingContentId !== null;
+
+  // The restructure view takes over the whole editor area while open
+  // (specs/restructure-view.md) -- it's a two-pane rebuild surface, not
+  // something that sits beside the normal single canvas.
+  if (isRestructuring) {
+    return (
+      <main className="flex flex-row justify-center">
+        <RestructureView />
+      </main>
+    );
+  }
 
   return (
     // overflow-x-clip, not overflow-x-hidden: hidden creates a scroll
