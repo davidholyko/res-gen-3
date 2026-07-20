@@ -76,9 +76,17 @@ export default function RestructureStagingZone({
           zoneItems.map((item, index) => {
             const { typeLabel } = deriveMacroLabel(item);
             return (
-              <div key={item.contentId} className="flex gap-1 py-0.5">
-                {/* Left action gutter -- always visible, never over the
-                    content (specs/wysiwyg-staging.md). */}
+              // Hover (or keyboard-focus) highlights the whole macro row --
+              // the styled content and its side action gutter together --
+              // so it's clear which block the gutter's controls act on.
+              <div
+                key={item.contentId}
+                className="group flex gap-1 rounded px-1 py-0.5 transition-colors hover:bg-cyan-50 focus-within:bg-cyan-50"
+              >
+                {/* Left action gutter -- never over the content
+                    (specs/wysiwyg-staging.md). It sits inside the row's
+                    hover/focus highlight, so the controls light up with
+                    their block. */}
                 <div className="flex flex-col gap-0.5">
                   <button
                     type="button"

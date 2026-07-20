@@ -98,7 +98,10 @@ resume behind one undo snapshot.
   vertical controls strip (move up / move down / remove) in a gutter to
   its left, rather than an overlay chip/bar. It never covers the block's
   content, at the cost of a small permanent left margin on each block in
-  the staging pane. Keyboard-reachable.
+  the staging pane. Keyboard-reachable. Hovering (or keyboard-focusing) a
+  block highlights the whole row -- the styled content and its gutter
+  together (a light cyan `hover:bg-cyan-50` / `focus-within:bg-cyan-50`)
+  -- so it's clear which block the controls act on.
 - **Drops land at the end of the zone.** Dropping a palette macro (or
   "Send to…") appends it to the bottom of the target zone -- today's
   behavior; reorder afterward with the gutter's up/down. No
