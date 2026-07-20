@@ -23,11 +23,10 @@ afterEach(() => {
 });
 
 describe('App', () => {
-  it('renders the resume modal, control panel, and main editor area together', () => {
+  it('renders the control panel and main editor area together', () => {
     seedLocalStorage();
-    // Mirrors the exact provider nesting (and #res-gen root id, which
-    // ResumeModal's Modal.setAppElement('#res-gen') call depends on)
-    // page.tsx wraps App in.
+    // Mirrors the exact provider nesting (and #res-gen root id) page.tsx
+    // wraps App in.
     const { container, getByText } = render(
       <div id="res-gen">
         <AppProvider>
@@ -42,7 +41,8 @@ describe('App', () => {
 
     expect(getByText('Res Gen 3')).not.toBeNull();
     expect(container.querySelector('.layout-single')).not.toBeNull();
-    // ResumeModal is closed by default, so it doesn't portal any content.
+    // The PDF view is closed by default, so no preview frame renders --
+    // Main shows the canvas instead.
     expect(container.querySelector('iframe')).toBeNull();
   });
 

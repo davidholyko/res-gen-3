@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import Modal from 'react-modal';
 
 import { useAppContext } from '@/context/app-context';
 import { usePdfInstance } from '@/context/pdf-instance-context';
@@ -8,14 +7,13 @@ import PdfPreview from '@/pdf/pdf-preview';
 import PdfModalTopBar from '../sub-components/pdf-modal-top-bar';
 import EditPanel from './edit-panel';
 
-const customStyles = {
-  content: {
-    overflow: 'hidden',
-    padding: '0',
-  },
-};
-
-export default function ResumeModal() {
+// The PDF preview surface. It takes over the editor area (rendered by
+// main.tsx while `isModalOpen`) rather than floating as an overlay --
+// same "the view replaces the canvas" model as the restructure view, so
+// the control bar stays put and the PDF button reads as active. In view
+// mode it's just the preview; while a block is being edited it docks the
+// live edit panel beside it (specs/edit-with-live-pdf-preview.md).
+export default function PdfView() {
   const { isModalOpen, togglePdfModal, editingContentId } = useAppContext();
   const { pageCount } = usePdfInstance();
   const [anchorPage, setAnchorPage] = useState(1);
@@ -26,19 +24,6 @@ export default function ResumeModal() {
   const effectiveAnchorPage = pageCount
     ? Math.min(anchorPage, pageCount)
     : anchorPage;
-
-  const onClose = () => {
-    togglePdfModal(false);
-  };
-
-  useEffect(() => {
-    // Registers the real app root so react-modal can mark it aria-hidden
-    // while the modal is open, keeping screen reader users from tabbing
-    // into background content. `#res-gen` (rendered by src/app/page.tsx)
-    // is always mounted by the time this component mounts, since
-    // ResumeModal only ever renders inside it.
-    Modal.setAppElement('#res-gen');
-  }, []);
 
   useEffect(() => {
     // A fresh open always starts at page 1 -- the anchor is session
@@ -67,30 +52,25 @@ export default function ResumeModal() {
     };
   }, [isModalOpen, togglePdfModal]);
 
+  if (!isModalOpen) return null;
+
   return (
-    <Modal
-      isOpen={isModalOpen}
-      onRequestClose={onClose}
-      style={customStyles}
-      contentLabel="Resume PDF Preview Modal"
-    >
-      <div className="flex h-full flex-col">
-        <PdfModalTopBar
-          anchorPage={effectiveAnchorPage}
-          onAnchorPageChange={setAnchorPage}
-        />
-        {/* Below a sane minimum the content scrolls horizontally rather
-            than letting the panel collapse onto or over the preview
-            (specs/edit-with-live-pdf-preview.md, Decisions). */}
-        <div className="grow overflow-x-auto">
-          <div className="flex h-full min-w-[56rem]">
-            <div className="grow h-full">
-              <PdfPreview anchorPage={effectiveAnchorPage} />
-            </div>
-            {editingContentId !== null && <EditPanel />}
+    <div className="flex h-full w-full flex-col bg-white">
+      <PdfModalTopBar
+        anchorPage={effectiveAnchorPage}
+        onAnchorPageChange={setAnchorPage}
+      />
+      {/* Below a sane minimum the content scrolls horizontally rather
+          than letting the panel collapse onto or over the preview
+          (specs/edit-with-live-pdf-preview.md, Decisions). */}
+      <div className="grow overflow-x-auto">
+        <div className="flex h-full min-w-[56rem]">
+          <div className="grow h-full">
+            <PdfPreview anchorPage={effectiveAnchorPage} />
           </div>
+          {editingContentId !== null && <EditPanel />}
         </div>
       </div>
-    </Modal>
+    </div>
   );
 }

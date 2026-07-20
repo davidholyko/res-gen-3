@@ -6,6 +6,8 @@ const { togglePdfModalMock, contextState } = vi.hoisted(() => ({
   contextState: {
     items: [] as unknown[],
     layouts: [] as unknown[],
+    isModalOpen: false,
+    editingContentId: null as string | null,
   },
 }));
 vi.mock('@/context/app-context', async (importOriginal) => {
@@ -16,6 +18,8 @@ vi.mock('@/context/app-context', async (importOriginal) => {
       togglePdfModal: togglePdfModalMock,
       items: contextState.items,
       layouts: contextState.layouts,
+      isModalOpen: contextState.isModalOpen,
+      editingContentId: contextState.editingContentId,
     }),
   };
 });
@@ -26,6 +30,8 @@ beforeEach(() => {
   togglePdfModalMock.mockReset();
   contextState.items = [];
   contextState.layouts = [];
+  contextState.isModalOpen = false;
+  contextState.editingContentId = null;
 });
 
 describe('PdfButton', () => {
@@ -51,5 +57,22 @@ describe('PdfButton', () => {
     const { getByText } = render(<PdfButton />);
 
     expect(getByText('PDF')).toBeEnabled();
+  });
+
+  it('reads as pressed while the plain PDF view is open', () => {
+    contextState.items = [{ contentId: 'a' }];
+    contextState.isModalOpen = true;
+    const { getByText } = render(<PdfButton />);
+
+    expect(getByText('PDF')).toHaveAttribute('aria-pressed', 'true');
+  });
+
+  it('is not pressed when the surface is the edit-with-preview flow', () => {
+    contextState.items = [{ contentId: 'a' }];
+    contextState.isModalOpen = true;
+    contextState.editingContentId = 'a';
+    const { getByText } = render(<PdfButton />);
+
+    expect(getByText('PDF')).toHaveAttribute('aria-pressed', 'false');
   });
 });
