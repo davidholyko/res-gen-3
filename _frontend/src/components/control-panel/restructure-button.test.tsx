@@ -25,15 +25,19 @@ beforeEach(() => {
 });
 
 describe('RestructureButton', () => {
-  it('opens the restructure view when clicked', () => {
+  it('toggles the restructure view when clicked', () => {
     const { getByText } = render(<RestructureButton />);
     fireEvent.click(getByText('Restructure'));
-    expect(toggleRestructure).toHaveBeenCalledWith(true);
+    // No argument: the app context toggles the current value, so the
+    // same button both opens and closes the view.
+    expect(toggleRestructure).toHaveBeenCalledWith();
   });
 
-  it('renders nothing while the restructure view is already open', () => {
+  it('stays in the bar and reads as pressed while the view is open', () => {
     contextState.isRestructuring = true;
-    const { container } = render(<RestructureButton />);
-    expect(container).toBeEmptyDOMElement();
+    const { getByText } = render(<RestructureButton />);
+    const button = getByText('Restructure');
+    expect(button).not.toBeNull();
+    expect(button).toHaveAttribute('aria-pressed', 'true');
   });
 });

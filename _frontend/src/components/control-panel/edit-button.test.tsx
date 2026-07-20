@@ -6,7 +6,6 @@ const { focusCanvasBlockMock, contextState } = vi.hoisted(() => ({
   contextState: {
     items: [] as { contentId: string; layoutId?: string }[],
     layouts: [] as { layoutId: string; layoutType: string }[],
-    isRestructuring: false,
   },
 }));
 vi.mock('@/context/app-context', async (importOriginal) => {
@@ -17,7 +16,6 @@ vi.mock('@/context/app-context', async (importOriginal) => {
       focusCanvasBlock: focusCanvasBlockMock,
       items: contextState.items,
       layouts: contextState.layouts,
-      isRestructuring: contextState.isRestructuring,
     }),
   };
 });
@@ -28,7 +26,6 @@ beforeEach(() => {
   focusCanvasBlockMock.mockReset();
   contextState.items = [];
   contextState.layouts = [];
-  contextState.isRestructuring = false;
 });
 
 describe('EditButton', () => {
@@ -67,14 +64,5 @@ describe('EditButton', () => {
     fireEvent.click(getByText('Edit'));
 
     expect(focusCanvasBlockMock).toHaveBeenCalledWith('orphan');
-  });
-
-  it('renders nothing while restructuring', () => {
-    contextState.items = [{ contentId: 'a', layoutId: 'L1' }];
-    contextState.layouts = [{ layoutId: 'L1', layoutType: 'SINGLE' }];
-    contextState.isRestructuring = true;
-    const { queryByText } = render(<EditButton />);
-
-    expect(queryByText('Edit')).toBeNull();
   });
 });
