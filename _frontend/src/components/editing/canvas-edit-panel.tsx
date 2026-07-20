@@ -16,7 +16,7 @@ export default function CanvasEditPanel() {
     (item) => item.contentId === canvasEditingContentId,
   );
 
-  // Same treatment as the modal's panel: focus lands in the form.
+  // Same treatment as the PDF view's panel: focus lands in the form.
   // Deferred a tick so it runs after the block's own focus() (the
   // lastCreatedContentId reveal) has settled.
   const panelRef = useRef<HTMLDivElement>(null);

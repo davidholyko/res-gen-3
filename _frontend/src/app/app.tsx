@@ -1,15 +1,16 @@
 import React from 'react';
 
 import ControlPanel from '@/components/control-panel/control-panel';
-import ResumeModal from '@/components/modals/resume-modal';
 import UndoToast from '@/components/undo-toast';
 
 import Main from './main';
 
+// The PDF preview is an inline view Main swaps in for the canvas while
+// `isPdfViewOpen` (see main.tsx), the same way it swaps in the
+// restructure view.
 export default function App() {
   return (
     <>
-      <ResumeModal />
       <ControlPanel />
       <Main />
       <UndoToast />

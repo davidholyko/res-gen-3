@@ -1,7 +1,9 @@
 import { fireEvent, render } from '@testing-library/react';
 import { afterEach, describe, expect, it } from 'vitest';
 
-import { useAppContext } from '@/context/app-context';
+import { AppProvider, useAppContext } from '@/context/app-context';
+import { PdfInstanceProvider } from '@/context/pdf-instance-context';
+import { PdfPreviewProvider } from '@/context/pdf-preview-context';
 import { AllProviders } from '@/test-providers';
 
 import Main from './main';
@@ -82,6 +84,40 @@ describe('Main', () => {
     fireEvent.click(getByText('go'));
 
     expect(getByLabelText('Restructure resume')).not.toBeNull();
+    expect(queryByTestId('edit-panel-gutter')).toBeNull();
+  });
+
+  it('swaps the canvas for the inline PDF view while the preview is open', () => {
+    seedLocalStorage();
+
+    function Harness() {
+      const { togglePdfView } = useAppContext();
+      return (
+        <>
+          <button onClick={() => togglePdfView(true)}>go</button>
+          <Main />
+        </>
+      );
+    }
+
+    // The PDF view pulls from the shared PDF instance, so it needs the
+    // same provider stack page.tsx wraps the app in -- more than the bare
+    // AppProvider the other cases use.
+    const { getByText, getByLabelText, queryByTestId } = render(
+      <AppProvider>
+        <PdfPreviewProvider>
+          <PdfInstanceProvider>
+            <Harness />
+          </PdfInstanceProvider>
+        </PdfPreviewProvider>
+      </AppProvider>,
+    );
+
+    expect(queryByTestId('edit-panel-gutter')).not.toBeNull();
+
+    fireEvent.click(getByText('go'));
+
+    expect(getByLabelText('Exit PDF View Button')).not.toBeNull();
     expect(queryByTestId('edit-panel-gutter')).toBeNull();
   });
 });

@@ -2,10 +2,11 @@ import c from 'classnames';
 import { useMemo } from 'react';
 
 import pkg from '../../../package.json';
+import EditButton from './edit-button';
 import FileMenu from './control-panel-file-menu';
 import PageCountIndicator from './page-count-indicator';
+import PdfButton from './pdf-button';
 import RestructureButton from './restructure-button';
-import ViewMenu from './control-panel-view-menu';
 import SavedIndicator from './saved-indicator';
 
 export default function ControlPanel() {
@@ -35,7 +36,8 @@ export default function ControlPanel() {
           onto the canvas beside "+ Add block"
           (specs/add-layout-beside-add-block.md). */}
       <FileMenu />
-      <ViewMenu />
+      <EditButton />
+      <PdfButton />
       <RestructureButton />
       <div className="ml-auto flex items-center gap-2">
         <PageCountIndicator />

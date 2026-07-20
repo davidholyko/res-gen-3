@@ -194,3 +194,26 @@ implementation; each decision is reflected in Design above.
 - The `~450ms` live debounce felt responsive against the 2-page example
   resume in the e2e runs; no backoff was needed yet. Re-measure if
   real-world resumes grow much larger.
+
+## Later change: preview is an inline view, not a modal
+
+The PDF preview no longer floats as a `react-modal` overlay. It's now an
+inline view that **replaces the editor area** (`Main` swaps it in while
+`isModalOpen`, the same mechanism as the restructure view), keeping the
+control bar visible above it. Rationale:
+
+- **A stable control bar.** The bar (`File · Edit · PDF · Restructure`)
+  stays put across every view instead of being covered, so the buttons
+  never appear/disappear, and the active view is shown by highlighting
+  its button — `PDF` reads as pressed while the preview is open, matching
+  `Edit` (block focused) and `Restructure`.
+- **Consistency.** Restructure already used the "view replaces the
+  canvas" model; the preview now matches it rather than being a special
+  overlay with its own focus-trap/`setAppElement`/overlay-click plumbing.
+
+What carried over unchanged: the blue top bar with the page stepper and
+an Exit (✕) control, Escape-to-close, the docked edit panel while a block
+is being edited, and the double-buffered live refresh. `ResumeModal`
+became `PdfView` (`components/modals/pdf-view.tsx`); `react-modal` is no
+longer used. Restructure is checked before the preview in `Main` so its
+in-progress staging is never unmounted.

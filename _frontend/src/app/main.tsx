@@ -1,6 +1,7 @@
 import c from 'classnames';
 
-import CanvasEditPanel from '@/components/modals/canvas-edit-panel';
+import CanvasEditPanel from '@/components/editing/canvas-edit-panel';
+import PdfView from '@/components/editing/pdf-view';
 import RestructureView from '@/components/restructure/restructure-view';
 import { useAppContext } from '@/context/app-context';
 import LayoutManager from '@/managers/layout-manager';
@@ -8,16 +9,30 @@ import LayoutManager from '@/managers/layout-manager';
 // No Template ribbon above the canvas anymore (specs/editor-redesign.md,
 // Phase 6): content is added via each zone's "+ Add block" control.
 export default function Main() {
-  const { canvasEditingContentId, isRestructuring } = useAppContext();
+  const { canvasEditingContentId, isRestructuring, isPdfViewOpen } =
+    useAppContext();
   const isPanelOpen = canvasEditingContentId !== null;
 
   // The restructure view takes over the whole editor area while open
   // (specs/restructure-view.md) -- it's a two-pane rebuild surface, not
-  // something that sits beside the normal single canvas.
+  // something that sits beside the normal single canvas. Checked before
+  // the PDF view so its in-progress staging (held in that component's
+  // state) is never unmounted out from under the user.
   if (isRestructuring) {
     return (
       <main className="flex flex-row justify-center">
         <RestructureView />
+      </main>
+    );
+  }
+
+  // The PDF preview likewise takes over the editor area rather than
+  // floating as an overlay -- the control bar stays visible above it.
+  // Sized to the space below that bar so the preview fills the viewport.
+  if (isPdfViewOpen) {
+    return (
+      <main className="h-[calc(100vh-3.25rem)]">
+        <PdfView />
       </main>
     );
   }

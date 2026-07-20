@@ -14,7 +14,7 @@ type PdfPreviewProps = {
   // 1-based page the frame (re)opens on -- the "tracked as best we can"
   // anchor from specs/edit-with-live-pdf-preview.md. The native PDF
   // viewer's own scroll state is unreadable from JS (it lives in a
-  // closed plugin frame), so this is driven by the modal's explicit
+  // closed plugin frame), so this is driven by the view's explicit
   // page stepper.
   anchorPage?: number;
 };
@@ -22,10 +22,10 @@ type PdfPreviewProps = {
 export default function PdfPreview({ anchorPage = 1 }: PdfPreviewProps) {
   const { title } = useAppContext();
   // Shared instance, not its own usePDF() call: PdfInstanceProvider
-  // (mounted once, above both this modal and the always-visible
+  // (mounted once, above both this view and the always-visible
   // page-count indicator) owns the actual render -- this avoids two
   // separate render pipelines for the same content, and means the
-  // modal usually opens against an already-rendered instance instead of
+  // view usually opens against an already-rendered instance instead of
   // cold-starting its own render every time
   // (specs/multi-page-indicator.md).
   const { instance } = usePdfInstance();

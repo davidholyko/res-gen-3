@@ -18,7 +18,7 @@ import PdfDocument from '@/pdf/pdf-document';
 // Debounced, not on every keystroke: this render pass is real work
 // (specs/app-ux-improvements.md, Finding 10), and this instance is now
 // shared by both the always-mounted page-count indicator and the
-// preview modal, not just the modal on demand
+// preview view, not just the view on demand
 // (specs/multi-page-indicator.md).
 const RENDER_DEBOUNCE_MS = 1750;
 // While the editing view is open, the preview is a typing companion --

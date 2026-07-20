@@ -370,7 +370,7 @@ describe('useAppContext', () => {
   });
 
   describe('editing sessions (specs/edit-with-live-pdf-preview.md)', () => {
-    it('openEditingView selects the block and opens the modal', () => {
+    it('openEditingView selects the block and opens the PDF view', () => {
       const { result } = renderAppContext();
 
       act(() => {
@@ -378,7 +378,7 @@ describe('useAppContext', () => {
       });
 
       expect(result.current.editingContentId).toBe(CONTACT_ITEM.contentId);
-      expect(result.current.isModalOpen).toBe(true);
+      expect(result.current.isPdfViewOpen).toBe(true);
     });
 
     it('closing after a save pushes a "Block edited" snapshot that restores the pre-session state', () => {
@@ -395,7 +395,7 @@ describe('useAppContext', () => {
         } as ContentAll);
       });
       act(() => {
-        result.current.togglePdfModal(false);
+        result.current.togglePdfView(false);
       });
 
       expect(result.current.editingContentId).toBeNull();
@@ -414,7 +414,7 @@ describe('useAppContext', () => {
         result.current.openEditingView(CONTACT_ITEM.contentId);
       });
       act(() => {
-        result.current.togglePdfModal(false);
+        result.current.togglePdfView(false);
       });
 
       expect(result.current.undoSnapshot).toBeNull();
@@ -443,7 +443,7 @@ describe('useAppContext', () => {
         } as ContentAll);
       });
       act(() => {
-        result.current.togglePdfModal(false);
+        result.current.togglePdfView(false);
       });
 
       act(() => {
@@ -456,10 +456,10 @@ describe('useAppContext', () => {
       const { result } = renderAppContext();
 
       act(() => {
-        result.current.togglePdfModal(true);
+        result.current.togglePdfView(true);
       });
       act(() => {
-        result.current.togglePdfModal(false);
+        result.current.togglePdfView(false);
       });
 
       expect(result.current.undoSnapshot).toBeNull();
@@ -468,28 +468,28 @@ describe('useAppContext', () => {
   });
 
   describe('visibility toggles', () => {
-    it('togglePdfModal with no argument flips isModalOpen', () => {
+    it('togglePdfView with no argument flips isPdfViewOpen', () => {
       const { result } = renderAppContext();
 
       act(() => {
-        result.current.togglePdfModal();
+        result.current.togglePdfView();
       });
 
-      expect(result.current.isModalOpen).toBe(true);
+      expect(result.current.isPdfViewOpen).toBe(true);
     });
 
-    it('togglePdfModal with an explicit value sets it directly', () => {
+    it('togglePdfView with an explicit value sets it directly', () => {
       const { result } = renderAppContext();
 
       act(() => {
-        result.current.togglePdfModal(true);
+        result.current.togglePdfView(true);
       });
-      expect(result.current.isModalOpen).toBe(true);
+      expect(result.current.isPdfViewOpen).toBe(true);
 
       act(() => {
-        result.current.togglePdfModal(false);
+        result.current.togglePdfView(false);
       });
-      expect(result.current.isModalOpen).toBe(false);
+      expect(result.current.isPdfViewOpen).toBe(false);
     });
   });
 
@@ -517,6 +517,44 @@ describe('useAppContext', () => {
 
       act(() => result.current.toggleRestructure(false));
       expect(result.current.isRestructuring).toBe(false);
+    });
+  });
+
+  describe('the three editor views are mutually exclusive', () => {
+    it('opening the PDF view leaves restructure', () => {
+      const { result } = renderAppContext();
+
+      act(() => result.current.toggleRestructure(true));
+      act(() => result.current.togglePdfView(true));
+
+      expect(result.current.isPdfViewOpen).toBe(true);
+      expect(result.current.isRestructuring).toBe(false);
+    });
+
+    it('focusing a canvas block leaves the PDF and restructure views', () => {
+      const { result } = renderAppContext();
+
+      act(() => result.current.toggleRestructure(true));
+      act(() => result.current.focusCanvasBlock(CONTACT_ITEM.contentId));
+
+      expect(result.current.canvasEditingContentId).toBe(
+        CONTACT_ITEM.contentId,
+      );
+      expect(result.current.isRestructuring).toBe(false);
+      expect(result.current.isPdfViewOpen).toBe(false);
+    });
+
+    it('entering restructure closes the PDF view and any docked edit panel', () => {
+      const { result } = renderAppContext();
+
+      act(() => result.current.openEditingView(CONTACT_ITEM.contentId));
+      expect(result.current.isPdfViewOpen).toBe(true);
+
+      act(() => result.current.toggleRestructure(true));
+
+      expect(result.current.isRestructuring).toBe(true);
+      expect(result.current.isPdfViewOpen).toBe(false);
+      expect(result.current.editingContentId).toBeNull();
     });
   });
 

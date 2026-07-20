@@ -40,7 +40,7 @@ export type AppContextType = {
    * title refers to the name of the PDF when a user downloads from browser
    */
   title: string;
-  isModalOpen: boolean; // maybe move to pdf preview context
+  isPdfViewOpen: boolean; // maybe move to pdf preview context
   /**
    * Whether the side-by-side restructure view is open -- the editor
    * swaps the normal canvas for a two-pane "rebuild the layout" surface
@@ -70,10 +70,10 @@ export type AppContextType = {
       layoutParentId?: LayoutId;
     },
   ) => void;
-  togglePdfModal: (value?: boolean) => void;
+  togglePdfView: (value?: boolean) => void;
   /**
    * The block whose form is docked beside the live PDF preview, or null
-   * when the modal is closed / in view-only mode
+   * when the PDF view is closed / in view-only mode
    * (specs/edit-with-live-pdf-preview.md).
    */
   editingContentId: ContentId | null;
@@ -93,7 +93,7 @@ export type AppContextType = {
   /**
    * Opens the editing view on a block (or switches blocks if it's
    * already open). The first open of a session captures the pre-session
-   * state; closing the modal pushes it as a "Block edited" undo
+   * state; closing the PDF view pushes it as a "Block edited" undo
    * snapshot -- but only if something was actually saved meanwhile.
    */
   openEditingView: (contentId: ContentId) => void;
@@ -124,7 +124,7 @@ export function AppProvider({ children }: AppProviderProps) {
     localStorageUtil.layouts,
   );
   const [items, setItems] = useState<ContentAll[]>(localStorageUtil.items);
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isPdfViewOpen, setIsPdfViewOpen] = useState(false);
   const [isRestructuring, setIsRestructuring] = useState(false);
   const [editingContentId, setEditingContentId] = useState<ContentId | null>(
     null,
@@ -132,10 +132,10 @@ export function AppProvider({ children }: AppProviderProps) {
   const [canvasEditingContentId, setCanvasEditingContentId] =
     useState<ContentId | null>(null);
   // Pre-session state, captured on the first openEditingView of a
-  // session and pushed as the undo snapshot when the modal closes --
+  // session and pushed as the undo snapshot when the PDF view closes --
   // push-on-close rather than push-on-open/first-save so the toast is
   // actually visible (and its auto-dismiss window running) when the
-  // user is back where they can click it, not hidden behind the modal
+  // user is back where they can click it, not hidden behind the PDF view
   // (specs/edit-with-live-pdf-preview.md).
   const editSessionRef = useRef<{
     items: ContentAll[];
@@ -308,6 +308,17 @@ export function AppProvider({ children }: AppProviderProps) {
   );
 
   const focusCanvasBlock = useCallback((contentId: ContentId) => {
+    // Focusing a block means "take me to the canvas to edit it", so it
+    // leaves whichever full-editor view was up (PDF preview or
+    // restructure). This is what makes the Edit button work from those
+    // views and not just from the canvas -- the three views are mutually
+    // exclusive, and entering one exits the others. Setting a flag that
+    // is already false is a no-op re-render, so the common case (focusing
+    // a block while already on the canvas) costs nothing.
+    setIsRestructuring(false);
+    setIsPdfViewOpen(false);
+    setEditingContentId(null);
+    editSessionRef.current = null;
     setCanvasEditingContentId(contentId);
   }, []);
 
@@ -325,20 +336,27 @@ export function AppProvider({ children }: AppProviderProps) {
         editSessionRef.current = { items, layouts };
       }
       setEditingContentId(contentId);
-      setIsModalOpen(true);
+      setIsPdfViewOpen(true);
     },
     [items, layouts],
   );
 
-  const togglePdfModal = useCallback(
+  const togglePdfView = useCallback(
     (value?: boolean) => {
-      const next = value === undefined ? !isModalOpen : value;
+      const next = value === undefined ? !isPdfViewOpen : value;
+
+      // Opening the preview leaves the restructure view -- the two are
+      // mutually exclusive full-editor views, so the PDF button works
+      // from restructure instead of appearing dead.
+      if (next) {
+        setIsRestructuring(false);
+      }
 
       if (!next) {
         const session = editSessionRef.current;
         // Items identity only changes when a save actually landed, so
         // this is exactly the "nothing saved -> no snapshot" rule.
-        // (layouts can't change while the modal is open -- the canvas
+        // (layouts can't change while the PDF view is open -- the canvas
         // is unreachable behind it.)
         if (session && session.items !== items) {
           setUndoSnapshot({ ...session, description: 'Block edited' });
@@ -347,14 +365,29 @@ export function AppProvider({ children }: AppProviderProps) {
         setEditingContentId(null);
       }
 
-      setIsModalOpen(next);
+      setIsPdfViewOpen(next);
     },
-    [isModalOpen, items],
+    [isPdfViewOpen, items],
   );
 
-  const toggleRestructure = useCallback((value?: boolean) => {
-    setIsRestructuring((prev) => (value === undefined ? !prev : value));
-  }, []);
+  const toggleRestructure = useCallback(
+    (value?: boolean) => {
+      const next = value === undefined ? !isRestructuring : value;
+
+      // Entering restructure closes the PDF preview and any docked edit
+      // panel, so it fully takes over the editor area -- the three views
+      // stay mutually exclusive whichever way you enter this one.
+      if (next) {
+        setIsPdfViewOpen(false);
+        setEditingContentId(null);
+        editSessionRef.current = null;
+        setCanvasEditingContentId(null);
+      }
+
+      setIsRestructuring(next);
+    },
+    [isRestructuring],
+  );
 
   const title = useMemo(() => {
     const date = toYearMonthDayFormat();
@@ -404,7 +437,7 @@ export function AppProvider({ children }: AppProviderProps) {
     <AppContext.Provider
       value={{
         title,
-        isModalOpen,
+        isPdfViewOpen,
         isRestructuring,
         toggleRestructure,
         items,
@@ -415,7 +448,7 @@ export function AppProvider({ children }: AppProviderProps) {
         onCreate,
         onMove,
         moveContentToZone,
-        togglePdfModal,
+        togglePdfView,
         editingContentId,
         openEditingView,
         canvasEditingContentId,

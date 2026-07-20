@@ -37,10 +37,11 @@ describe('ControlPanel', () => {
 
     expect(getByText('Res Gen 3')).not.toBeNull();
     expect(getByText('File')).not.toBeNull();
-    // No Edit menu: its add-layout actions moved onto the canvas
-    // (specs/add-layout-beside-add-block.md).
-    expect(queryByText('Edit')).toBeNull();
-    expect(getByText('View')).not.toBeNull();
+    expect(getByText('Edit')).not.toBeNull();
+    expect(getByText('PDF')).not.toBeNull();
+    // View menu retired: its lone "Open PDF View" action is now the
+    // top-level PDF button.
+    expect(queryByText('View')).toBeNull();
     expect(getByText(`v${pkg.version}`)).not.toBeNull();
   });
 
