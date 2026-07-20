@@ -1,16 +1,14 @@
 import type { ContentParagraph } from '@/types/content-paragraph';
 
 import BaseMacro from './base-macro';
+import ParagraphContent from './contents/paragraph-content';
 
 type ParagraphMacroProps = ContentParagraph;
 
 export default function ParagraphMacro(props: ParagraphMacroProps) {
-  const { content } = props;
-  const { paragraph } = content;
-
   return (
     <BaseMacro {...props}>
-      <p className="mt-1">{paragraph}</p>
+      <ParagraphContent content={props.content} />
     </BaseMacro>
   );
 }

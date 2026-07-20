@@ -78,7 +78,10 @@ export default function RestructureView() {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
+      {/* Staging gets more room than the palette -- it renders the real
+          styled resume now (specs/wysiwyg-staging.md), the palette is just
+          compact source cards. */}
+      <div className="grid grid-cols-[2fr_3fr] gap-4">
         {/* Left: read-only palette of the current resume's macros. */}
         <div aria-label="Your resume" className="flex flex-col gap-3">
           {paletteZones.map((zone) => {

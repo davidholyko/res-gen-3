@@ -1,5 +1,5 @@
 ---
-status: draft
+status: implemented
 ---
 
 # Restructure staging renders the real styled resume (WYSIWYG)
