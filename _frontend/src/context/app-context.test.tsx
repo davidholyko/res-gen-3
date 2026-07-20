@@ -520,6 +520,44 @@ describe('useAppContext', () => {
     });
   });
 
+  describe('the three editor views are mutually exclusive', () => {
+    it('opening the PDF view leaves restructure', () => {
+      const { result } = renderAppContext();
+
+      act(() => result.current.toggleRestructure(true));
+      act(() => result.current.togglePdfView(true));
+
+      expect(result.current.isPdfViewOpen).toBe(true);
+      expect(result.current.isRestructuring).toBe(false);
+    });
+
+    it('focusing a canvas block leaves the PDF and restructure views', () => {
+      const { result } = renderAppContext();
+
+      act(() => result.current.toggleRestructure(true));
+      act(() => result.current.focusCanvasBlock(CONTACT_ITEM.contentId));
+
+      expect(result.current.canvasEditingContentId).toBe(
+        CONTACT_ITEM.contentId,
+      );
+      expect(result.current.isRestructuring).toBe(false);
+      expect(result.current.isPdfViewOpen).toBe(false);
+    });
+
+    it('entering restructure closes the PDF view and any docked edit panel', () => {
+      const { result } = renderAppContext();
+
+      act(() => result.current.openEditingView(CONTACT_ITEM.contentId));
+      expect(result.current.isPdfViewOpen).toBe(true);
+
+      act(() => result.current.toggleRestructure(true));
+
+      expect(result.current.isRestructuring).toBe(true);
+      expect(result.current.isPdfViewOpen).toBe(false);
+      expect(result.current.editingContentId).toBeNull();
+    });
+  });
+
   describe('title', () => {
     it('slugifies the contact name into the PDF title when a CONTACT item exists', () => {
       const { result } = renderAppContext();

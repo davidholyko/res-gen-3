@@ -308,6 +308,17 @@ export function AppProvider({ children }: AppProviderProps) {
   );
 
   const focusCanvasBlock = useCallback((contentId: ContentId) => {
+    // Focusing a block means "take me to the canvas to edit it", so it
+    // leaves whichever full-editor view was up (PDF preview or
+    // restructure). This is what makes the Edit button work from those
+    // views and not just from the canvas -- the three views are mutually
+    // exclusive, and entering one exits the others. Setting a flag that
+    // is already false is a no-op re-render, so the common case (focusing
+    // a block while already on the canvas) costs nothing.
+    setIsRestructuring(false);
+    setIsPdfViewOpen(false);
+    setEditingContentId(null);
+    editSessionRef.current = null;
     setCanvasEditingContentId(contentId);
   }, []);
 
@@ -334,6 +345,13 @@ export function AppProvider({ children }: AppProviderProps) {
     (value?: boolean) => {
       const next = value === undefined ? !isPdfViewOpen : value;
 
+      // Opening the preview leaves the restructure view -- the two are
+      // mutually exclusive full-editor views, so the PDF button works
+      // from restructure instead of appearing dead.
+      if (next) {
+        setIsRestructuring(false);
+      }
+
       if (!next) {
         const session = editSessionRef.current;
         // Items identity only changes when a save actually landed, so
@@ -352,9 +370,24 @@ export function AppProvider({ children }: AppProviderProps) {
     [isPdfViewOpen, items],
   );
 
-  const toggleRestructure = useCallback((value?: boolean) => {
-    setIsRestructuring((prev) => (value === undefined ? !prev : value));
-  }, []);
+  const toggleRestructure = useCallback(
+    (value?: boolean) => {
+      const next = value === undefined ? !isRestructuring : value;
+
+      // Entering restructure closes the PDF preview and any docked edit
+      // panel, so it fully takes over the editor area -- the three views
+      // stay mutually exclusive whichever way you enter this one.
+      if (next) {
+        setIsPdfViewOpen(false);
+        setEditingContentId(null);
+        editSessionRef.current = null;
+        setCanvasEditingContentId(null);
+      }
+
+      setIsRestructuring(next);
+    },
+    [isRestructuring],
+  );
 
   const title = useMemo(() => {
     const date = toYearMonthDayFormat();
