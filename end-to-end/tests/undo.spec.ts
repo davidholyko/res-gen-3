@@ -1,4 +1,4 @@
-import { addSingleLayout, expect, test } from './fixtures';
+import { expect, test } from './fixtures';
 
 // Happy-path coverage for specs/undo-destructive-actions.md's toast-based
 // undo, which replaced window.confirm() on the two finer-grained
@@ -168,55 +168,6 @@ test.describe('undo destructive actions', () => {
     await expect(
       page.locator('.layout-single [role="group"]').first(),
     ).toContainText('Monkey D. Luffy');
-  });
-
-  test('dragging a layout to a new position shows a "Layout moved" toast, and Undo restores the order', async ({
-    page,
-  }) => {
-    // A second layout with a marker block, dragged above the first.
-    await addSingleLayout(page);
-    const newLayout = page.locator('.layout-single').last();
-    await newLayout.getByRole('button', { name: '+ Add block' }).click();
-    await page.getByRole('menuitem', { name: 'Section heading' }).click();
-    await page
-      .locator('#canvas-edit-panel input[name="header"]')
-      .fill('Marker Section');
-    // Unfocus, and let the edit panel's gutter finish its ~300ms close
-    // animation -- the canvas recenters during it, and drag coordinates
-    // measured mid-slide point at where things used to be.
-    await page.locator('header').first().click();
-    await page.waitForTimeout(400);
-
-    const handle = page.getByTitle('Drag to move Layout 2');
-    const src = (await handle.boundingBox())!;
-    const dst = (await page.locator('[data-gap-index="0"]').boundingBox())!;
-    await page.mouse.move(src.x + src.width / 2, src.y + src.height / 2);
-    await page.mouse.down();
-    await page.mouse.move(src.x + src.width / 2, src.y + src.height / 2 + 10, {
-      steps: 5,
-    });
-    await page.mouse.move(dst.x + dst.width / 2, dst.y + dst.height / 2, {
-      steps: 15,
-    });
-    await page.mouse.up();
-
-    await expect(
-      page.locator('.layout-single').first().locator(':text("Marker Section")'),
-    ).toBeVisible();
-
-    const toast = page.getByRole('status').filter({ hasText: 'Layout moved' });
-    await toast.getByText('Undo', { exact: true }).click();
-
-    await expect(
-      page.locator('.layout-single').last().locator(':text("Marker Section")'),
-    ).toBeVisible();
-    await expect(
-      page
-        .locator('.layout-single')
-        .first()
-        .locator(':text("Monkey D. Luffy")')
-        .first(),
-    ).toBeVisible();
   });
 
   test('Reset to Example restores the demo resume, and Undo brings back your work', async ({

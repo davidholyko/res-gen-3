@@ -1,26 +1,8 @@
 import { fireEvent, render } from '@testing-library/react';
 import axe from 'axe-core';
-import type { DragSourceHookSpec } from 'react-dnd';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { LAYOUT_DRAG_TYPE } from '@/constants';
-
-const { useDragMock } = vi.hoisted(() => ({ useDragMock: vi.fn() }));
-vi.mock('react-dnd', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('react-dnd')>();
-  return { ...actual, useDrag: useDragMock };
-});
-
-const { default: LayoutHeader } = await import('./layout-header');
-
-function latestDragSpec(): DragSourceHookSpec<
-  { index: number },
-  unknown,
-  object
-> {
-  const { calls } = useDragMock.mock;
-  return calls[calls.length - 1][0];
-}
+import LayoutHeader from './layout-header';
 
 // Presentational: LayoutManager owns the confirm state and the actual
 // removal (so the confirm can also highlight the preview region). These
@@ -32,22 +14,15 @@ const handlers = {
 };
 
 beforeEach(() => {
-  useDragMock.mockReset();
-  useDragMock.mockImplementation(() => [{}, vi.fn(), vi.fn()]);
   handlers.onRequestRemove.mockReset();
   handlers.onCancelRemove.mockReset();
   handlers.onConfirmRemove.mockReset();
 });
 
 describe('LayoutHeader', () => {
-  it('renders the label and drag handle when idle', () => {
+  it('renders the label when idle', () => {
     const { getByText } = render(
-      <LayoutHeader
-        label="Layout 1"
-        index={0}
-        isConfirming={false}
-        {...handlers}
-      />,
+      <LayoutHeader label="Layout 1" isConfirming={false} {...handlers} />,
     );
 
     expect(getByText('Layout 1')).not.toBeNull();
@@ -55,12 +30,7 @@ describe('LayoutHeader', () => {
 
   it('first "Remove layout" click only requests confirmation, it does not delete', () => {
     const { getByLabelText, queryByLabelText } = render(
-      <LayoutHeader
-        label="Layout 1"
-        index={0}
-        isConfirming={false}
-        {...handlers}
-      />,
+      <LayoutHeader label="Layout 1" isConfirming={false} {...handlers} />,
     );
 
     fireEvent.click(getByLabelText('Remove Layout 1 Button'));
@@ -74,12 +44,7 @@ describe('LayoutHeader', () => {
 
   it('while confirming, shows Cancel/Delete and wires them to the parent', () => {
     const { getByLabelText, getByText, queryByLabelText } = render(
-      <LayoutHeader
-        label="Layout 1"
-        index={0}
-        isConfirming={true}
-        {...handlers}
-      />,
+      <LayoutHeader label="Layout 1" isConfirming={true} {...handlers} />,
     );
 
     expect(getByText('Delete Layout 1?')).not.toBeNull();
@@ -93,38 +58,19 @@ describe('LayoutHeader', () => {
     expect(handlers.onConfirmRemove).toHaveBeenCalledTimes(1);
   });
 
-  it('registers as a LAYOUT_DRAG drag source carrying its own index', () => {
-    render(
-      <LayoutHeader
-        label="Layout 2"
-        index={1}
-        isConfirming={false}
-        {...handlers}
-      />,
-    );
-
-    const spec = latestDragSpec();
-    expect(spec.type).toBe(LAYOUT_DRAG_TYPE);
-    expect(spec.item).toEqual({ index: 1 });
-  });
-
-  it('is a hidden-until-revealed absolute overlay when idle, forced visible while confirming', () => {
+  it('is a hidden-until-revealed absolute overlay above the layout when idle, forced visible while confirming', () => {
     const { container, rerender } = render(
-      <LayoutHeader
-        label="Layout 1"
-        index={0}
-        isConfirming={false}
-        {...handlers}
-      />,
+      <LayoutHeader label="Layout 1" isConfirming={false} {...handlers} />,
     );
 
-    // Absolute overlay (no reflow), invisible + click-through by default
-    // so the idle page shows only content; hover/focus of the wrapping
-    // layout reveals it. It sits in the page column, not the (clip-prone)
-    // left gutter.
+    // Absolute overlay pinned above the layout (bottom-full) so it floats
+    // in the gap above the content, not over it; invisible + click-through
+    // by default so the idle page shows only content, and hover/focus of
+    // the wrapping layout reveals it. It sits in the page column, not the
+    // (clip-prone) left gutter.
     expect(container.firstElementChild).toHaveClass(
       'absolute',
-      'top-0',
+      'bottom-full',
       'opacity-0',
       'pointer-events-none',
       'group-hover:opacity-100',
@@ -134,12 +80,7 @@ describe('LayoutHeader', () => {
     // While confirming it stays visible so the Cancel/Delete choice can't
     // slip away when the pointer leaves.
     rerender(
-      <LayoutHeader
-        label="Layout 1"
-        index={0}
-        isConfirming={true}
-        {...handlers}
-      />,
+      <LayoutHeader label="Layout 1" isConfirming={true} {...handlers} />,
     );
     expect(container.firstElementChild).toHaveClass('opacity-100');
     expect(container.firstElementChild).not.toHaveClass('opacity-0');
@@ -147,22 +88,12 @@ describe('LayoutHeader', () => {
 
   it('has no automatically detectable accessibility violations (idle or confirming)', async () => {
     const idle = render(
-      <LayoutHeader
-        label="Layout 1"
-        index={0}
-        isConfirming={false}
-        {...handlers}
-      />,
+      <LayoutHeader label="Layout 1" isConfirming={false} {...handlers} />,
     );
     expect((await axe.run(idle.container)).violations).toEqual([]);
 
     const confirming = render(
-      <LayoutHeader
-        label="Layout 1"
-        index={0}
-        isConfirming={true}
-        {...handlers}
-      />,
+      <LayoutHeader label="Layout 1" isConfirming={true} {...handlers} />,
     );
     expect((await axe.run(confirming.container)).violations).toEqual([]);
   });

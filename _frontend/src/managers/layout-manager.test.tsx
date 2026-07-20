@@ -1,6 +1,4 @@
 import { fireEvent, render } from '@testing-library/react';
-import { DndProvider } from 'react-dnd';
-import { HTML5Backend } from 'react-dnd-html5-backend';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const { addLayoutMock, removeLayoutMock, pushUndoSnapshotMock, contextState } =
@@ -22,7 +20,6 @@ vi.mock('@/context/app-context', async (importOriginal) => {
       items: contextState.items,
       addLayout: addLayoutMock,
       addLayoutAt: vi.fn(),
-      moveLayout: vi.fn(),
       onCreate: vi.fn(),
       pushUndoSnapshot: pushUndoSnapshotMock,
       removeLayout: removeLayoutMock,
@@ -33,11 +30,7 @@ vi.mock('@/context/app-context', async (importOriginal) => {
 const { default: LayoutManager } = await import('./layout-manager');
 
 function renderLayoutManager() {
-  return render(
-    <DndProvider backend={HTML5Backend}>
-      <LayoutManager />
-    </DndProvider>,
-  );
+  return render(<LayoutManager />);
 }
 
 beforeEach(() => {
@@ -102,11 +95,7 @@ describe('LayoutManager', () => {
     // No inserters in the empty state -- EmptyLayoutState's CTA is the
     // one add-affordance there.
     contextState.layouts = [];
-    rerender(
-      <DndProvider backend={HTML5Backend}>
-        <LayoutManager />
-      </DndProvider>,
-    );
+    rerender(<LayoutManager />);
     expect(container.querySelectorAll('[data-gap-index]')).toHaveLength(0);
   });
 

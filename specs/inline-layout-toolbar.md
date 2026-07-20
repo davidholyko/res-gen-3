@@ -28,14 +28,38 @@ as that layout's controls.
 
 ## Non-goals
 
-- **No change to what the toolbar does.** Same drag-to-reorder handle
-  (still the `LAYOUT_DRAG_TYPE` drag source carrying `index`), same
-  two-step confirm-remove (`specs/confirm-remove-layout.md`), same
-  "Layout N" label. This only changes *where* the toolbar sits and how
-  it's revealed.
-- **The gap inserters, "+ Add block", and "+ Add layout" controls are
-  untouched.** They already reveal on hover/focus and don't clip; this
-  spec is only about the per-layout `LayoutHeader` toolbar.
+- **The two-step confirm-remove is unchanged** (`specs/confirm-remove-layout.md`),
+  and the "Layout N" label stays. This spec changes *where* the toolbar
+  sits and how it's revealed.
+- **The gap inserters, "+ Add block", and "+ Add layout" controls keep
+  their add behavior.** They already reveal on hover/focus and don't
+  clip. (The gap inserter's *reorder drop-target* role is removed as part
+  of dropping layout drag -- see below -- but its add-layout affordance
+  is untouched.)
+
+## Update: drag-to-reorder removed, toolbar repositioned above the layout
+
+A later revision (this branch) made two changes on top of the overlay
+design below:
+
+- **Layout drag-to-reorder is removed entirely.** The `LayoutHeader`
+  drag handle, the `LayoutGapInserter` drop target, the `moveLayout`
+  context action, the `LAYOUT_DRAG_TYPE` constant, and the whole
+  `react-dnd` dependency (its `DndProvider` and the now-dead
+  `DragAutoScroll` helper, which only existed to speed up drag
+  auto-scroll) are all gone -- layouts were the last drag/drop consumer.
+  Layouts are now managed entirely through the gap inserters' add
+  controls and each layout's "Remove layout". The toolbar is just the
+  "Layout N" label + "Remove layout" (no drag handle glyph).
+- **The overlay is pinned *above* the layout, not over it.** `top-0` →
+  `bottom-full`, so on reveal the row floats in the gap above the layout
+  instead of covering its first line (e.g. the resume name stays
+  visible). Still absolute (no reflow), still inside the page column (no
+  clip), still `opacity` + `pointer-events` gated by
+  `group-hover` / `group-focus-within`.
+
+The rest of this spec (the overlay reveal mechanism, the reflow
+correction, keyboard reachability, confirm-stays-open) still holds.
 - **The continuous-page look is preserved** for the *idle* page: no
   always-visible header rows, only resume content when nothing is
   hovered or focused (`specs/continuous-page-canvas.md`).
@@ -90,24 +114,24 @@ overlay (not in the page flow) means revealing it never pushes content.
   highlight, `specs/confirm-remove-layout.md`).
 
 - **No reflow on reveal.** Because the toolbar is an overlay, revealing
-  it never moves the layout's content. It floats over the top edge of the
-  content while shown; keep the row short so it covers as little as
-  possible.
+  it never moves the layout's content. (Per the update above it floats in
+  the gap *above* the layout, so it doesn't cover the content either.)
 
 ## Acceptance criteria
 
 - [x] With the edit panel open (canvas slid left), hovering/focusing a
       layout shows its toolbar **fully within the viewport** -- no part
-      clips off the left edge at any canvas position. (In-flow row; it
-      can no longer render outside the page column.)
+      clips off the left edge at any canvas position. (Overlay inside the
+      page column; it can no longer render outside it.)
 - [x] The idle page (nothing hovered/focused) shows only resume content:
       the toolbar is invisible, reserves no space, and is click-through.
 - [x] Revealing the toolbar (hover or focus) does not reflow the layout's
       content -- nothing shifts down; the overlay floats over the content.
 - [x] Hovering a layout, or moving keyboard focus into it, reveals the
-      toolbar row above that layout's content; the drag handle still
-      registers as a `LAYOUT_DRAG_TYPE` source carrying `index`, and
-      reorder still works.
+      toolbar row in the gap above that layout's content (not over it).
+- [x] There is no layout drag-to-reorder: no drag handle, no
+      `LAYOUT_DRAG_TYPE` source/drop-target, no `react-dnd` in the app.
+      Layouts are added/removed via the gap inserters and "Remove layout".
 - [x] The toolbar is keyboard-reachable while idle (in tab order /
       accessibility tree without a hover); tabbing to it reveals it.
 - [x] Two-step remove is unchanged: first "Remove layout" click only

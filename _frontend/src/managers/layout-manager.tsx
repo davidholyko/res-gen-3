@@ -68,7 +68,6 @@ export default function LayoutManager() {
         const header = (
           <LayoutHeader
             label={label}
-            index={index}
             isConfirming={isConfirming}
             onRequestRemove={() => setConfirmingLayoutId(layout.layoutId)}
             onCancelRemove={() => setConfirmingLayoutId(null)}

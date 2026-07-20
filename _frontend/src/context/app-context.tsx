@@ -45,13 +45,6 @@ export type AppContextType = {
   layouts: LayoutItem[];
   addLayout: (newLayout: LayoutItem) => void;
   addLayoutAt: (newLayout: LayoutItem, index: number) => void;
-  /**
-   * Moves the layout at `fromIndex` into the gap at `toGapIndex` (a gap
-   * index ranges 0..layouts.length: 0 is above the first layout,
-   * layouts.length is below the last). Dropping a layout into either of
-   * its own adjacent gaps is a no-op.
-   */
-  moveLayout: (fromIndex: number, toGapIndex: number) => void;
   removeLayout: (layoutId: LayoutId) => void;
   onImportFile: ({ items, layouts }: FileDropValue) => void;
   onCreate: (item: ContentAll) => void;
@@ -325,32 +318,6 @@ export function AppProvider({ children }: AppProviderProps) {
     });
   }, []);
 
-  const moveLayout = useCallback(
-    (fromIndex: number, toGapIndex: number) => {
-      // The gaps directly above and below the dragged layout both mean
-      // "leave it where it is" -- no move, and no undo snapshot either:
-      // a toast offering to "undo" nothing would also clobber a real,
-      // still-pending snapshot
-      // (specs/plain-language-labels-and-move-undo.md).
-      if (toGapIndex === fromIndex || toGapIndex === fromIndex + 1) {
-        return;
-      }
-
-      setUndoSnapshot({ items, layouts, description: 'Layout moved' });
-
-      const next = [...layouts];
-      const [moved] = next.splice(fromIndex, 1);
-      // Removing the layout first shifts every gap below it up by one.
-      next.splice(
-        toGapIndex > fromIndex ? toGapIndex - 1 : toGapIndex,
-        0,
-        moved,
-      );
-      setLayouts(next);
-    },
-    [items, layouts],
-  );
-
   // Removes a specific layout by id, not just the last one -- the
   // canvas-level "remove this layout" affordance next to each layout
   // (unlike the Edit menu's "Remove Last Layout") needs to target
@@ -459,7 +426,6 @@ export function AppProvider({ children }: AppProviderProps) {
         layouts,
         addLayout,
         addLayoutAt,
-        moveLayout,
         removeLayout,
         onImportFile,
         onDelete,

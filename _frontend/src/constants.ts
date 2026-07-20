@@ -43,9 +43,3 @@ export const LAYOUTS = {
 // BaseMacro's outside-click/blur logic treats anything inside it as
 // "inside the focused block".
 export const CANVAS_EDIT_PANEL_ID = 'canvas-edit-panel';
-
-// react-dnd item type for dragging a whole layout container to reorder
-// it -- distinct from the CONTENT_TYPES values, which are the item types
-// for dragging content blocks, so layout drags and content drags can
-// never land on each other's drop targets.
-export const LAYOUT_DRAG_TYPE = 'LAYOUT_DRAG';

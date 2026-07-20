@@ -1,8 +1,6 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { DndProvider } from 'react-dnd';
-import { HTML5Backend } from 'react-dnd-html5-backend';
 
 import { AppProvider } from '@/context/app-context';
 import { PdfInstanceProvider } from '@/context/pdf-instance-context';
@@ -38,9 +36,7 @@ export default function Page() {
       <AppProvider>
         <PdfPreviewProvider>
           <PdfInstanceProvider>
-            <DndProvider backend={HTML5Backend}>
-              <App />
-            </DndProvider>
+            <App />
           </PdfInstanceProvider>
         </PdfPreviewProvider>
       </AppProvider>

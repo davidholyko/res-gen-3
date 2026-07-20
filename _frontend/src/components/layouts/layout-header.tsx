@@ -1,14 +1,7 @@
 import c from 'classnames';
-import { useDrag } from 'react-dnd';
-
-import { LAYOUT_DRAG_TYPE } from '@/constants';
 
 type LayoutHeaderProps = {
   label: string;
-  // This layout's position in `layouts` -- the drag payload the gap
-  // inserters need to reorder it (specs/editor-redesign.md, Design →
-  // Layout management).
-  index: number;
   // Two-step remove (specs/confirm-remove-layout.md). "Remove layout"
   // removed the layout -- and all its blocks -- on a single click; on the
   // default one-layout resume that silently wiped the whole thing. Now
@@ -23,62 +16,59 @@ type LayoutHeaderProps = {
   onConfirmRemove: () => void;
 };
 
-// A layout's per-layout editing chrome (its label, drag-to-reorder
-// handle, and Remove control). It no longer draws an always-visible
-// header row across the top of the layout -- that made every layout
-// read as its own boxed page (specs/continuous-page-canvas.md). It used
-// to float in the left gutter (absolute, right-full), but that gutter
-// gets squeezed to nothing when the edit panel slides the canvas left
-// (specs/canvas-edit-panel.md), pushing the toolbar off the viewport's
-// left edge (specs/inline-layout-toolbar.md).
+// A layout's per-layout editing chrome (its "Layout N" label and Remove
+// control). It no longer draws an always-visible header row across the
+// top of the layout -- that made every layout read as its own boxed page
+// (specs/continuous-page-canvas.md). It used to float in the left gutter
+// (absolute, right-full), but that gutter gets squeezed to nothing when
+// the edit panel slides the canvas left (specs/canvas-edit-panel.md),
+// pushing the toolbar off the viewport's left edge
+// (specs/inline-layout-toolbar.md).
 //
-// The fix for *that* first reflowed the row inline, but revealing an
-// in-flow row pushed the layout's content down on every hover -- hover a
-// block and the whole layout visibly jumps. So the toolbar is now an
-// **absolute overlay** pinned to the top of the layout's `group relative`
-// wrapper (layout-manager.tsx), inside the page column: out of the page
-// flow (revealing it reflows nothing) yet never in the clip-prone gutter.
-// It floats over the top strip of the layout's content on reveal, with a
-// solid background so it stays legible.
+// It's an **absolute overlay** revealed on hover/focus, pinned just
+// *above* the layout's `group relative` wrapper (layout-manager.tsx) via
+// `bottom-full`, so it sits in the gap above the layout rather than over
+// its content -- the layout's first line (e.g. the resume name) stays
+// visible while the toolbar is showing. Out of the page flow, so
+// revealing it reflows nothing; inside the page column, so it never
+// clips like the old gutter placement.
 //
 // Reveal is opacity, gated by `group-hover` / `group-focus-within`. The
 // toolbar stays in the DOM, tab order, and accessibility tree so keyboard
-// users still reach reorder/remove without a hover; `pointer-events-none`
-// while idle keeps the invisible overlay from eating clicks on the
-// content beneath it (focus/hover restore `pointer-events`). While a
-// remove is being confirmed the row stays visible regardless of hover so
-// the Cancel/Delete choice can't slip away.
+// users still reach Remove without a hover; `pointer-events-none` while
+// idle keeps the invisible overlay from eating clicks on the content near
+// it (focus/hover restore `pointer-events`). While a remove is being
+// confirmed the row stays visible regardless of hover so the
+// Cancel/Delete choice can't slip away.
+//
+// There is no drag-to-reorder handle: layout reordering by drag was
+// removed (specs/inline-layout-toolbar.md) -- layouts are managed by the
+// gap inserters' add controls and this Remove control.
 export default function LayoutHeader({
   label,
-  index,
   isConfirming,
   onRequestRemove,
   onCancelRemove,
   onConfirmRemove,
 }: LayoutHeaderProps) {
-  const [, drag] = useDrag({
-    type: LAYOUT_DRAG_TYPE,
-    item: { index },
-  });
-
   return (
     <div
       className={c(
-        // Absolute overlay pinned to the top of the layout wrapper, so
-        // revealing it never reflows the layout's content. z-20 keeps it
-        // above the content it floats over.
-        'absolute inset-x-0 top-0 z-20 transition-opacity duration-150 ease-out',
+        // Absolute overlay pinned just above the layout wrapper
+        // (`bottom-full`), so revealing it neither reflows the layout's
+        // content nor covers it. z-20 keeps it above surrounding chrome.
+        'absolute inset-x-0 bottom-full z-20 transition-opacity duration-150 ease-out',
         isConfirming
           ? 'opacity-100'
           : // pointer-events-none while idle: the overlay is invisible but
-            // still layered over the top of the content, and without this
-            // it would swallow clicks meant for that content. hover/focus
+            // still layered near the top of the content, and without this
+            // it could swallow clicks meant for that content. hover/focus
             // reveal it and restore its clickability.
             'opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto group-focus-within:opacity-100 group-focus-within:pointer-events-auto',
       )}
     >
-      {/* Solid bg so the floating row stays legible over the content
-          beneath it. border-b marks it as chrome distinct from the resume
+      {/* Solid bg so the floating row stays legible over whatever sits
+          behind it. border-b marks it as chrome distinct from the resume
           content below. */}
       <div
         className={c(
@@ -116,19 +106,7 @@ export default function LayoutHeader({
                 contrast floor these were picked against still applies -- on
                 the white toolbar they only read better
                 (specs/accessibility.md, Finding 11). */}
-            <span
-              className="flex items-center gap-1 text-xs font-bold text-gray-600 uppercase tracking-wide cursor-grab"
-              draggable="true"
-              title={`Drag to move ${label}`}
-              ref={(node) => {
-                // react-dnd's ConnectDragSource return type predates React
-                // 19's stricter ref-callback typing. No behavior change.
-                drag(node);
-              }}
-            >
-              {/* The classic six-dot handle glyph, drawn as text so it
-                  inherits the label's (contrast-checked) color. */}
-              <span aria-hidden="true">⠿</span>
+            <span className="text-xs font-bold text-gray-600 uppercase tracking-wide">
               {label}
             </span>
             <button
