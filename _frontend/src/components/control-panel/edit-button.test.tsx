@@ -6,6 +6,7 @@ const { focusCanvasBlockMock, contextState } = vi.hoisted(() => ({
   contextState: {
     items: [] as { contentId: string; layoutId?: string }[],
     layouts: [] as { layoutId: string; layoutType: string }[],
+    canvasEditingContentId: null as string | null,
   },
 }));
 vi.mock('@/context/app-context', async (importOriginal) => {
@@ -16,6 +17,7 @@ vi.mock('@/context/app-context', async (importOriginal) => {
       focusCanvasBlock: focusCanvasBlockMock,
       items: contextState.items,
       layouts: contextState.layouts,
+      canvasEditingContentId: contextState.canvasEditingContentId,
     }),
   };
 });
@@ -26,6 +28,7 @@ beforeEach(() => {
   focusCanvasBlockMock.mockReset();
   contextState.items = [];
   contextState.layouts = [];
+  contextState.canvasEditingContentId = null;
 });
 
 describe('EditButton', () => {
@@ -64,5 +67,18 @@ describe('EditButton', () => {
     fireEvent.click(getByText('Edit'));
 
     expect(focusCanvasBlockMock).toHaveBeenCalledWith('orphan');
+  });
+
+  it('reads as pressed while a block is focused', () => {
+    contextState.items = [{ contentId: 'a', layoutId: 'L1' }];
+    contextState.layouts = [{ layoutId: 'L1', layoutType: 'SINGLE' }];
+    const { getByText, rerender } = render(<EditButton />);
+
+    expect(getByText('Edit')).toHaveAttribute('aria-pressed', 'false');
+
+    contextState.canvasEditingContentId = 'a';
+    rerender(<EditButton />);
+
+    expect(getByText('Edit')).toHaveAttribute('aria-pressed', 'true');
   });
 });

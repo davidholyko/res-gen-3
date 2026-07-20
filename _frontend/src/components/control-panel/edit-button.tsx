@@ -1,3 +1,5 @@
+import c from 'classnames';
+
 import { useAppContext } from '@/context/app-context';
 import { deriveZones } from '@/utils/derive-zones';
 
@@ -9,7 +11,14 @@ import { deriveZones } from '@/utils/derive-zones';
 // the focused block's "Edit with preview"). Disabled with no blocks --
 // there is nothing to edit (layouts alone carry no editable form).
 export default function EditButton() {
-  const { items, layouts, focusCanvasBlock } = useAppContext();
+  const { items, layouts, focusCanvasBlock, canvasEditingContentId } =
+    useAppContext();
+
+  // Reads as active/pressed while any block is focused -- i.e. whenever
+  // the canvas edit panel is open, however it was opened (this button or
+  // a click on the block itself). Mirrors the Restructure button's
+  // active state so the bar always shows which view you're in.
+  const isActive = canvasEditingContentId !== null;
 
   // The first macro in document (reading) order -- the topmost block on
   // the canvas -- not merely items[0] in insertion order. Walks zones
@@ -28,7 +37,14 @@ export default function EditButton() {
     <button
       type="button"
       disabled={!firstBlock}
-      className="rounded px-2 py-1 text-sm text-gray-700 hover:bg-cyan-200 disabled:text-gray-400 disabled:hover:bg-transparent"
+      aria-pressed={isActive}
+      className={c(
+        'rounded px-2 py-1 text-sm hover:bg-cyan-200 disabled:text-gray-400 disabled:hover:bg-transparent',
+        {
+          'bg-cyan-200 text-gray-900': isActive,
+          'text-gray-700': !isActive,
+        },
+      )}
       onClick={() => firstBlock && focusCanvasBlock(firstBlock.contentId)}
     >
       Edit
