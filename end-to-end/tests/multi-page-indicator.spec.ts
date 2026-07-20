@@ -1,4 +1,4 @@
-import { expect, makeResumeMultiPage, removeLastLayout, test } from './fixtures';
+import { clearResume, expect, makeResumeMultiPage, test } from './fixtures';
 
 // Happy-path coverage for specs/multi-page-indicator.md. The page count
 // comes from react-pdf's own real render pipeline (shared with the PDF
@@ -25,7 +25,7 @@ test.describe('multi-page indicator', () => {
       timeout: 5000,
     });
 
-    await removeLastLayout(page);
+    await clearResume(page);
 
     // Zero layouts now, so the canvas "+ Add layout" control is gone --
     // the empty-state CTA is the only add affordance

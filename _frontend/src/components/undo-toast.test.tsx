@@ -42,10 +42,10 @@ describe('UndoToast', () => {
   });
 
   it('shows the description and an Undo button when a snapshot exists', () => {
-    contextState.undoSnapshot = { description: 'Layout 1 removed' };
+    contextState.undoSnapshot = { description: 'Block deleted' };
     const { getByText, getByRole } = render(<UndoToast />);
 
-    expect(getByText('Layout 1 removed')).not.toBeNull();
+    expect(getByText('Block deleted')).not.toBeNull();
     expect(getByRole('status')).toHaveAttribute('aria-live', 'polite');
     expect(getByText('Undo')).not.toBeNull();
   });
@@ -73,7 +73,7 @@ describe('UndoToast', () => {
   });
 
   it('pauses the auto-dismiss timer on hover, resuming on mouseleave', () => {
-    contextState.undoSnapshot = { description: 'Layout 1 removed' };
+    contextState.undoSnapshot = { description: 'Block deleted' };
     const { getByRole } = render(<UndoToast />);
     const toast = getByRole('status');
 
@@ -88,7 +88,7 @@ describe('UndoToast', () => {
   });
 
   it('pauses the auto-dismiss timer on focus, resuming on blur', () => {
-    contextState.undoSnapshot = { description: 'Layout 1 removed' };
+    contextState.undoSnapshot = { description: 'Block deleted' };
     const { getByRole } = render(<UndoToast />);
     const toast = getByRole('status');
 
@@ -105,14 +105,14 @@ describe('UndoToast', () => {
   it('has no automatically detectable accessibility violations', async () => {
     // axe-core's own async internals don't play well with fake timers.
     vi.useRealTimers();
-    contextState.undoSnapshot = { description: 'Layout 1 removed' };
+    contextState.undoSnapshot = { description: 'Block deleted' };
     const { container } = render(<UndoToast />);
 
     expect((await axe.run(container)).violations).toEqual([]);
   });
 
   it('clears the timeout on unmount without dismissing', () => {
-    contextState.undoSnapshot = { description: 'Layout 1 removed' };
+    contextState.undoSnapshot = { description: 'Block deleted' };
     const { unmount } = render(<UndoToast />);
 
     unmount();

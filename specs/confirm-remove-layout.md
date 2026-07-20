@@ -1,6 +1,12 @@
 ---
-status: implemented
+status: superseded
 ---
+
+> **Superseded:** the per-layout canvas "Remove layout" control (and this
+> two-step confirm + delete-preview highlight) was removed along with the
+> hover toolbar it lived in — the app currently has no per-layout remove
+> affordance on the canvas, pending a replacement layout-management
+> design. This spec is kept as a record of the retired flow.
 
 # Confirm remove layout, with a live delete-preview highlight
 

@@ -1,20 +1,17 @@
-import { addSingleLayout, expect, removeLastLayout, test } from './fixtures';
+import { addSingleLayout, clearResume, expect, test } from './fixtures';
 
 // Happy-path coverage for the new interactive elements added by
 // specs/app-ux-improvements.md. Declined-confirmation branches (still
 // relevant for "New", the one action that kept window.confirm) and other
 // edge cases are already covered deterministically by Vitest component
-// tests (see layout-header.test.tsx, macro-top-bar.test.tsx,
-// remove-bottom-layout-button.test.tsx, new-resume-button.test.tsx) --
-// this suite only needs to prove these flows work through a real browser.
-// Undo-specific flows (delete-block/remove-layout no longer confirm at
-// all; "New" now confirms *and* gets undo) live in undo.spec.ts.
+// tests (see macro-top-bar.test.tsx, new-resume-button.test.tsx) -- this
+// suite only needs to prove these flows work through a real browser.
+// Undo-specific flows live in undo.spec.ts.
 test.describe('UX improvements', () => {
-  test('removing every layout shows the empty-state CTA, which adds a new layout', async ({
+  test('the empty-state CTA adds a new layout once the resume is cleared', async ({
     page,
   }) => {
-    await removeLastLayout(page);
-    await expect(page.locator('.layout-single')).toHaveCount(0);
+    await clearResume(page);
 
     await expect(page.getByText('Your resume is empty.')).toBeVisible();
 
@@ -22,26 +19,6 @@ test.describe('UX improvements', () => {
 
     await expect(page.locator('.layout-single')).toHaveCount(1);
     await expect(page.getByText('Your resume is empty.')).not.toBeVisible();
-  });
-
-  test('a per-layout "Remove layout" link removes just that layout, not just the last one', async ({
-    page,
-  }) => {
-    // The prepopulated layout (Layout 1) has content; the freshly-added
-    // one (Layout 2) starts empty -- removing Layout 1 specifically and
-    // checking the survivor is still empty proves this targeted the first
-    // layout, not just whichever was added last.
-    await addSingleLayout(page);
-    await expect(page.locator('.layout-single')).toHaveCount(2);
-
-    // Two-step confirm (specs/confirm-remove-layout.md): ask, then Delete.
-    await page.getByLabel('Remove Layout 1 Button').click();
-    await page.getByLabel('Confirm removing Layout 1 Button').click();
-
-    await expect(page.locator('.layout-single')).toHaveCount(1);
-    await expect(
-      page.locator('.layout-single .macro-manager > *'),
-    ).toHaveCount(0);
   });
 
   test('deleting a block removes it immediately, with no confirmation dialog', async ({

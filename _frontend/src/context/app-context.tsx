@@ -45,14 +45,6 @@ export type AppContextType = {
   layouts: LayoutItem[];
   addLayout: (newLayout: LayoutItem) => void;
   addLayoutAt: (newLayout: LayoutItem, index: number) => void;
-  /**
-   * Moves the layout at `fromIndex` into the gap at `toGapIndex` (a gap
-   * index ranges 0..layouts.length: 0 is above the first layout,
-   * layouts.length is below the last). Dropping a layout into either of
-   * its own adjacent gaps is a no-op.
-   */
-  moveLayout: (fromIndex: number, toGapIndex: number) => void;
-  removeLayout: (layoutId: LayoutId) => void;
   onImportFile: ({ items, layouts }: FileDropValue) => void;
   onCreate: (item: ContentAll) => void;
   onUpdate: (item: ContentAll) => void;
@@ -156,8 +148,8 @@ export function AppProvider({ children }: AppProviderProps) {
   }, [items, layouts]);
 
   useEffect(() => {
-    // Reconciles `items` against `layouts` (e.g. after removeLayout, so
-    // orphaned items are dropped). `items` is genuinely mutable
+    // Reconciles `items` against `layouts` (e.g. when a layout goes
+    // away, so orphaned items are dropped). `items` is genuinely mutable
     // state elsewhere (onCreate/onUpdate/onDelete/onMove all setItems
     // directly), not a pure derived view, so this can't just be computed
     // at render time without also touching those call sites. Preserved
@@ -325,42 +317,6 @@ export function AppProvider({ children }: AppProviderProps) {
     });
   }, []);
 
-  const moveLayout = useCallback(
-    (fromIndex: number, toGapIndex: number) => {
-      // The gaps directly above and below the dragged layout both mean
-      // "leave it where it is" -- no move, and no undo snapshot either:
-      // a toast offering to "undo" nothing would also clobber a real,
-      // still-pending snapshot
-      // (specs/plain-language-labels-and-move-undo.md).
-      if (toGapIndex === fromIndex || toGapIndex === fromIndex + 1) {
-        return;
-      }
-
-      setUndoSnapshot({ items, layouts, description: 'Layout moved' });
-
-      const next = [...layouts];
-      const [moved] = next.splice(fromIndex, 1);
-      // Removing the layout first shifts every gap below it up by one.
-      next.splice(
-        toGapIndex > fromIndex ? toGapIndex - 1 : toGapIndex,
-        0,
-        moved,
-      );
-      setLayouts(next);
-    },
-    [items, layouts],
-  );
-
-  // Removes a specific layout by id, not just the last one -- the
-  // canvas-level "remove this layout" affordance next to each layout
-  // (unlike the Edit menu's "Remove Last Layout") needs to target
-  // whichever one the user is actually looking at.
-  const removeLayout = useCallback((layoutId: LayoutId) => {
-    setLayouts((prevLayouts) =>
-      prevLayouts.filter((layout) => layout.layoutId !== layoutId),
-    );
-  }, []);
-
   const focusCanvasBlock = useCallback((contentId: ContentId) => {
     setCanvasEditingContentId(contentId);
   }, []);
@@ -459,8 +415,6 @@ export function AppProvider({ children }: AppProviderProps) {
         layouts,
         addLayout,
         addLayoutAt,
-        moveLayout,
-        removeLayout,
         onImportFile,
         onDelete,
         onUpdate,

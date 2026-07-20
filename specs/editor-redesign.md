@@ -246,10 +246,12 @@ backend not doing this automatically the way some libraries' custom
   manipulation, already has undo. The Edit menu's "Remove Last Layout"
   can retire once per-layout removal covers the same case from
   anywhere.
-- **Reorder layouts**: drag-to-reorder the layout boxes themselves,
-  using the `react-dnd` setup already in the app (currently only used
-  for dragging content from the left panel — this extends it to
-  reordering layout containers). Not currently possible at all today.
+- **Reorder layouts**: ~~drag-to-reorder the layout boxes themselves,
+  using the `react-dnd` setup already in the app~~. **Superseded
+  (`specs/inline-layout-toolbar.md`): layout drag-to-reorder was removed
+  — along with `react-dnd` entirely, since layouts were its last
+  consumer. Layouts are managed via the gap inserters (add) and each
+  layout's "Remove layout".**
 - **Add content in place**: each layout (and each half of a DOUBLE)
   gets a persistent, low-visual-weight **"+ Add block"** affordance
   (see Content editing above) — this is the direct replacement for

@@ -1,13 +1,11 @@
 import { fireEvent, render } from '@testing-library/react';
 import axe from 'axe-core';
-import type { DropTargetHookSpec } from 'react-dnd';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { LAYOUT_DRAG_TYPE, LAYOUTS } from '@/constants';
+import { LAYOUTS } from '@/constants';
 
-const { addLayoutAtMock, moveLayoutMock } = vi.hoisted(() => ({
+const { addLayoutAtMock } = vi.hoisted(() => ({
   addLayoutAtMock: vi.fn(),
-  moveLayoutMock: vi.fn(),
 }));
 vi.mock('@/context/app-context', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/context/app-context')>();
@@ -15,36 +13,14 @@ vi.mock('@/context/app-context', async (importOriginal) => {
     ...actual,
     useAppContext: () => ({
       addLayoutAt: addLayoutAtMock,
-      moveLayout: moveLayoutMock,
     }),
   };
 });
 
-const { useDropMock } = vi.hoisted(() => ({ useDropMock: vi.fn() }));
-vi.mock('react-dnd', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('react-dnd')>();
-  return { ...actual, useDrop: useDropMock };
-});
-
 const { default: LayoutGapInserter } = await import('./layout-gap-inserter');
-
-function latestDropSpec(): DropTargetHookSpec<
-  { index: number },
-  unknown,
-  { isOver: boolean; isLayoutDragInProgress: boolean }
-> {
-  const { calls } = useDropMock.mock;
-  return calls[calls.length - 1][0];
-}
 
 beforeEach(() => {
   addLayoutAtMock.mockReset();
-  moveLayoutMock.mockReset();
-  useDropMock.mockReset();
-  useDropMock.mockImplementation(() => [
-    { isOver: false, isLayoutDragInProgress: false },
-    vi.fn(),
-  ]);
 });
 
 describe('LayoutGapInserter', () => {
@@ -90,66 +66,12 @@ describe('LayoutGapInserter', () => {
     expect(layout.layoutLeftId).not.toBe(layout.layoutRightId);
   });
 
-  it('accepts only layout drags, and drops them into this gap', () => {
-    render(<LayoutGapInserter index={3} />);
+  it('keeps the inserter buttons hidden until the gap is hovered', () => {
+    const { getByLabelText } = render(<LayoutGapInserter index={0} />);
 
-    const spec = latestDropSpec();
-    expect(spec.accept).toBe(LAYOUT_DRAG_TYPE);
-
-    spec.drop?.({ index: 0 }, undefined as never);
-    expect(moveLayoutMock).toHaveBeenCalledWith(0, 3);
-  });
-
-  it('collect maps isOver and canDrop from the monitor', () => {
-    render(<LayoutGapInserter index={0} />);
-
-    const { collect } = latestDropSpec();
-    expect(
-      collect?.(
-        { isOver: () => true, canDrop: () => true } as never,
-        undefined as never,
-      ),
-    ).toEqual({ isOver: true, isLayoutDragInProgress: true });
-  });
-
-  it('becomes a visible drop slot while a layout drag is in progress, neutralizing the inserters', () => {
-    useDropMock.mockImplementation(() => [
-      { isOver: false, isLayoutDragInProgress: true },
-      vi.fn(),
-    ]);
-    const { container, getByLabelText } = render(
-      <LayoutGapInserter index={0} />,
-    );
-
-    expect(container.firstElementChild).toHaveClass('border-gray-300');
-    // The buttons stay mounted (unmounting/resizing anything at dragstart
-    // reflows the page and hangs Chromium's intercepted-drag loop -- see
-    // the component) but are inert and can't be revealed by hover.
-    const button = getByLabelText('Insert one-column layout at position 1');
-    expect(button).toHaveClass('pointer-events-none');
-    expect(button).not.toHaveClass('group-hover:opacity-100');
-  });
-
-  it('keeps the drop-slot border invisible while no layout drag is happening', () => {
-    const { container, getByLabelText } = render(
-      <LayoutGapInserter index={0} />,
-    );
-
-    expect(container.firstElementChild).toHaveClass('border-transparent');
     expect(
       getByLabelText('Insert one-column layout at position 1'),
-    ).toHaveClass('group-hover:opacity-100');
-  });
-
-  it('highlights the slot while the dragged layout hovers it', () => {
-    useDropMock.mockImplementation(() => [
-      { isOver: true, isLayoutDragInProgress: true },
-      vi.fn(),
-    ]);
-    const { container } = render(<LayoutGapInserter index={0} />);
-
-    expect(container.firstElementChild).toHaveClass('border-cyan-600');
-    expect(container.firstElementChild).toHaveClass('bg-cyan-100');
+    ).toHaveClass('opacity-0', 'group-hover:opacity-100');
   });
 
   it('has no automatically detectable accessibility violations', async () => {

@@ -1,7 +1,5 @@
 import { render } from '@testing-library/react';
 import axe from 'axe-core';
-import { DndProvider } from 'react-dnd';
-import { HTML5Backend } from 'react-dnd-html5-backend';
 import { afterEach, describe, expect, it } from 'vitest';
 
 import { AppProvider } from '@/context/app-context';
@@ -35,9 +33,7 @@ describe('App', () => {
         <AppProvider>
           <PdfPreviewProvider>
             <PdfInstanceProvider>
-              <DndProvider backend={HTML5Backend}>
-                <App />
-              </DndProvider>
+              <App />
             </PdfInstanceProvider>
           </PdfPreviewProvider>
         </AppProvider>
@@ -57,9 +53,7 @@ describe('App', () => {
         <AppProvider>
           <PdfPreviewProvider>
             <PdfInstanceProvider>
-              <DndProvider backend={HTML5Backend}>
-                <App />
-              </DndProvider>
+              <App />
             </PdfInstanceProvider>
           </PdfPreviewProvider>
         </AppProvider>

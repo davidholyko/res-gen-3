@@ -1,37 +1,15 @@
 import c from 'classnames';
-import { Fragment, useCallback, useState } from 'react';
+import { Fragment } from 'react';
 
 import EmptyLayoutState from '@/components/layouts/empty-layout-state';
 import LayoutDouble from '@/components/layouts/layout-double';
 import LayoutGapInserter from '@/components/layouts/layout-gap-inserter';
-import LayoutHeader from '@/components/layouts/layout-header';
 import LayoutSingle from '@/components/layouts/layout-single';
 import { LAYOUTS } from '@/constants';
 import { useAppContext } from '@/context/app-context';
-import type { LayoutId } from '@/types/content-base-item';
 
 export default function LayoutManager() {
-  const { layouts, removeLayout, pushUndoSnapshot } = useAppContext();
-
-  // Which layout is mid-remove-confirm, if any. Kept here (not inside
-  // each LayoutHeader) so only one layout can be confirming at a time and
-  // so the confirming id can also highlight that layout's region in the
-  // preview -- showing exactly what "Remove layout" will delete before it
-  // happens (specs/confirm-remove-layout.md).
-  const [confirmingLayoutId, setConfirmingLayoutId] = useState<LayoutId | null>(
-    null,
-  );
-
-  const confirmRemove = useCallback(
-    (label: string, layoutId: LayoutId) => {
-      // Keep the undo snapshot: the confirm gates the click, undo still
-      // rescues a *confirmed* mistake (specs/undo-destructive-actions.md).
-      pushUndoSnapshot(`${label} removed`);
-      removeLayout(layoutId);
-      setConfirmingLayoutId(null);
-    },
-    [pushUndoSnapshot, removeLayout],
-  );
+  const { layouts } = useAppContext();
 
   return (
     <div
@@ -45,44 +23,24 @@ export default function LayoutManager() {
     >
       {layouts.length === 0 && <EmptyLayoutState />}
       {layouts.map((layout, index) => {
-        // Each layout is wrapped in a `group relative` shell so its
-        // editing chrome -- the gutter toolbar (LayoutHeader) and the
-        // hover-revealed add controls -- can key off `group-hover` /
-        // `focus-within` and sit absolutely in the left margin without
-        // disturbing the continuous page flow
-        // (specs/continuous-page-canvas.md). The page padding now lives
-        // on the container itself, so wrapping layouts no longer risks
-        // dropping the old `> .layout-single` padding rule.
-        const label = `Layout ${index + 1}`;
-        const isConfirming = confirmingLayoutId === layout.layoutId;
-
-        // While this layout's removal is being confirmed, ring + tint the
-        // whole `group relative` shell -- that box wraps exactly the
-        // layout content (LayoutSingle / LayoutDouble) that "Delete" will
-        // take, so the highlight *is* the preview of what's being deleted
-        // (specs/confirm-remove-layout.md).
-        const wrapperClassName = c('group relative', {
-          'rounded ring-2 ring-inset ring-red-400 bg-red-50': isConfirming,
-        });
-
-        const header = (
-          <LayoutHeader
-            label={label}
-            index={index}
-            isConfirming={isConfirming}
-            onRequestRemove={() => setConfirmingLayoutId(layout.layoutId)}
-            onCancelRemove={() => setConfirmingLayoutId(null)}
-            onConfirmRemove={() => confirmRemove(label, layout.layoutId)}
-          />
-        );
-
+        // Each layout is wrapped in a `group` shell so its hover-revealed
+        // add controls (LayoutSingle / LayoutDouble's "+ Add block" /
+        // "+ Add layout") can key off `group-hover` / `group-focus-within`
+        // without disturbing the continuous page flow
+        // (specs/continuous-page-canvas.md). The page padding lives on the
+        // container itself, so wrapping layouts no longer risks dropping
+        // the old `> .layout-single` padding rule.
+        //
+        // There's no per-layout header/remove toolbar here anymore -- the
+        // hover-revealed LayoutHeader (label + "Remove layout") was
+        // removed; a replacement layout-management affordance will land
+        // separately.
         switch (layout.layoutType) {
           case LAYOUTS.SINGLE: {
             return (
               <Fragment key={layout.layoutId}>
                 <LayoutGapInserter index={index} />
-                <div className={wrapperClassName}>
-                  {header}
+                <div className="group">
                   <LayoutSingle
                     layoutId={layout.layoutId}
                     layoutType={layout.layoutType}
@@ -101,8 +59,7 @@ export default function LayoutManager() {
             return (
               <Fragment key={layout.layoutId}>
                 <LayoutGapInserter index={index} />
-                <div className={wrapperClassName}>
-                  {header}
+                <div className="group">
                   <LayoutDouble
                     layoutId={layout.layoutId}
                     layoutLeftId={layout.layoutLeftId}
