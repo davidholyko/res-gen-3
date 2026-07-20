@@ -4,12 +4,12 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { ContentId } from '@/types/content-base-item';
 
-const { togglePdfModalMock, openEditingViewMock, contextState } = vi.hoisted(
+const { togglePdfViewMock, openEditingViewMock, contextState } = vi.hoisted(
   () => ({
-    togglePdfModalMock: vi.fn(),
+    togglePdfViewMock: vi.fn(),
     openEditingViewMock: vi.fn(),
     contextState: {
-      isModalOpen: false,
+      isPdfViewOpen: false,
       editingContentId: null as string | null,
       pageCount: null as number | null,
     },
@@ -20,9 +20,9 @@ vi.mock('@/context/app-context', async (importOriginal) => {
   return {
     ...actual,
     useAppContext: () => ({
-      isModalOpen: contextState.isModalOpen,
+      isPdfViewOpen: contextState.isPdfViewOpen,
       editingContentId: contextState.editingContentId as ContentId | null,
-      togglePdfModal: togglePdfModalMock,
+      togglePdfView: togglePdfViewMock,
       openEditingView: openEditingViewMock,
       onUpdate: vi.fn(),
       title: '2026-01-01-test.pdf',
@@ -55,9 +55,9 @@ vi.mock('@/context/pdf-instance-context', async (importOriginal) => {
 const { default: PdfView } = await import('./pdf-view');
 
 beforeEach(() => {
-  togglePdfModalMock.mockReset();
+  togglePdfViewMock.mockReset();
   openEditingViewMock.mockReset();
-  contextState.isModalOpen = false;
+  contextState.isPdfViewOpen = false;
   contextState.editingContentId = null;
   contextState.pageCount = null;
 });
@@ -70,7 +70,7 @@ describe('PdfView', () => {
   });
 
   it('renders the preview area and top bar when open, with no edit panel in view mode', () => {
-    contextState.isModalOpen = true;
+    contextState.isPdfViewOpen = true;
     render(<PdfView />);
 
     expect(screen.getByLabelText('Exit PDF View Button')).not.toBeNull();
@@ -82,7 +82,7 @@ describe('PdfView', () => {
   });
 
   it('docks the edit panel beside the preview while a block is being edited', () => {
-    contextState.isModalOpen = true;
+    contextState.isPdfViewOpen = true;
     contextState.editingContentId = 'h1';
     render(<PdfView />);
 
@@ -96,7 +96,7 @@ describe('PdfView', () => {
   });
 
   it('resets the page anchor to 1 on each fresh open', () => {
-    contextState.isModalOpen = true;
+    contextState.isPdfViewOpen = true;
     contextState.editingContentId = 'h1';
     contextState.pageCount = 3;
     const { rerender } = render(<PdfView />);
@@ -104,16 +104,16 @@ describe('PdfView', () => {
     fireEvent.click(screen.getByLabelText('Next page'));
     expect(screen.getByText('Page 2 of 3')).not.toBeNull();
 
-    contextState.isModalOpen = false;
+    contextState.isPdfViewOpen = false;
     rerender(<PdfView />);
-    contextState.isModalOpen = true;
+    contextState.isPdfViewOpen = true;
     rerender(<PdfView />);
 
     expect(screen.getByText('Page 1 of 3')).not.toBeNull();
   });
 
   it('clamps the anchor when the document shrinks below it mid-session', () => {
-    contextState.isModalOpen = true;
+    contextState.isPdfViewOpen = true;
     contextState.editingContentId = 'h1';
     contextState.pageCount = 3;
     const { rerender } = render(<PdfView />);
@@ -129,38 +129,38 @@ describe('PdfView', () => {
   });
 
   it('closes on Escape while open', () => {
-    contextState.isModalOpen = true;
+    contextState.isPdfViewOpen = true;
     render(<PdfView />);
 
     fireEvent.keyDown(document, { key: 'Escape' });
 
-    expect(togglePdfModalMock).toHaveBeenCalledWith(false);
+    expect(togglePdfViewMock).toHaveBeenCalledWith(false);
   });
 
   it('removes the Escape listener once closed', () => {
-    contextState.isModalOpen = true;
+    contextState.isPdfViewOpen = true;
     const { rerender } = render(<PdfView />);
 
-    contextState.isModalOpen = false;
+    contextState.isPdfViewOpen = false;
     rerender(<PdfView />);
-    togglePdfModalMock.mockClear();
+    togglePdfViewMock.mockClear();
 
     fireEvent.keyDown(document, { key: 'Escape' });
 
-    expect(togglePdfModalMock).not.toHaveBeenCalled();
+    expect(togglePdfViewMock).not.toHaveBeenCalled();
   });
 
   it('ignores non-Escape keys while open', () => {
-    contextState.isModalOpen = true;
+    contextState.isPdfViewOpen = true;
     render(<PdfView />);
 
     fireEvent.keyDown(document, { key: 'a' });
 
-    expect(togglePdfModalMock).not.toHaveBeenCalled();
+    expect(togglePdfViewMock).not.toHaveBeenCalled();
   });
 
   it('has no automatically detectable accessibility violations while open, editing included', async () => {
-    contextState.isModalOpen = true;
+    contextState.isPdfViewOpen = true;
     contextState.editingContentId = 'h1';
     contextState.pageCount = 2;
     const { container } = render(<PdfView />);

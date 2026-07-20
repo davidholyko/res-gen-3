@@ -1,12 +1,12 @@
 import { fireEvent, render } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { togglePdfModalMock, contextState } = vi.hoisted(() => ({
-  togglePdfModalMock: vi.fn(),
+const { togglePdfViewMock, contextState } = vi.hoisted(() => ({
+  togglePdfViewMock: vi.fn(),
   contextState: {
     items: [] as unknown[],
     layouts: [] as unknown[],
-    isModalOpen: false,
+    isPdfViewOpen: false,
     editingContentId: null as string | null,
   },
 }));
@@ -15,10 +15,10 @@ vi.mock('@/context/app-context', async (importOriginal) => {
   return {
     ...actual,
     useAppContext: () => ({
-      togglePdfModal: togglePdfModalMock,
+      togglePdfView: togglePdfViewMock,
       items: contextState.items,
       layouts: contextState.layouts,
-      isModalOpen: contextState.isModalOpen,
+      isPdfViewOpen: contextState.isPdfViewOpen,
       editingContentId: contextState.editingContentId,
     }),
   };
@@ -27,10 +27,10 @@ vi.mock('@/context/app-context', async (importOriginal) => {
 const { default: PdfButton } = await import('./pdf-button');
 
 beforeEach(() => {
-  togglePdfModalMock.mockReset();
+  togglePdfViewMock.mockReset();
   contextState.items = [];
   contextState.layouts = [];
-  contextState.isModalOpen = false;
+  contextState.isPdfViewOpen = false;
   contextState.editingContentId = null;
 });
 
@@ -41,7 +41,7 @@ describe('PdfButton', () => {
     expect(getByText('PDF')).toBeDisabled();
   });
 
-  it('is enabled once there are items, and opens the modal on click', () => {
+  it('is enabled once there are items, and opens the PDF view on click', () => {
     contextState.items = [{ contentId: 'a' }];
     const { getByText } = render(<PdfButton />);
     const button = getByText('PDF');
@@ -49,7 +49,7 @@ describe('PdfButton', () => {
     expect(button).toBeEnabled();
     fireEvent.click(button);
 
-    expect(togglePdfModalMock).toHaveBeenCalledTimes(1);
+    expect(togglePdfViewMock).toHaveBeenCalledTimes(1);
   });
 
   it('is enabled once there are layouts, even with no items', () => {
@@ -61,7 +61,7 @@ describe('PdfButton', () => {
 
   it('reads as pressed while the plain PDF view is open', () => {
     contextState.items = [{ contentId: 'a' }];
-    contextState.isModalOpen = true;
+    contextState.isPdfViewOpen = true;
     const { getByText } = render(<PdfButton />);
 
     expect(getByText('PDF')).toHaveAttribute('aria-pressed', 'true');
@@ -69,7 +69,7 @@ describe('PdfButton', () => {
 
   it('is not pressed when the surface is the edit-with-preview flow', () => {
     contextState.items = [{ contentId: 'a' }];
-    contextState.isModalOpen = true;
+    contextState.isPdfViewOpen = true;
     contextState.editingContentId = 'a';
     const { getByText } = render(<PdfButton />);
 

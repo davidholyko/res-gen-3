@@ -1,16 +1,16 @@
 import { useAppContext } from '@/context/app-context';
 import { usePdfInstance } from '@/context/pdf-instance-context';
 
-type PdfModalTopBarProps = {
+type PdfViewTopBarProps = {
   anchorPage: number;
   onAnchorPageChange: (page: number) => void;
 };
 
-export default function PdfModalTopBar({
+export default function PdfViewTopBar({
   anchorPage,
   onAnchorPageChange,
-}: PdfModalTopBarProps) {
-  const { togglePdfModal, editingContentId } = useAppContext();
+}: PdfViewTopBarProps) {
+  const { togglePdfView, editingContentId } = useAppContext();
   const { pageCount } = usePdfInstance();
 
   // The stepper exists because the native PDF viewer's scroll state is
@@ -54,7 +54,7 @@ export default function PdfModalTopBar({
       <button
         className="text-white hover:text-gray-300"
         aria-label="Exit PDF View Button"
-        onClick={() => togglePdfModal()}
+        onClick={() => togglePdfView()}
       >
         <svg
           xmlns="http://www.w3.org/2000/svg"

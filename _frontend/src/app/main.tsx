@@ -9,7 +9,7 @@ import LayoutManager from '@/managers/layout-manager';
 // No Template ribbon above the canvas anymore (specs/editor-redesign.md,
 // Phase 6): content is added via each zone's "+ Add block" control.
 export default function Main() {
-  const { canvasEditingContentId, isRestructuring, isModalOpen } =
+  const { canvasEditingContentId, isRestructuring, isPdfViewOpen } =
     useAppContext();
   const isPanelOpen = canvasEditingContentId !== null;
 
@@ -29,7 +29,7 @@ export default function Main() {
   // The PDF preview likewise takes over the editor area rather than
   // floating as an overlay -- the control bar stays visible above it.
   // Sized to the space below that bar so the preview fills the viewport.
-  if (isModalOpen) {
+  if (isPdfViewOpen) {
     return (
       <main className="h-[calc(100vh-3.25rem)]">
         <PdfView />

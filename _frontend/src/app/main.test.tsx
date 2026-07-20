@@ -91,10 +91,10 @@ describe('Main', () => {
     seedLocalStorage();
 
     function Harness() {
-      const { togglePdfModal } = useAppContext();
+      const { togglePdfView } = useAppContext();
       return (
         <>
-          <button onClick={() => togglePdfModal(true)}>go</button>
+          <button onClick={() => togglePdfView(true)}>go</button>
           <Main />
         </>
       );

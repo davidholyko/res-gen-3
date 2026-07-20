@@ -23,15 +23,15 @@ export function blockSnippet(content: Record<string, unknown>): string {
 // (specs/edit-with-live-pdf-preview.md): the focused block's form on
 // top, saving live through the exact same EditorItem/ContentForm path
 // as the canvas's inline editor, and a picker below it for switching
-// blocks without leaving the modal.
+// blocks without leaving the PDF view.
 export default function EditPanel() {
   const { items, layouts, editingContentId, openEditingView } = useAppContext();
 
   const editingItem = items.find((item) => item.contentId === editingContentId);
 
-  // Focus lands in the form, not on the modal shell -- the whole point
-  // of the view is to start typing. Deferred a tick so it wins over
-  // react-modal's own open-focus handling.
+  // Focus lands in the form -- the whole point of the view is to start
+  // typing. Deferred a tick so it settles after the view mounts and any
+  // other open-time focus handling.
   const panelRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const timeoutId = setTimeout(() => {

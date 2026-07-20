@@ -7,7 +7,7 @@ import { useAppContext } from '@/context/app-context';
 // beside Edit/Restructure reads clearer than a menu of one. Disabled
 // until there is something to render (any block or layout).
 export default function PdfButton() {
-  const { togglePdfModal, items, layouts, isModalOpen, editingContentId } =
+  const { togglePdfView, items, layouts, isPdfViewOpen, editingContentId } =
     useAppContext();
 
   const disabled = !(items.length || layouts.length);
@@ -17,7 +17,7 @@ export default function PdfButton() {
   // (main.tsx), so the bar stays visible to show it. Only for the plain
   // preview: with editingContentId set the same surface is the
   // edit-with-preview flow, not "PDF view".
-  const isActive = isModalOpen && editingContentId === null;
+  const isActive = isPdfViewOpen && editingContentId === null;
 
   return (
     <button
@@ -31,7 +31,7 @@ export default function PdfButton() {
           'text-gray-700': !isActive,
         },
       )}
-      onClick={() => togglePdfModal()}
+      onClick={() => togglePdfView()}
     >
       PDF
     </button>

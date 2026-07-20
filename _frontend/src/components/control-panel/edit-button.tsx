@@ -7,7 +7,7 @@ import { deriveZones } from '@/utils/derive-zones';
 // clicking that block on the canvas. Focusing it (focusCanvasBlock)
 // reveals the block's own toolbar and opens the docked edit panel
 // beside the canvas (specs/canvas-edit-panel.md) -- the everyday
-// editing surface, not the PDF-preview modal (that stays reachable from
+// editing surface, not the PDF preview view (that stays reachable from
 // the focused block's "Edit with preview"). Disabled with no blocks --
 // there is nothing to edit (layouts alone carry no editable form).
 export default function EditButton() {
