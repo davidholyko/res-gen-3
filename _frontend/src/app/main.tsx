@@ -1,7 +1,7 @@
 import c from 'classnames';
 
-import CanvasEditPanel from '@/components/modals/canvas-edit-panel';
-import PdfView from '@/components/modals/pdf-view';
+import CanvasEditPanel from '@/components/editing/canvas-edit-panel';
+import PdfView from '@/components/editing/pdf-view';
 import RestructureView from '@/components/restructure/restructure-view';
 import { useAppContext } from '@/context/app-context';
 import LayoutManager from '@/managers/layout-manager';
