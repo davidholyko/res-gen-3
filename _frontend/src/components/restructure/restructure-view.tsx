@@ -87,6 +87,9 @@ export default function RestructureView() {
       }
       return next;
     });
+    // Mirror the move onto the staging copy so the styled preview on the
+    // left updates live with the same drag-and-drop.
+    staging.reorderItem(draggedId, beforeId);
   };
 
   return (

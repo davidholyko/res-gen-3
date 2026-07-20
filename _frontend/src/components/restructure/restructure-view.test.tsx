@@ -176,6 +176,28 @@ describe('RestructureView', () => {
     expect(cardText()[1]).toContain('Summary');
   });
 
+  it('live-updates the styled preview when a palette card is reordered', () => {
+    const { getByLabelText, getAllByTestId } = render(<RestructureView />);
+    const preview = getByLabelText('New structure');
+    const order = () => ({
+      summary: preview.textContent?.indexOf('Summary') ?? -1,
+      contact: preview.textContent?.indexOf('Ada Lovelace') ?? -1,
+    });
+
+    // Preview starts with the HEADER above the CONTACT.
+    expect(order().summary).toBeLessThan(order().contact);
+
+    // Drop the CONTACT card into the gap above the HEADER; the styled
+    // preview on the left should reorder to match.
+    fireEvent.drop(getAllByTestId('palette-gap')[0], {
+      dataTransfer: {
+        getData: (type: string) => (type === MACRO_DRAG_MIME ? 'c1' : ''),
+      },
+    });
+
+    expect(order().contact).toBeLessThan(order().summary);
+  });
+
   it('moves a palette card to the end of its zone via the trailing gap', () => {
     const { getAllByTestId } = render(<RestructureView />);
     const cardText = () =>

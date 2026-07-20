@@ -181,6 +181,63 @@ describe('useStagingResume', () => {
     expect(result.current.items.map((i) => i.contentId)).toEqual(['a', 'x']);
   });
 
+  it('reorders a block before another, and to the end of its zone', () => {
+    const { result } = setup({
+      layouts: [SINGLE],
+      items: [macro('a', 'L1'), macro('b', 'L1'), macro('c', 'L1')],
+    });
+
+    // Move c before a (drop into a's gap).
+    act(() => result.current.reorderItem('c' as ContentId, 'a' as ContentId));
+    expect(result.current.items.map((i) => i.contentId)).toEqual([
+      'c',
+      'a',
+      'b',
+    ]);
+
+    // Move c to the end of its zone (trailing gap -> beforeId null).
+    act(() => result.current.reorderItem('c' as ContentId, null));
+    expect(result.current.items.map((i) => i.contentId)).toEqual([
+      'a',
+      'b',
+      'c',
+    ]);
+  });
+
+  it('reorders a zone’s only block to the end (empty-zone insertion path)', () => {
+    // 'a' is the sole block in L1; with no L1 neighbour, it lands at the end
+    // of the flat array (after the L2 block). Within its own zone -- all the
+    // preview groups by -- it's still the only block, so the render is
+    // unchanged; only the flat position moves.
+    const { result } = setup({
+      layouts: [SINGLE],
+      items: [macro('a', 'L1'), macro('x', 'L2')],
+    });
+
+    act(() => result.current.reorderItem('a' as ContentId, null));
+
+    expect(result.current.items.map((i) => i.contentId)).toEqual(['x', 'a']);
+  });
+
+  it('ignores a reorder of an unknown block, or before an unknown target', () => {
+    const { result } = setup({
+      layouts: [SINGLE],
+      items: [macro('a', 'L1'), macro('b', 'L1')],
+    });
+
+    // Dragged id isn't in staging (e.g. already removed) -> no change.
+    act(() =>
+      result.current.reorderItem('ghost' as ContentId, 'a' as ContentId),
+    );
+    expect(result.current.items.map((i) => i.contentId)).toEqual(['a', 'b']);
+
+    // Target id isn't in staging -> leave the order alone.
+    act(() =>
+      result.current.reorderItem('a' as ContentId, 'ghost' as ContentId),
+    );
+    expect(result.current.items.map((i) => i.contentId)).toEqual(['a', 'b']);
+  });
+
   it('clears all boxes and macros', () => {
     const { result } = setup({ layouts: [SINGLE], items: [macro('a', 'L1')] });
 

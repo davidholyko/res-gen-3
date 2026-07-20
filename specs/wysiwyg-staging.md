@@ -110,19 +110,21 @@ resume behind one undo snapshot.
   "Send to…") appends it to the bottom of the target zone -- today's
   behavior; reorder afterward with the gutter's up/down. No
   between-blocks drop indicator in this pass.
-- **Palette stays labelled cards, now locally reorderable.** The source
-  pane keeps its compact type + summary cards (not styled) -- easy to
-  scan/drag, no duplicate styled render. Its order can be resorted by
-  dragging a card into a gap between cards (`palette-gap`): the gap is a
+- **Palette stays labelled cards, and reordering them drives the preview.**
+  The source pane keeps its compact type + summary cards (not styled) --
+  easy to scan/drag, no duplicate styled render. Its order can be resorted
+  by dragging a card into a gap between cards (`palette-gap`): the gap is a
   hairline at rest, but as soon as a card is picked up every gap opens into
   a roomy dashed drop slot -- making obvious room between the cards to aim
   for, since a 2px target is too fiddly -- and the gap under the pointer
   fills in solid to show where the drop lands. Reordering is confined to
-  within one
-  zone group (a cross-zone drop is a no-op) and is purely a scanning aid --
-  it's local view state over the *source* list, so it never touches the
-  live resume or the staging copy you Apply, and it resets when the view
-  closes.
+  within one zone group (a cross-zone drop is a no-op). The drop mirrors
+  onto the staging copy (palette and staging share contentIds on open), so
+  the **styled preview on the left updates live** with the same drag, and
+  the new order is part of what Apply commits. It degrades gracefully when
+  the ids have diverged -- a placed copy or a block already removed from
+  staging -- leaving the preview untouched. The palette order resets when
+  the view closes.
 - **Zone droppability signal.** Since the drop target is now styled
   content (not a dashed box), a zone shows a subtle highlight/outline
   while a drag is over it; an *empty* zone still shows a dashed "drop
