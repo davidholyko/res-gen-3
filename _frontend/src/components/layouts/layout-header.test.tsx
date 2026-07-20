@@ -108,7 +108,7 @@ describe('LayoutHeader', () => {
     expect(spec.item).toEqual({ index: 1 });
   });
 
-  it('is a collapsed-until-revealed inline row when idle, forced open while confirming', () => {
+  it('is a hidden-until-revealed absolute overlay when idle, forced visible while confirming', () => {
     const { container, rerender } = render(
       <LayoutHeader
         label="Layout 1"
@@ -118,17 +118,20 @@ describe('LayoutHeader', () => {
       />,
     );
 
-    // grid-rows-[0fr] by default (idle page shows only content); the row
-    // reflows open when the wrapping layout is hovered or holds focus.
-    // It sits in the page flow now, not the (clip-prone) left gutter.
+    // Absolute overlay (no reflow), invisible + click-through by default
+    // so the idle page shows only content; hover/focus of the wrapping
+    // layout reveals it. It sits in the page column, not the (clip-prone)
+    // left gutter.
     expect(container.firstElementChild).toHaveClass(
-      'grid',
-      'grid-rows-[0fr]',
-      'group-hover:grid-rows-[1fr]',
-      'group-focus-within:grid-rows-[1fr]',
+      'absolute',
+      'top-0',
+      'opacity-0',
+      'pointer-events-none',
+      'group-hover:opacity-100',
+      'group-focus-within:opacity-100',
     );
 
-    // While confirming it stays open so the Cancel/Delete choice can't
+    // While confirming it stays visible so the Cancel/Delete choice can't
     // slip away when the pointer leaves.
     rerender(
       <LayoutHeader
@@ -138,8 +141,8 @@ describe('LayoutHeader', () => {
         {...handlers}
       />,
     );
-    expect(container.firstElementChild).toHaveClass('grid-rows-[1fr]');
-    expect(container.firstElementChild).not.toHaveClass('grid-rows-[0fr]');
+    expect(container.firstElementChild).toHaveClass('opacity-100');
+    expect(container.firstElementChild).not.toHaveClass('opacity-0');
   });
 
   it('has no automatically detectable accessibility violations (idle or confirming)', async () => {
