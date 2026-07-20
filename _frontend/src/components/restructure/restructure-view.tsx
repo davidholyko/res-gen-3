@@ -46,8 +46,11 @@ export default function RestructureView() {
       className="flex w-full flex-col gap-2 px-4"
     >
       <div className="flex items-center gap-2 border-b border-gray-300 pb-2">
-        <h2 className="text-lg font-bold text-gray-700">Restructure</h2>
-        <p className="text-sm text-gray-500">
+        {/* h1: while this view is open it replaces the canvas (whose only
+            h1 is the resume name), so it must carry the page's level-one
+            heading itself (WCAG / axe page-has-heading-one). */}
+        <h1 className="text-lg font-bold text-gray-700">Restructure</h1>
+        <p className="text-sm text-gray-600">
           Drag macros from your resume into the boxes on the right, then Apply.
         </p>
         <div className="ml-auto flex items-center gap-2">
@@ -67,7 +70,7 @@ export default function RestructureView() {
           </button>
           <button
             type="button"
-            className="rounded bg-cyan-600 px-3 py-1 text-sm font-bold text-white hover:bg-cyan-700"
+            className="rounded bg-cyan-700 px-3 py-1 text-sm font-bold text-white hover:bg-cyan-800"
             onClick={onApply}
           >
             Apply
@@ -84,7 +87,7 @@ export default function RestructureView() {
             );
             return (
               <div key={zone.key} className="flex flex-col gap-1">
-                <span className="text-xs font-bold uppercase tracking-wide text-gray-400">
+                <span className="text-xs font-bold uppercase tracking-wide text-gray-600">
                   {zone.label}
                 </span>
                 {zoneItems.map((item) => (
@@ -103,7 +106,7 @@ export default function RestructureView() {
         {/* Right: the staging structure being built. */}
         <div aria-label="New structure" className="flex flex-col gap-2">
           {staging.layouts.length === 0 && (
-            <p className="rounded border-2 border-dashed border-gray-300 p-4 text-center text-sm text-gray-400">
+            <p className="rounded border-2 border-dashed border-gray-300 p-4 text-center text-sm text-gray-600">
               Add a box, then drag macros into it.
             </p>
           )}
@@ -118,6 +121,7 @@ export default function RestructureView() {
               onRemoveLayout={staging.removeLayout}
               onMoveLayout={staging.moveLayout}
               onPlace={place}
+              onAddBlock={staging.addBlock}
               onRemoveItem={staging.removeItem}
               onMoveItem={staging.moveItem}
             />

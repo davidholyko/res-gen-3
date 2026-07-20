@@ -1,10 +1,11 @@
-import { LAYOUTS } from '@/constants';
+import { CONTENT_TYPES, LAYOUTS } from '@/constants';
 import type { ContentAll } from '@/types/content-all';
 import type { ContentId, LayoutId } from '@/types/content-base-item';
 import type { LayoutItem } from '@/types/layouts';
 import { deriveMacroLabel } from '@/utils/derive-macro-label';
 import type { Zone } from '@/utils/derive-zones';
 
+import RestructureAddBlock from './restructure-add-block';
 import { MACRO_DRAG_MIME } from './restructure-palette-card';
 
 type RestructureStagingBoxProps = {
@@ -16,6 +17,7 @@ type RestructureStagingBoxProps = {
   onRemoveLayout: (layoutId: LayoutId) => void;
   onMoveLayout: (layoutId: LayoutId, dir: -1 | 1) => void;
   onPlace: (contentId: ContentId, zone: Zone) => void;
+  onAddBlock: (zone: Zone, contentType: keyof typeof CONTENT_TYPES) => void;
   onRemoveItem: (contentId: ContentId) => void;
   onMoveItem: (contentId: ContentId, dir: -1 | 1) => void;
 };
@@ -73,6 +75,7 @@ export default function RestructureStagingBox({
   onRemoveLayout,
   onMoveLayout,
   onPlace,
+  onAddBlock,
   onRemoveItem,
   onMoveItem,
 }: RestructureStagingBoxProps) {
@@ -131,12 +134,12 @@ export default function RestructureStagingBox({
               }}
             >
               {layout.layoutType === LAYOUTS.DOUBLE && (
-                <span className="block px-1 text-[10px] uppercase tracking-wide text-gray-400">
+                <span className="block px-1 text-[10px] uppercase tracking-wide text-gray-600">
                   {zone.layoutType === LAYOUTS.DOUBLE_LEFT ? 'Left' : 'Right'}
                 </span>
               )}
               {zoneItems.length === 0 ? (
-                <p className="px-1 py-2 text-center text-xs text-gray-400">
+                <p className="px-1 py-2 text-center text-xs text-gray-600">
                   Drop a macro here
                 </p>
               ) : (
@@ -183,6 +186,11 @@ export default function RestructureStagingBox({
                   );
                 })
               )}
+              <div className="pt-1">
+                <RestructureAddBlock
+                  onAdd={(contentType) => onAddBlock(zone, contentType)}
+                />
+              </div>
             </div>
           );
         })}

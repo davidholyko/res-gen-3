@@ -126,6 +126,29 @@ None.
       palette's "Send to…" menu); the view is axe-clean.
 - [x] `_frontend` stays at 100% coverage; lint, build, and e2e pass.
 
+## Update: the canvas is display-only; add controls live here
+
+A follow-up moved **all** structural add controls off the canvas and into
+this view, so the two are cleanly split: the canvas *shows* the resume;
+the restructure view *builds* it.
+
+- **Removed from the canvas:** the per-zone "+ Add block" (`AddBlockControl`),
+  the per-layout "+ Add layout" (`AddLayoutControl`), and the between-layout
+  gap inserters (`LayoutGapInserter`) are gone, along with the now-unused
+  `addLayout` / `addLayoutAt` context actions. `LayoutSingle` /
+  `LayoutDouble` / `LayoutManager` render content only.
+- **Add block moved here:** each staging zone carries a "+ Add block" menu
+  (`RestructureAddBlock`, same plain-language type list as the old canvas
+  control) that inserts a **blank** block of the chosen type into that
+  zone. It's filled in on the canvas after Apply (this view has no block
+  form). Add layout is the existing "+ One/Two column" box controls.
+- **Empty state:** `EmptyLayoutState`'s CTA ("Restructure to build it")
+  opens this view instead of adding a layout inline -- it's now the only
+  way to bootstrap a resume from empty.
+- **A11y note:** while open this view replaces the canvas (whose only h1
+  is the resume name), so its "Restructure" title is the page `h1`; the
+  Apply button uses `bg-cyan-700` for AA contrast.
+
 ## Resolved decisions
 
 - **Pre-filled right pane, with Clear.** Staging opens as a deep *copy*

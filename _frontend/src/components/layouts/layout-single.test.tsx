@@ -36,9 +36,9 @@ afterEach(() => {
   window.localStorage.clear();
 });
 
-// Not a drop target anymore: dragging content from the Template ribbon
-// retired with the ribbon (specs/editor-redesign.md, Phase 6) -- the
-// zone's own AddBlockControl is the add path.
+// Display-only on the canvas now: adding blocks/layouts moved into the
+// restructure view (specs/restructure-view.md), so LayoutSingle just
+// renders its zone's content.
 describe('LayoutSingle', () => {
   it('renders only items belonging to this layout', () => {
     seedLocalStorage();
@@ -70,15 +70,16 @@ describe('LayoutSingle', () => {
     expect(empty.className).toContain('border-dashed');
   });
 
-  it('carries its own "+ Add block" control', () => {
+  it('renders no add controls (those live in the restructure view now)', () => {
     seedLocalStorage();
-    const { getByText } = render(
+    const { queryByText } = render(
       <AllProviders>
         <LayoutSingle layoutType="SINGLE" layoutId="this-layout" />
       </AllProviders>,
     );
 
-    expect(getByText('+ Add block')).not.toBeNull();
+    expect(queryByText('+ Add block')).toBeNull();
+    expect(queryByText('+ Add layout')).toBeNull();
   });
 
   it('has no automatically detectable accessibility violations', async () => {

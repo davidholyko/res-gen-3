@@ -2,36 +2,36 @@ import { fireEvent, render } from '@testing-library/react';
 import axe from 'axe-core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { addLayoutMock } = vi.hoisted(() => ({ addLayoutMock: vi.fn() }));
+const { toggleRestructureMock } = vi.hoisted(() => ({
+  toggleRestructureMock: vi.fn(),
+}));
 vi.mock('@/context/app-context', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/context/app-context')>();
   return {
     ...actual,
-    useAppContext: () => ({ addLayout: addLayoutMock }),
+    useAppContext: () => ({ toggleRestructure: toggleRestructureMock }),
   };
 });
 
 const { default: EmptyLayoutState } = await import('./empty-layout-state');
 
 beforeEach(() => {
-  addLayoutMock.mockReset();
+  toggleRestructureMock.mockReset();
 });
 
 describe('EmptyLayoutState', () => {
   it('renders guidance text', () => {
     const { getByText } = render(<EmptyLayoutState />);
 
-    expect(getByText(/Your resume is empty\. Add a layout/)).not.toBeNull();
+    expect(getByText(/Your resume is empty\. Open Restructure/)).not.toBeNull();
   });
 
-  it('adds a SINGLE layout when the CTA is clicked', () => {
+  it('opens the restructure view when the CTA is clicked', () => {
     const { getByText } = render(<EmptyLayoutState />);
 
-    fireEvent.click(getByText('+ Add Single Column Layout'));
+    fireEvent.click(getByText('Restructure to build it'));
 
-    expect(addLayoutMock).toHaveBeenCalledWith(
-      expect.objectContaining({ layoutType: 'SINGLE' }),
-    );
+    expect(toggleRestructureMock).toHaveBeenCalledWith(true);
   });
 
   it('has no automatically detectable accessibility violations', async () => {

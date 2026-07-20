@@ -50,8 +50,6 @@ export type AppContextType = {
   toggleRestructure: (value?: boolean) => void;
   items: ContentAll[]; // rename to contentItems
   layouts: LayoutItem[];
-  addLayout: (newLayout: LayoutItem) => void;
-  addLayoutAt: (newLayout: LayoutItem, index: number) => void;
   onImportFile: ({ items, layouts }: FileDropValue) => void;
   onCreate: (item: ContentAll) => void;
   onUpdate: (item: ContentAll) => void;
@@ -309,22 +307,6 @@ export function AppProvider({ children }: AppProviderProps) {
     [items],
   );
 
-  const addLayout = useCallback((newLayout: LayoutItem) => {
-    setLayouts((prevLayouts) => [...prevLayouts, newLayout]);
-  }, []);
-
-  // Insert at a specific position, not just append -- the canvas gap
-  // inserters (layout-gap-inserter.tsx) add a layout exactly where the
-  // user is looking (specs/editor-redesign.md, Design → Layout
-  // management).
-  const addLayoutAt = useCallback((newLayout: LayoutItem, index: number) => {
-    setLayouts((prevLayouts) => {
-      const next = [...prevLayouts];
-      next.splice(index, 0, newLayout);
-      return next;
-    });
-  }, []);
-
   const focusCanvasBlock = useCallback((contentId: ContentId) => {
     setCanvasEditingContentId(contentId);
   }, []);
@@ -427,8 +409,6 @@ export function AppProvider({ children }: AppProviderProps) {
         toggleRestructure,
         items,
         layouts,
-        addLayout,
-        addLayoutAt,
         onImportFile,
         onDelete,
         onUpdate,

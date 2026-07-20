@@ -1,4 +1,10 @@
-import { clearResume, expect, makeResumeMultiPage, test } from './fixtures';
+import {
+  addSingleLayout,
+  clearResume,
+  expect,
+  makeResumeMultiPage,
+  test,
+} from './fixtures';
 
 // Happy-path coverage for specs/multi-page-indicator.md. The page count
 // comes from react-pdf's own real render pipeline (shared with the PDF
@@ -27,10 +33,10 @@ test.describe('multi-page indicator', () => {
 
     await clearResume(page);
 
-    // Zero layouts now, so the canvas "+ Add layout" control is gone --
-    // the empty-state CTA is the only add affordance
-    // (specs/add-layout-beside-add-block.md keeps it for exactly this).
-    await page.getByText('+ Add Single Column Layout').click();
+    // Rebuild a single empty layout via the restructure view (the only
+    // way to add layouts now, specs/restructure-view.md) -- one empty
+    // page, so the multi-page indicator goes away.
+    await addSingleLayout(page);
 
     await expect(page.getByText(/^\d+ pages$/)).not.toBeVisible({
       timeout: 5000,

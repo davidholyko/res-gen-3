@@ -48,6 +48,26 @@ test.describe('restructure view', () => {
     ).toBeVisible();
   });
 
+  test('adds a new blank block of a chosen type into a box, then Apply puts it on the canvas', async ({
+    page,
+  }) => {
+    const before = await page.locator('.layout-single [role="group"]').count();
+
+    await page.getByRole('button', { name: 'Restructure' }).click();
+
+    // Each staging zone carries the "+ Add block" menu (moved off the
+    // canvas). Add a Section heading into the first (copied) box.
+    await page.getByRole('button', { name: '+ Add block' }).first().click();
+    await page.getByRole('menuitem', { name: 'Section heading' }).click();
+
+    await page.getByRole('button', { name: 'Apply', exact: true }).click();
+
+    // One more block on the canvas -- blank, ready to edit.
+    await expect(page.locator('.layout-single [role="group"]')).toHaveCount(
+      before + 1,
+    );
+  });
+
   test('Cancel discards staging changes and leaves the resume untouched', async ({
     page,
   }) => {

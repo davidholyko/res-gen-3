@@ -80,23 +80,47 @@ export async function makeResumeMultiPage(page: Page) {
 }
 
 /**
- * Adds a SINGLE-column layout below the last layout via its canvas
- * "+ Add layout" control (the Edit menu retired with
- * specs/add-layout-beside-add-block.md).
+ * Adds a SINGLE-column layout via the restructure view -- the only place
+ * layouts are added now that the canvas is display-only
+ * (specs/restructure-view.md). Restructure opens as a copy of the resume,
+ * so adding one box and applying appends exactly one layout.
  */
 export async function addSingleLayout(page: Page) {
   const before = await page.locator('.layout-single').count();
-  await page.getByRole('button', { name: '+ Add layout' }).last().click();
-  await page.getByRole('menuitem', { name: 'One column' }).click();
+  await page.getByRole('button', { name: 'Restructure', exact: true }).click();
+  await page.getByRole('button', { name: '+ One column' }).click();
+  await page.getByRole('button', { name: 'Apply', exact: true }).click();
   await expect(page.locator('.layout-single')).toHaveCount(before + 1);
 }
 
-/** Adds a DOUBLE-column layout below the last layout via the canvas control. */
+/** Adds a DOUBLE-column layout via the restructure view. */
 export async function addDoubleLayout(page: Page) {
   const before = await page.locator('.layout-double').count();
-  await page.getByRole('button', { name: '+ Add layout' }).last().click();
-  await page.getByRole('menuitem', { name: 'Two columns' }).click();
+  await page.getByRole('button', { name: 'Restructure', exact: true }).click();
+  await page.getByRole('button', { name: '+ Two columns' }).click();
+  await page.getByRole('button', { name: 'Apply', exact: true }).click();
   await expect(page.locator('.layout-double')).toHaveCount(before + 1);
+}
+
+/**
+ * Adds a blank block of a given type into a layout via the restructure
+ * view (add-block moved off the canvas, specs/restructure-view.md), then
+ * applies. `position` is the 1-based layout/box index; the block lands in
+ * that box's first zone. The new block is blank -- fill it in on the
+ * canvas afterwards, same as a real user.
+ */
+export async function addBlock(
+  page: Page,
+  typeLabel: string,
+  position = 1,
+) {
+  await page.getByRole('button', { name: 'Restructure', exact: true }).click();
+  await page
+    .getByRole('button', { name: '+ Add block' })
+    .nth(position - 1)
+    .click();
+  await page.getByRole('menuitem', { name: typeLabel }).click();
+  await page.getByRole('button', { name: 'Apply', exact: true }).click();
 }
 
 /** Every console error captured while `fn` runs; asserts none by default. */

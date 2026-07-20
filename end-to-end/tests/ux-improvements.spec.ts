@@ -8,14 +8,19 @@ import { addSingleLayout, clearResume, expect, test } from './fixtures';
 // suite only needs to prove these flows work through a real browser.
 // Undo-specific flows live in undo.spec.ts.
 test.describe('UX improvements', () => {
-  test('the empty-state CTA adds a new layout once the resume is cleared', async ({
+  test('the empty-state CTA opens the restructure view to rebuild', async ({
     page,
   }) => {
     await clearResume(page);
 
     await expect(page.getByText('Your resume is empty.')).toBeVisible();
 
-    await page.getByText('+ Add Single Column Layout').click();
+    // The CTA opens the restructure view now (specs/restructure-view.md),
+    // where layouts and blocks are built, rather than adding a layout
+    // inline.
+    await page.getByText('Restructure to build it').click();
+    await page.getByRole('button', { name: '+ One column' }).click();
+    await page.getByRole('button', { name: 'Apply', exact: true }).click();
 
     await expect(page.locator('.layout-single')).toHaveCount(1);
     await expect(page.getByText('Your resume is empty.')).not.toBeVisible();

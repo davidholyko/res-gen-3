@@ -5,27 +5,18 @@ import type { LAYOUTS } from '@/constants';
 import { useAppContext } from '@/context/app-context';
 import MacroManager from '@/managers/macro-manager';
 
-import AddBlockControl from './add-block-control';
-import AddLayoutControl from './add-layout-control';
-
 interface LayoutSingleProps {
   layoutType: keyof typeof LAYOUTS;
   className?: string;
   layoutId?: string;
-  layoutParentId?: string;
-  // Present only on top-level SINGLE layouts (not the halves of a
-  // DOUBLE): where "+ Add layout" inserts, i.e. this layout's index + 1
-  // (specs/add-layout-beside-add-block.md).
-  addLayoutIndex?: number;
 }
 
-// No longer a react-dnd drop target: dragging content from the Template
-// ribbon retired with the ribbon itself (specs/editor-redesign.md,
-// Phase 6) -- blocks are added in place via AddBlockControl below.
-// Layout *reorder* drags target the gaps between layouts
-// (layout-gap-inserter.tsx), not the layouts.
+// A single layout (or one half of a DOUBLE) rendered on the canvas. It's
+// display-only now: adding blocks and adding layouts moved off the canvas
+// into the restructure view (specs/restructure-view.md), so this just
+// renders the zone's content.
 export default function LayoutSingle(props: LayoutSingleProps) {
-  const { layoutType, layoutId, layoutParentId = null, addLayoutIndex } = props;
+  const { layoutType, layoutId } = props;
 
   const { items: allItems } = useAppContext();
 
@@ -40,12 +31,10 @@ export default function LayoutSingle(props: LayoutSingleProps) {
   // Filled layouts draw no box: a box around every layout made the canvas
   // read as stacked separate pages rather than one continuous resume
   // (specs/continuous-page-canvas.md). But an *empty* layout with no box
-  // is just a 50px sliver of blank page -- indistinguishable from a new
-  // blank page, which is exactly what it looked like. So while empty a
-  // layout (and each empty half of a DOUBLE) shows a dashed drop-zone,
-  // res-gen-2 style: it reads as "a section to fill", visibly attached to
-  // the page, not a void. Once it has content the border is gone and the
-  // continuous-page look is preserved. min-h keeps it a clickable target.
+  // is just a 50px sliver of blank page. So while empty a layout (and each
+  // empty half of a DOUBLE) shows a dashed placeholder so it reads as "a
+  // section to fill" -- filled in via the restructure view. min-h keeps it
+  // visible.
   const isEmpty = items.length === 0;
   const className = useMemo(
     () =>
@@ -60,23 +49,6 @@ export default function LayoutSingle(props: LayoutSingleProps) {
   return (
     <div className={className}>
       <MacroManager items={items} />
-      {/* The add controls are part of the layout's editing chrome, not
-          the resume content -- hidden until the layout is hovered or
-          holds focus so the idle page shows only content
-          (specs/continuous-page-canvas.md). opacity-0 (not `hidden`)
-          keeps them clickable and in the tab order; an open menu holds
-          focus, so focus-within keeps the row revealed even once the
-          pointer leaves. */}
-      <div className="flex flex-row opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
-        <AddBlockControl
-          layoutId={layoutId}
-          layoutType={layoutType}
-          layoutParentId={layoutParentId}
-        />
-        {addLayoutIndex !== undefined && (
-          <AddLayoutControl insertIndex={addLayoutIndex} />
-        )}
-      </div>
     </div>
   );
 }

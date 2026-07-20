@@ -46,28 +46,22 @@ async function tabUntil(
 }
 
 test.describe('keyboard navigation', () => {
-  test('Tab reaches the control panel menus, then the canvas controls, in order', async ({
+  test('Tab reaches the control panel menus, then the Restructure button, in order', async ({
     page,
   }) => {
     await tabUntil(page, 'File');
 
     const seen: FocusInfo[] = [];
-    for (let i = 0; i < 4; i++) {
+    for (let i = 0; i < 2; i++) {
       await page.keyboard.press('Tab');
       seen.push(await currentFocus(page));
     }
 
-    expect(seen.map((f) => f.text)).toEqual([
-      'View',
-      // Then the Restructure entry button (specs/restructure-view.md)...
-      'Restructure',
-      // ...then the canvas follows directly -- the Template ribbon retired
-      // with specs/editor-redesign.md Phase 6. First the top gap's
-      // inserters (revealed by focus, WCAG-reachable without hover). The
-      // per-layout "Remove layout" control that used to follow was removed.
-      '+ One column',
-      '+ Two columns',
-    ]);
+    // File -> View -> Restructure. The canvas itself is display-only now
+    // (add controls moved into the restructure view,
+    // specs/restructure-view.md), so Restructure is the last control-bar
+    // stop before the canvas content.
+    expect(seen.map((f) => f.text)).toEqual(['View', 'Restructure']);
   });
 
   test('no keyboard trap across a long Tab run', async ({ page }) => {

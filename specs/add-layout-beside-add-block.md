@@ -1,6 +1,11 @@
 ---
-status: implemented
+status: superseded
 ---
+
+> **Superseded:** the canvas "+ Add block" / "+ Add layout" controls this
+> spec placed were removed -- adding blocks and layouts moved entirely
+> into the restructure view (`specs/restructure-view.md`), and the canvas
+> is now display-only. Kept as a record of the retired canvas add flow.
 
 # Add layout beside Add block
 

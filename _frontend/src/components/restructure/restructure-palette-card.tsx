@@ -55,7 +55,7 @@ export default function RestructurePaletteCard({
           {typeLabel}
         </span>
         <span className="block truncate text-sm text-gray-800">
-          {summary || <span className="italic text-gray-400">(empty)</span>}
+          {summary || <span className="italic text-gray-600">(empty)</span>}
         </span>
       </span>
 

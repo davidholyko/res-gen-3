@@ -30,6 +30,7 @@ const handlers = {
   onRemoveLayout: vi.fn(),
   onMoveLayout: vi.fn(),
   onPlace: vi.fn(),
+  onAddBlock: vi.fn(),
   onRemoveItem: vi.fn(),
   onMoveItem: vi.fn(),
 };
@@ -77,6 +78,18 @@ describe('RestructureStagingBox', () => {
     expect(handlers.onPlace).toHaveBeenCalledWith(
       'dropped-id',
       expect.objectContaining({ layoutId: 'L1', layoutType: 'SINGLE' }),
+    );
+  });
+
+  it('adds a new blank block to the zone via its "+ Add block" menu', () => {
+    const { getByText } = renderBox();
+
+    fireEvent.click(getByText('+ Add block'));
+    fireEvent.click(getByText('Section heading'));
+
+    expect(handlers.onAddBlock).toHaveBeenCalledWith(
+      expect.objectContaining({ layoutId: 'L1', layoutType: 'SINGLE' }),
+      'HEADER',
     );
   });
 

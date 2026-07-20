@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 
-import { LAYOUTS } from '@/constants';
+import { BLANK_CONTENT, CONTENT_TYPES, LAYOUTS } from '@/constants';
 import type { ContentAll } from '@/types/content-all';
 import type { ContentId, LayoutId } from '@/types/content-base-item';
 import type { LayoutItem } from '@/types/layouts';
@@ -104,6 +104,27 @@ export function useStagingResume(initial: StagingResume) {
     ]);
   };
 
+  // Create a brand-new *blank* block of a chosen type in a staging zone
+  // (the "+ Add block" that used to live on the canvas now lives here,
+  // specs/restructure-view.md). It starts empty (BLANK_CONTENT) and is
+  // filled in on the canvas after Apply -- the restructure view has no
+  // block form of its own.
+  const addBlock = (zone: Zone, contentType: keyof typeof CONTENT_TYPES) => {
+    setItems((prev) => [
+      ...prev,
+      {
+        contentId: uuidv4() as ContentId,
+        content: { ...BLANK_CONTENT[contentType] },
+        contentType,
+        layoutId: zone.layoutId,
+        layoutType: zone.layoutType,
+        layoutParentId: zone.layoutParentId,
+        // The blank content's shape can't be proven to correlate with
+        // contentType here (same looseness as AddBlockControl's onCreate).
+      } as ContentAll,
+    ]);
+  };
+
   const removeItem = (contentId: ContentId) => {
     setItems((prev) => prev.filter((item) => item.contentId !== contentId));
   };
@@ -144,6 +165,7 @@ export function useStagingResume(initial: StagingResume) {
     removeLayout,
     moveLayout,
     placeMacro,
+    addBlock,
     removeItem,
     moveItem,
     clear,

@@ -130,6 +130,19 @@ describe('useStagingResume', () => {
     expect(placed.content).toEqual(source.content);
   });
 
+  it('adds a new blank block of a chosen type to a zone', () => {
+    const { result } = setup({ layouts: [SINGLE], items: [] });
+
+    act(() => result.current.addBlock(zoneFor('L1'), 'HEADER'));
+
+    expect(result.current.items).toHaveLength(1);
+    const added = result.current.items[0];
+    expect(added.contentType).toBe('HEADER');
+    expect(added.content).toEqual({ header: '' });
+    expect(added.layoutId).toBe('L1');
+    expect(added.contentId).toBeTruthy();
+  });
+
   it('removes a placed macro by id', () => {
     const { result } = setup({ layouts: [SINGLE], items: [macro('a', 'L1')] });
 

@@ -75,16 +75,14 @@ describe('useAppContext', () => {
     const { result } = renderAppContext();
 
     act(() => {
-      result.current.addLayout({
-        layoutId: 'persisted-layout' as LayoutItem['layoutId'],
-        layoutType: LAYOUTS.SINGLE,
+      result.current.onCreate({
+        ...HEADER_ITEM,
+        contentId: 'ignored' as ContentAll['contentId'],
       });
     });
 
     const stored = JSON.parse(window.localStorage.getItem('res-gen-data')!);
-    expect(stored.layouts.map((l: LayoutItem) => l.layoutId)).toContain(
-      'persisted-layout',
-    );
+    expect(stored.items).toHaveLength(3);
   });
 
   describe('onCreate', () => {
@@ -342,36 +340,6 @@ describe('useAppContext', () => {
 
         expect(result.current.items).toBe(before);
       });
-    });
-  });
-
-  describe('layouts', () => {
-    it('addLayout appends a new layout', () => {
-      const { result } = renderAppContext();
-      const newLayout: LayoutItem = {
-        layoutId: 'layout-2' as LayoutItem['layoutId'],
-        layoutType: LAYOUTS.SINGLE,
-      };
-
-      act(() => {
-        result.current.addLayout(newLayout);
-      });
-
-      expect(result.current.layouts).toEqual([LAYOUT, newLayout]);
-    });
-
-    it('addLayoutAt inserts a layout at a specific position, not just the end', () => {
-      const { result } = renderAppContext();
-      const newLayout: LayoutItem = {
-        layoutId: 'layout-2' as LayoutItem['layoutId'],
-        layoutType: LAYOUTS.SINGLE,
-      };
-
-      act(() => {
-        result.current.addLayoutAt(newLayout, 0);
-      });
-
-      expect(result.current.layouts).toEqual([newLayout, LAYOUT]);
     });
   });
 

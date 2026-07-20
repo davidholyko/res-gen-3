@@ -1,6 +1,6 @@
 import AxeBuilder from '@axe-core/playwright';
 
-import { addSingleLayout, expect, test } from './fixtures';
+import { addBlock, expect, test } from './fixtures';
 
 // Closes the "page-level scans" gap specs/accessibility.md left open:
 // component tests already run axe-core, but only in jsdom, which can't
@@ -20,22 +20,22 @@ test.describe('accessibility (axe-core, real browser)', () => {
     expect(results.violations).toEqual([]);
   });
 
-  test('after adding a blank block via a zone\'s "+ Add block" menu', async ({
+  test('after a blank block is added via the restructure view', async ({
     page,
   }) => {
-    await addSingleLayout(page);
-    await page
-      .locator('.layout-single')
-      .last()
-      .getByRole('button', { name: '+ Add block' })
-      .click();
-    await page.getByRole('menuitem', { name: 'Section heading' }).click();
-    // SavedIndicator's opacity fades in over 300ms after the add --
+    await addBlock(page, 'Section heading');
+    // SavedIndicator's opacity fades in over 300ms after the change --
     // scanning mid-transition catches axe computing contrast against a
     // partially-transparent, blended color (same timing artifact as
     // editor-forms.spec.ts).
     await page.waitForTimeout(350);
 
+    const results = await new AxeBuilder({ page }).analyze();
+    expect(results.violations).toEqual([]);
+  });
+
+  test('with the restructure view open', async ({ page }) => {
+    await page.getByRole('button', { name: 'Restructure' }).click();
     const results = await new AxeBuilder({ page }).analyze();
     expect(results.violations).toEqual([]);
   });
