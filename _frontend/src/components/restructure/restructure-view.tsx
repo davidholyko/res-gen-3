@@ -185,10 +185,16 @@ export default function RestructureView() {
             viewport and stays reachable while you scroll the preview --
             without it, reordering the top macros means scrolling all the
             way back up. self-start keeps the column at its content height
-            (not stretched to the grid row) so sticky has room to travel. */}
+            (not stretched to the grid row) so sticky has room to travel.
+            max-h + overflow-y-auto: when the palette itself is taller than
+            the viewport, cap it to the screen and let it scroll internally
+            -- otherwise its lower cards would be pinned off the bottom edge
+            with no way to reach them. (The browser auto-scrolls this
+            container while dragging near its edges, so reordering still
+            works.) */}
         <div
           aria-label="Your resume"
-          className="sticky top-2 flex flex-col gap-3 self-start"
+          className="sticky top-2 flex max-h-[calc(100vh-1rem)] flex-col gap-3 self-start overflow-y-auto"
         >
           {paletteZones.map((zone) => {
             const zoneItems = items

@@ -20,7 +20,11 @@ the eye lands on the resume being built first. The styled preview is
 usually much taller than the palette, so the palette column is **sticky**
 (`sticky top-2 self-start`) -- it stays pinned near the top of the viewport
 as you scroll the preview, so the top macros stay reachable to reorder from
-anywhere on the page.
+anywhere on the page. When the palette itself is taller than the viewport
+it caps to screen height and scrolls internally
+(`max-h-[calc(100vh-1rem)] overflow-y-auto`), so its lower cards can't get
+pinned off the bottom edge; the browser auto-scrolls that container while
+dragging near its edges, so reordering still reaches every card.
 
 ## Non-goals
 
