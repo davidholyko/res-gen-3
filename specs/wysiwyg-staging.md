@@ -125,9 +125,12 @@ resume behind one undo snapshot.
   hairline at rest, but as soon as a card is picked up every gap opens into
   a roomy dashed drop slot -- making obvious room between the cards to aim
   for, since a 2px target is too fiddly -- and the gap under the pointer
-  fills in solid to show where the drop lands. The dragged card itself
-  dims (`opacity-40`) while in flight, so the browser's drag ghost reads as
-  the moving copy rather than the source looking duplicated. Reordering is
+  fills in solid to show where the drop lands. Only the gaps that would
+  actually move the card open: the two hugging the dragged card (just above
+  and just below it) stay collapsed, since dropping there is a no-op, and so
+  do the gaps in every other zone. The dragged card itself dims
+  (`opacity-40`) while in flight, so the browser's drag ghost reads as the
+  moving copy rather than the source looking duplicated. Reordering is
   confined to
   within one zone group (a cross-zone drop is a no-op). The drop mirrors
   onto the staging copy (palette and staging share contentIds on open), so

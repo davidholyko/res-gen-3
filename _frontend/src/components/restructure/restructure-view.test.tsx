@@ -271,24 +271,52 @@ describe('RestructureView', () => {
     expect(gap.className).not.toContain('outline-cyan-400');
   });
 
-  it('opens the reorder gaps into drop slots while a card is being dragged', () => {
+  it('opens only the meaningful gaps while a card is dragged, not the ones hugging it', () => {
     const { getAllByTestId } = render(<RestructureView />);
-    const gap = () => getAllByTestId('palette-gap')[0];
-    const card = getAllByTestId('palette-card')[0];
+    // Fixture: [gap before h1][h1][gap before c1][c1][trailing gap].
+    const gaps = () => getAllByTestId('palette-gap');
+    const h1Card = getAllByTestId('palette-card')[0];
 
-    // At rest the gaps are hairlines.
-    expect(gap().className).toContain('h-0.5');
+    // At rest every gap is a hairline.
+    gaps().forEach((g) => expect(g.className).toContain('h-0.5'));
 
-    // Starting a card drag opens every gap into a roomy dashed slot.
-    fireEvent.dragStart(card, {
+    // Dragging the HEADER (h1): the two gaps flanking it -- above it and
+    // below it (before c1) -- stay collapsed no-ops; only the trailing gap,
+    // a real move to the end, opens.
+    fireEvent.dragStart(h1Card, {
       dataTransfer: { setData: vi.fn(), effectAllowed: '' },
     });
-    expect(gap().className).toContain('border-cyan-300');
-    expect(gap().className).not.toContain('h-0.5');
+    expect(gaps()[0].className).toContain('h-0.5'); // above h1 (no-op)
+    expect(gaps()[1].className).toContain('h-0.5'); // below h1 (no-op)
+    expect(gaps()[2].className).toContain('border-cyan-300'); // to the end
 
-    // Ending the drag collapses them back to hairlines.
-    fireEvent.dragEnd(card);
-    expect(gap().className).toContain('h-0.5');
+    // Ending the drag collapses everything back.
+    fireEvent.dragEnd(h1Card);
+    gaps().forEach((g) => expect(g.className).toContain('h-0.5'));
+  });
+
+  it('keeps another zone’s gaps closed while dragging (no cross-zone reorder)', () => {
+    contextState.layouts = [
+      { layoutId: 'a' as LayoutId, layoutType: 'SINGLE' },
+      { layoutId: 'b' as LayoutId, layoutType: 'SINGLE' },
+    ];
+    contextState.items = [
+      macro('h1', 'HEADER', { header: 'Summary' }),
+      { ...macro('c1', 'CONTACT', { name: 'Ada Lovelace' }), layoutId: 'a' },
+      // Zone b is intentionally empty -- it still renders its trailing gap.
+    ] as ContentAll[];
+
+    const { getAllByTestId } = render(<RestructureView />);
+    // Gaps: [before h1][before c1][trailing a] for zone a, then [trailing b].
+    const gaps = () => getAllByTestId('palette-gap');
+    const zoneBTrailingGap = () => gaps()[gaps().length - 1];
+
+    fireEvent.dragStart(getAllByTestId('palette-card')[0], {
+      dataTransfer: { setData: vi.fn(), effectAllowed: '' },
+    });
+
+    // Dragging a zone-a card never opens zone b's gap.
+    expect(zoneBTrailingGap().className).toContain('h-0.5');
   });
 
   it('treats dropping a card into its own gap as a no-op', () => {

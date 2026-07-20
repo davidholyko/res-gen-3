@@ -51,9 +51,12 @@ export default function RestructureView() {
   const [paletteOrder, setPaletteOrder] = useState<ContentId[]>(() =>
     items.map((item) => item.contentId),
   );
-  // True while a palette card is mid-drag, so the reorder gaps open into
-  // roomy drop slots (a hairline gap is too small to aim between cards).
-  const [isDraggingCard, setIsDraggingCard] = useState(false);
+  // The palette card currently mid-drag (null when none). Drives which
+  // reorder gaps open into drop slots: only the ones that would actually
+  // move this card -- never the two flanking its current spot (dropping
+  // just above or just below itself is a no-op), and never gaps in another
+  // zone (cross-zone reordering isn't allowed).
+  const [draggingId, setDraggingId] = useState<ContentId | null>(null);
   const layoutOf = (contentId: ContentId) =>
     items.find((item) => item.contentId === contentId)?.layoutId;
   // Every rendered item is in `paletteOrder` -- it's seeded from `items`,
@@ -200,17 +203,28 @@ export default function RestructureView() {
             const zoneItems = items
               .filter((item) => item.layoutId === zone.layoutId)
               .sort((a, b) => orderRank(a.contentId) - orderRank(b.contentId));
+            const draggingHere =
+              draggingId !== null && layoutOf(draggingId) === zone.layoutId;
+            // A gap between the cards `aboveId` and `belowId` is a live drop
+            // slot only while a card from this zone is dragging and neither
+            // neighbour is that card -- i.e. it's not one of the two gaps
+            // hugging the dragged card, where a drop wouldn't move anything.
+            const gapActive = (aboveId?: ContentId, belowId?: ContentId) =>
+              draggingHere && draggingId !== aboveId && draggingId !== belowId;
             return (
               <div key={zone.key} className="flex flex-col">
                 <span className="mb-1 text-xs font-bold uppercase tracking-wide text-gray-600">
                   {zone.label}
                 </span>
-                {zoneItems.map((item) => (
+                {zoneItems.map((item, index) => (
                   <Fragment key={item.contentId}>
                     {/* Gap before this card -- drop here to move the
                         dragged card just above it. */}
                     <RestructurePaletteGap
-                      active={isDraggingCard}
+                      active={gapActive(
+                        zoneItems[index - 1]?.contentId,
+                        item.contentId,
+                      )}
                       onDropCard={(draggedId) =>
                         movePaletteCard(draggedId, item.contentId, zone)
                       }
@@ -219,14 +233,19 @@ export default function RestructureView() {
                       item={item}
                       zones={stagingZones}
                       onSendTo={(target) => place(item.contentId, target)}
-                      onDraggingChange={setIsDraggingCard}
+                      onDraggingChange={(dragging) =>
+                        setDraggingId(dragging ? item.contentId : null)
+                      }
                     />
                   </Fragment>
                 ))}
                 {/* Trailing gap -- drop here to move a card to the end of
                     this zone. */}
                 <RestructurePaletteGap
-                  active={isDraggingCard}
+                  active={gapActive(
+                    zoneItems[zoneItems.length - 1]?.contentId,
+                    undefined,
+                  )}
                   onDropCard={(draggedId) =>
                     movePaletteCard(draggedId, null, zone)
                   }
