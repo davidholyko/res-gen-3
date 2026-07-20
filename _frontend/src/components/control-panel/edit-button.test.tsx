@@ -1,8 +1,8 @@
 import { fireEvent, render } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { openEditingViewMock, contextState } = vi.hoisted(() => ({
-  openEditingViewMock: vi.fn(),
+const { focusCanvasBlockMock, contextState } = vi.hoisted(() => ({
+  focusCanvasBlockMock: vi.fn(),
   contextState: {
     items: [] as { contentId: string; layoutId?: string }[],
     layouts: [] as { layoutId: string; layoutType: string }[],
@@ -13,7 +13,7 @@ vi.mock('@/context/app-context', async (importOriginal) => {
   return {
     ...actual,
     useAppContext: () => ({
-      openEditingView: openEditingViewMock,
+      focusCanvasBlock: focusCanvasBlockMock,
       items: contextState.items,
       layouts: contextState.layouts,
     }),
@@ -23,7 +23,7 @@ vi.mock('@/context/app-context', async (importOriginal) => {
 const { default: EditButton } = await import('./edit-button');
 
 beforeEach(() => {
-  openEditingViewMock.mockReset();
+  focusCanvasBlockMock.mockReset();
   contextState.items = [];
   contextState.layouts = [];
 });
@@ -35,9 +35,9 @@ describe('EditButton', () => {
     expect(getByText('Edit')).toBeDisabled();
   });
 
-  it('opens the editing view on the first block in document order', () => {
+  it('focuses the first block in document order, as a canvas click would', () => {
     // items[0] sits in the *second* layout; the first macro in reading
-    // order is the block in the first layout, so that is what opens.
+    // order is the block in the first layout, so that is what focuses.
     contextState.items = [
       { contentId: 'second-layout', layoutId: 'L2' },
       { contentId: 'first-layout', layoutId: 'L1' },
@@ -52,8 +52,8 @@ describe('EditButton', () => {
     expect(button).toBeEnabled();
     fireEvent.click(button);
 
-    expect(openEditingViewMock).toHaveBeenCalledTimes(1);
-    expect(openEditingViewMock).toHaveBeenCalledWith('first-layout');
+    expect(focusCanvasBlockMock).toHaveBeenCalledTimes(1);
+    expect(focusCanvasBlockMock).toHaveBeenCalledWith('first-layout');
   });
 
   it('falls back to items[0] for a block not yet placed in any zone', () => {
@@ -63,6 +63,6 @@ describe('EditButton', () => {
 
     fireEvent.click(getByText('Edit'));
 
-    expect(openEditingViewMock).toHaveBeenCalledWith('orphan');
+    expect(focusCanvasBlockMock).toHaveBeenCalledWith('orphan');
   });
 });

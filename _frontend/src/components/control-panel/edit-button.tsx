@@ -1,21 +1,22 @@
 import { useAppContext } from '@/context/app-context';
 import { deriveZones } from '@/utils/derive-zones';
 
-// Opens the block-editing modal straight from the control bar
-// (specs/edit-with-live-pdf-preview.md): the same docked-form-beside-
-// live-preview surface reached inline via "Edit with preview", but
-// entered here focused on the first block, with the modal's own picker
-// left to switch between the rest. Disabled with no blocks -- there is
-// nothing to edit (layouts alone carry no editable form).
+// A control-bar shortcut to editing the first block: identical to
+// clicking that block on the canvas. Focusing it (focusCanvasBlock)
+// reveals the block's own toolbar and opens the docked edit panel
+// beside the canvas (specs/canvas-edit-panel.md) -- the everyday
+// editing surface, not the PDF-preview modal (that stays reachable from
+// the focused block's "Edit with preview"). Disabled with no blocks --
+// there is nothing to edit (layouts alone carry no editable form).
 export default function EditButton() {
-  const { items, layouts, openEditingView } = useAppContext();
+  const { items, layouts, focusCanvasBlock } = useAppContext();
 
   // The first macro in document (reading) order -- the topmost block on
   // the canvas -- not merely items[0] in insertion order. Walks zones
-  // then the blocks within each, exactly as the modal's own picker does
-  // (edit-panel.tsx / deriveZones), so "Edit" always lands on the block
-  // a user would point to as first. Falls back to items[0] for the
-  // defensive case of a block not yet placed in any zone.
+  // then the blocks within each, exactly as the canvas lays them out
+  // (deriveZones), so "Edit" always lands on the block a user would
+  // point to as first. Falls back to items[0] for the defensive case of
+  // a block not yet placed in any zone.
   const firstBlock =
     deriveZones(layouts)
       .flatMap((zone) =>
@@ -28,7 +29,7 @@ export default function EditButton() {
       type="button"
       disabled={!firstBlock}
       className="rounded px-2 py-1 text-sm text-gray-700 hover:bg-cyan-200 disabled:text-gray-400 disabled:hover:bg-transparent"
-      onClick={() => firstBlock && openEditingView(firstBlock.contentId)}
+      onClick={() => firstBlock && focusCanvasBlock(firstBlock.contentId)}
     >
       Edit
     </button>
