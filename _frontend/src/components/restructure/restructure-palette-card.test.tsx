@@ -58,8 +58,32 @@ describe('RestructurePaletteCard', () => {
       />,
     );
     const dataTransfer = { setData: vi.fn(), effectAllowed: '' };
-    fireEvent.dragStart(getByTestId('palette-card'), { dataTransfer });
+    const card = getByTestId('palette-card');
+    fireEvent.dragStart(card, { dataTransfer });
     expect(dataTransfer.setData).toHaveBeenCalledWith(MACRO_DRAG_MIME, 'c1');
+    // Without an onDraggingChange handler, the drag start/end are harmless
+    // no-ops rather than throwing.
+    expect(() => fireEvent.dragEnd(card)).not.toThrow();
+  });
+
+  it('reports its own drag start and end to onDraggingChange', () => {
+    const onDraggingChange = vi.fn();
+    const { getByTestId } = render(
+      <RestructurePaletteCard
+        item={item({ header: 'x' })}
+        zones={[]}
+        onSendTo={vi.fn()}
+        onDraggingChange={onDraggingChange}
+      />,
+    );
+    const card = getByTestId('palette-card');
+
+    fireEvent.dragStart(card, {
+      dataTransfer: { setData: vi.fn(), effectAllowed: '' },
+    });
+    expect(onDraggingChange).toHaveBeenLastCalledWith(true);
+    fireEvent.dragEnd(card);
+    expect(onDraggingChange).toHaveBeenLastCalledWith(false);
   });
 
   it('hides the "Send to…" menu when there are no zones to send to', () => {

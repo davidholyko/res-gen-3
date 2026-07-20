@@ -51,6 +51,9 @@ export default function RestructureView() {
   const [paletteOrder, setPaletteOrder] = useState<ContentId[]>(() =>
     items.map((item) => item.contentId),
   );
+  // True while a palette card is mid-drag, so the reorder gaps open into
+  // roomy drop slots (a hairline gap is too small to aim between cards).
+  const [isDraggingCard, setIsDraggingCard] = useState(false);
   const layoutOf = (contentId: ContentId) =>
     items.find((item) => item.contentId === contentId)?.layoutId;
   // Every rendered item is in `paletteOrder` -- it's seeded from `items`,
@@ -68,6 +71,10 @@ export default function RestructureView() {
     zone: Zone,
   ) => {
     if (layoutOf(draggedId) !== zone.layoutId) return;
+    // Dropping a card into the gap immediately above itself is a no-op --
+    // and guarding it keeps the splice below from ever seeing a `beforeId`
+    // that was just filtered out (indexOf -1).
+    if (beforeId === draggedId) return;
     setPaletteOrder((prev) => {
       const next = prev.filter((id) => id !== draggedId);
       if (beforeId === null) {
@@ -185,6 +192,7 @@ export default function RestructureView() {
                     {/* Gap before this card -- drop here to move the
                         dragged card just above it. */}
                     <RestructurePaletteGap
+                      active={isDraggingCard}
                       onDropCard={(draggedId) =>
                         movePaletteCard(draggedId, item.contentId, zone)
                       }
@@ -193,12 +201,14 @@ export default function RestructureView() {
                       item={item}
                       zones={stagingZones}
                       onSendTo={(target) => place(item.contentId, target)}
+                      onDraggingChange={setIsDraggingCard}
                     />
                   </Fragment>
                 ))}
                 {/* Trailing gap -- drop here to move a card to the end of
                     this zone. */}
                 <RestructurePaletteGap
+                  active={isDraggingCard}
                   onDropCard={(draggedId) =>
                     movePaletteCard(draggedId, null, zone)
                   }

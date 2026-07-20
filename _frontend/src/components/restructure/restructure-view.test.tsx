@@ -249,6 +249,43 @@ describe('RestructureView', () => {
     expect(gap.className).not.toContain('outline-cyan-400');
   });
 
+  it('opens the reorder gaps into drop slots while a card is being dragged', () => {
+    const { getAllByTestId } = render(<RestructureView />);
+    const gap = () => getAllByTestId('palette-gap')[0];
+    const card = getAllByTestId('palette-card')[0];
+
+    // At rest the gaps are hairlines.
+    expect(gap().className).toContain('h-0.5');
+
+    // Starting a card drag opens every gap into a roomy dashed slot.
+    fireEvent.dragStart(card, {
+      dataTransfer: { setData: vi.fn(), effectAllowed: '' },
+    });
+    expect(gap().className).toContain('border-cyan-300');
+    expect(gap().className).not.toContain('h-0.5');
+
+    // Ending the drag collapses them back to hairlines.
+    fireEvent.dragEnd(card);
+    expect(gap().className).toContain('h-0.5');
+  });
+
+  it('treats dropping a card into its own gap as a no-op', () => {
+    const { getAllByTestId } = render(<RestructureView />);
+    const order = () =>
+      getAllByTestId('palette-card').map((card) => card.textContent);
+    const before = order();
+
+    // Gap 0 is directly above the HEADER (h1); dropping h1 there would put
+    // it just above itself -- no move.
+    fireEvent.drop(getAllByTestId('palette-gap')[0], {
+      dataTransfer: {
+        getData: (type: string) => (type === MACRO_DRAG_MIME ? 'h1' : ''),
+      },
+    });
+
+    expect(order()).toEqual(before);
+  });
+
   it('ignores a palette drop whose card is from another zone', () => {
     contextState.layouts = [
       { layoutId: 'a' as LayoutId, layoutType: 'SINGLE' },

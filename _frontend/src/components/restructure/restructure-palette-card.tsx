@@ -14,6 +14,10 @@ type RestructurePaletteCardProps = {
   // non-drag equivalent). Empty when there are no boxes yet.
   zones: Zone[];
   onSendTo: (zone: Zone) => void;
+  // Fired as this card's own drag starts (true) and ends (false), so the
+  // view can open up the reorder gaps into easy-to-hit drop slots while a
+  // card is in flight. Optional -- the card works standalone without it.
+  onDraggingChange?: (dragging: boolean) => void;
 };
 
 // One macro in the restructure view's left palette
@@ -25,6 +29,7 @@ export default function RestructurePaletteCard({
   item,
   zones,
   onSendTo,
+  onDraggingChange,
 }: RestructurePaletteCardProps) {
   const { typeLabel, summary } = deriveMacroLabel(item);
   const {
@@ -46,7 +51,9 @@ export default function RestructurePaletteCard({
         // copyMove: the same drag can either place a copy in a staging zone
         // or move the card to a new spot in the palette (a gap drop).
         event.dataTransfer.effectAllowed = 'copyMove';
+        onDraggingChange?.(true);
       }}
+      onDragEnd={() => onDraggingChange?.(false)}
       data-testid="palette-card"
     >
       <span aria-hidden="true" className="cursor-grab text-gray-400">
