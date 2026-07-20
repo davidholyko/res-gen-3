@@ -64,19 +64,18 @@ describe('LayoutManager', () => {
     expect(container.querySelector('.layout-single')).toBeNull();
   });
 
-  it('renders a gap inserter above every layout plus one after the last, and none when empty', () => {
+  it('renders each layout in order with no add controls', () => {
     contextState.layouts = [
       { layoutId: 'a', layoutType: 'SINGLE' },
       { layoutId: 'b', layoutType: 'SINGLE' },
     ];
-    const { container, rerender } = renderLayoutManager();
-    expect(container.querySelectorAll('[data-gap-index]')).toHaveLength(3);
+    const { container, queryByText } = renderLayoutManager();
 
-    // No inserters in the empty state -- EmptyLayoutState's CTA is the
-    // one add-affordance there.
-    contextState.layouts = [];
-    rerender(<LayoutManager />);
-    expect(container.querySelectorAll('[data-gap-index]')).toHaveLength(0);
+    expect(container.querySelectorAll('.layout-single')).toHaveLength(2);
+    // Add controls moved to the restructure view (specs/restructure-view.md).
+    expect(queryByText('+ Add block')).toBeNull();
+    expect(queryByText('+ Add layout')).toBeNull();
+    expect(container.querySelector('[data-gap-index]')).toBeNull();
   });
 
   it('throws if a DOUBLE layout is missing layoutLeftId', () => {

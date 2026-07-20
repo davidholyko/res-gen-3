@@ -1,23 +1,25 @@
 import AxeBuilder from '@axe-core/playwright';
 
-import { expect, test } from './fixtures';
+import { addBlock, expect, test } from './fixtures';
 
 // Happy-path coverage for specs/editor-redesign.md: every content type
 // edits through generated form fields. Since specs/canvas-edit-panel.md
 // the focused block's form renders in the #canvas-edit-panel docked
 // beside the canvas, not inline inside the block. Blocks are placed via
-// each zone's "+ Add block" control (add-block.spec.ts covers that flow
-// itself). Contact (Phase 3), Experience (Phase 4), and AnyList
-// (Phase 5) each have their own describe below.
+// the restructure view now (specs/restructure-view.md) -- added blank,
+// then edited on the canvas. Contact (Phase 3), Experience (Phase 4),
+// and AnyList (Phase 5) each have their own describe below.
 test.describe('editor forms (specs/editor-redesign.md, Phase 1)', () => {
-  // Adds a blank Section heading block into the first layout and returns
-  // its macro locator (already focused, form open, per BaseMacro's
-  // focus-on-create).
+  // Adds a blank Section heading block into the first layout (via the
+  // restructure view), then clicks it on the canvas to open its form, and
+  // returns its macro locator.
   async function addHeaderBlock(page: import('@playwright/test').Page) {
     const target = page.locator('.layout-single').first();
-    await target.getByRole('button', { name: '+ Add block' }).click();
-    await page.getByRole('menuitem', { name: 'Section heading' }).click();
-    return target.locator('[role="group"]').last();
+    const before = await target.locator('[role="group"]').count();
+    await addBlock(page, 'Section heading');
+    const block = target.locator('[role="group"]').nth(before);
+    await block.click();
+    return block;
   }
 
   test("editing a focused block's form field updates the canvas live, without needing to blur", async ({

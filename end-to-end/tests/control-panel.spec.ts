@@ -19,7 +19,7 @@ test.describe('control panel', () => {
     }
   });
 
-  test('the canvas adds layouts (no menus involved)', async ({ page }) => {
+  test('layouts are added through the restructure view', async ({ page }) => {
     const before = await page.locator('.layout-single').count();
 
     await addSingleLayout(page);

@@ -1,6 +1,7 @@
 import { fireEvent, render } from '@testing-library/react';
 import { afterEach, describe, expect, it } from 'vitest';
 
+import { useAppContext } from '@/context/app-context';
 import { AllProviders } from '@/test-providers';
 
 import Main from './main';
@@ -53,5 +54,34 @@ describe('Main', () => {
     fireEvent.mouseDown(getByText('Summary'));
 
     expect(getByTestId('edit-panel-gutter')).toHaveClass('basis-[506px]');
+  });
+
+  it('swaps the canvas for the restructure view while restructuring', () => {
+    seedLocalStorage();
+
+    // A tiny harness to flip isRestructuring through the real provider,
+    // since nothing inside Main itself toggles it.
+    function Harness() {
+      const { toggleRestructure } = useAppContext();
+      return (
+        <>
+          <button onClick={() => toggleRestructure(true)}>go</button>
+          <Main />
+        </>
+      );
+    }
+
+    const { getByText, getByLabelText, queryByTestId } = render(
+      <AllProviders>
+        <Harness />
+      </AllProviders>,
+    );
+
+    expect(queryByTestId('edit-panel-gutter')).not.toBeNull();
+
+    fireEvent.click(getByText('go'));
+
+    expect(getByLabelText('Restructure resume')).not.toBeNull();
+    expect(queryByTestId('edit-panel-gutter')).toBeNull();
   });
 });

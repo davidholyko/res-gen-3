@@ -41,10 +41,15 @@ export type AppContextType = {
    */
   title: string;
   isModalOpen: boolean; // maybe move to pdf preview context
+  /**
+   * Whether the side-by-side restructure view is open -- the editor
+   * swaps the normal canvas for a two-pane "rebuild the layout" surface
+   * while true (specs/restructure-view.md).
+   */
+  isRestructuring: boolean;
+  toggleRestructure: (value?: boolean) => void;
   items: ContentAll[]; // rename to contentItems
   layouts: LayoutItem[];
-  addLayout: (newLayout: LayoutItem) => void;
-  addLayoutAt: (newLayout: LayoutItem, index: number) => void;
   onImportFile: ({ items, layouts }: FileDropValue) => void;
   onCreate: (item: ContentAll) => void;
   onUpdate: (item: ContentAll) => void;
@@ -120,6 +125,7 @@ export function AppProvider({ children }: AppProviderProps) {
   );
   const [items, setItems] = useState<ContentAll[]>(localStorageUtil.items);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isRestructuring, setIsRestructuring] = useState(false);
   const [editingContentId, setEditingContentId] = useState<ContentId | null>(
     null,
   );
@@ -301,22 +307,6 @@ export function AppProvider({ children }: AppProviderProps) {
     [items],
   );
 
-  const addLayout = useCallback((newLayout: LayoutItem) => {
-    setLayouts((prevLayouts) => [...prevLayouts, newLayout]);
-  }, []);
-
-  // Insert at a specific position, not just append -- the canvas gap
-  // inserters (layout-gap-inserter.tsx) add a layout exactly where the
-  // user is looking (specs/editor-redesign.md, Design → Layout
-  // management).
-  const addLayoutAt = useCallback((newLayout: LayoutItem, index: number) => {
-    setLayouts((prevLayouts) => {
-      const next = [...prevLayouts];
-      next.splice(index, 0, newLayout);
-      return next;
-    });
-  }, []);
-
   const focusCanvasBlock = useCallback((contentId: ContentId) => {
     setCanvasEditingContentId(contentId);
   }, []);
@@ -361,6 +351,10 @@ export function AppProvider({ children }: AppProviderProps) {
     },
     [isModalOpen, items],
   );
+
+  const toggleRestructure = useCallback((value?: boolean) => {
+    setIsRestructuring((prev) => (value === undefined ? !prev : value));
+  }, []);
 
   const title = useMemo(() => {
     const date = toYearMonthDayFormat();
@@ -411,10 +405,10 @@ export function AppProvider({ children }: AppProviderProps) {
       value={{
         title,
         isModalOpen,
+        isRestructuring,
+        toggleRestructure,
         items,
         layouts,
-        addLayout,
-        addLayoutAt,
         onImportFile,
         onDelete,
         onUpdate,

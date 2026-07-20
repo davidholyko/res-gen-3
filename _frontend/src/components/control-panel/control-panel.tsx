@@ -4,6 +4,7 @@ import { useMemo } from 'react';
 import pkg from '../../../package.json';
 import FileMenu from './control-panel-file-menu';
 import PageCountIndicator from './page-count-indicator';
+import RestructureButton from './restructure-button';
 import ViewMenu from './control-panel-view-menu';
 import SavedIndicator from './saved-indicator';
 
@@ -35,6 +36,7 @@ export default function ControlPanel() {
           (specs/add-layout-beside-add-block.md). */}
       <FileMenu />
       <ViewMenu />
+      <RestructureButton />
       <div className="ml-auto flex items-center gap-2">
         <PageCountIndicator />
         <SavedIndicator />

@@ -1,9 +1,7 @@
 import c from 'classnames';
-import { Fragment } from 'react';
 
 import EmptyLayoutState from '@/components/layouts/empty-layout-state';
 import LayoutDouble from '@/components/layouts/layout-double';
-import LayoutGapInserter from '@/components/layouts/layout-gap-inserter';
 import LayoutSingle from '@/components/layouts/layout-single';
 import { LAYOUTS } from '@/constants';
 import { useAppContext } from '@/context/app-context';
@@ -22,32 +20,18 @@ export default function LayoutManager() {
       })}
     >
       {layouts.length === 0 && <EmptyLayoutState />}
-      {layouts.map((layout, index) => {
-        // Each layout is wrapped in a `group` shell so its hover-revealed
-        // add controls (LayoutSingle / LayoutDouble's "+ Add block" /
-        // "+ Add layout") can key off `group-hover` / `group-focus-within`
-        // without disturbing the continuous page flow
-        // (specs/continuous-page-canvas.md). The page padding lives on the
-        // container itself, so wrapping layouts no longer risks dropping
-        // the old `> .layout-single` padding rule.
-        //
-        // There's no per-layout header/remove toolbar here anymore -- the
-        // hover-revealed LayoutHeader (label + "Remove layout") was
-        // removed; a replacement layout-management affordance will land
-        // separately.
+      {/* Display-only canvas: adding/removing/reordering layouts and blocks
+          all happen in the restructure view now (specs/restructure-view.md),
+          so there are no gap inserters or per-layout add controls here. */}
+      {layouts.map((layout) => {
         switch (layout.layoutType) {
           case LAYOUTS.SINGLE: {
             return (
-              <Fragment key={layout.layoutId}>
-                <LayoutGapInserter index={index} />
-                <div className="group">
-                  <LayoutSingle
-                    layoutId={layout.layoutId}
-                    layoutType={layout.layoutType}
-                    addLayoutIndex={index + 1}
-                  />
-                </div>
-              </Fragment>
+              <LayoutSingle
+                key={layout.layoutId}
+                layoutId={layout.layoutId}
+                layoutType={layout.layoutType}
+              />
             );
           }
           case LAYOUTS.DOUBLE: {
@@ -57,24 +41,18 @@ export default function LayoutManager() {
               throw new Error(`layout missing property 'layoutRightId`);
 
             return (
-              <Fragment key={layout.layoutId}>
-                <LayoutGapInserter index={index} />
-                <div className="group">
-                  <LayoutDouble
-                    layoutId={layout.layoutId}
-                    layoutLeftId={layout.layoutLeftId}
-                    layoutRightId={layout.layoutRightId}
-                    addLayoutIndex={index + 1}
-                  />
-                </div>
-              </Fragment>
+              <LayoutDouble
+                key={layout.layoutId}
+                layoutId={layout.layoutId}
+                layoutLeftId={layout.layoutLeftId}
+                layoutRightId={layout.layoutRightId}
+              />
             );
           }
           default:
             throw new Error(`Unsupported layout ${layout}`);
         }
       })}
-      {layouts.length > 0 && <LayoutGapInserter index={layouts.length} />}
     </div>
   );
 }

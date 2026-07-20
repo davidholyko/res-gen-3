@@ -96,10 +96,14 @@ describe('usePdfInstance', () => {
     expect(updateInstanceMock).not.toHaveBeenCalled();
 
     act(() => {
-      result.current.appContext.addLayout({
-        layoutId: 'new-layout' as never,
+      // Any items/layouts change resets the debounce; create a block.
+      result.current.appContext.onCreate({
+        contentId: 'new' as never,
+        contentType: 'HEADER',
+        content: { header: '' },
+        layoutId: 'a' as never,
         layoutType: LAYOUTS.SINGLE,
-      });
+      } as never);
     });
 
     act(() => {

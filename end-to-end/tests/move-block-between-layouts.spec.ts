@@ -1,4 +1,4 @@
-import { addDoubleLayout, expect, test } from './fixtures';
+import { addBlock, addDoubleLayout, expect, test } from './fixtures';
 
 // specs/move-block-between-layouts.md: the block toolbar's "Move to…"
 // menu is the only way to move an existing block into another layout,
@@ -7,10 +7,12 @@ test.describe('move a block between layouts (specs/move-block-between-layouts.md
   test("moves a block from a single layout into a double layout's right half", async ({
     page,
   }) => {
-    // A distinguishable marker block in Layout 1.
+    // A distinguishable marker block in Layout 1: added blank via the
+    // restructure view, then edited on the canvas.
     const layout1 = page.locator('.layout-single').first();
-    await layout1.getByRole('button', { name: '+ Add block' }).click();
-    await page.getByRole('menuitem', { name: 'Section heading' }).click();
+    const before = await layout1.locator('[role="group"]').count();
+    await addBlock(page, 'Section heading');
+    await layout1.locator('[role="group"]').nth(before).click();
     await page
       .locator('#canvas-edit-panel input[name="header"]')
       .fill('Mover Section');

@@ -1,5 +1,5 @@
 ---
-status: draft
+status: implemented
 ---
 
 # Restructure view: rebuild layouts and place macros side-by-side
@@ -112,46 +112,75 @@ None.
 
 ## Acceptance criteria
 
-- [ ] The user can enter a restructure view showing the current resume
+- [x] The user can enter a restructure view showing the current resume
       (left, read-only) and a staging canvas (right).
-- [ ] The user can add one-column and two-column boxes to the staging
+- [x] The user can add one-column and two-column boxes to the staging
       canvas, and remove and reorder them.
-- [ ] Dragging a macro from the left into a staging box places a copy of
+- [x] Dragging a macro from the left into a staging box places a copy of
       it there; the left palette is unchanged (copy semantics).
-- [ ] Placed macros can be reordered and removed within the staging pane.
-- [ ] **Apply** replaces the resume's layouts+items with the staging
+- [x] Placed macros can be reordered and removed within the staging pane.
+- [x] **Apply** replaces the resume's layouts+items with the staging
       arrangement, behind a single undo snapshot; **Cancel** discards
       staging and leaves the resume untouched.
-- [ ] Every drag interaction has a keyboard-accessible equivalent; the
-      view is axe-clean.
-- [ ] `_frontend` stays at 100% coverage; lint, build, and e2e pass.
+- [x] Every drag interaction has a keyboard-accessible equivalent (the
+      palette's "Send to…" menu); the view is axe-clean.
+- [x] `_frontend` stays at 100% coverage; lint, build, and e2e pass.
 
-## Open questions
+## Update: the canvas is display-only; add controls live here
 
-- **Blank vs. pre-filled right pane.** Your description said the staging
-  canvas starts *blank*. But for pure "delete a layout / reorder
-  layouts" that means rebuilding the whole resume from scratch every
-  time, which is heavy. Should the right pane instead **start as a copy
-  of the current structure** (so reordering/deleting is a few edits),
-  with blank being just the "start over" case? This is the biggest call.
-- **"Side-by-side, always available" vs. an Apply/Cancel session.** You
-  picked a persistent side-by-side panel over a full-screen mode, but
-  "press Done / replaces the resume" implies a staging *session* with a
-  start and a commit. Reconcile: is it a togglable pane you open, work
-  in, and Apply/Cancel out of -- or always visible with the right pane
-  as a permanent scratch area? (Leaning: togglable pane using the
-  side-by-side layout.)
-- **Unplaced content on Apply.** If Apply replaces the resume wholesale
-  with the right pane, any macro you *didn't* drag over is dropped.
-  Acceptable (undo rescues it), or should Apply warn / must every macro
-  be placed first?
-- **Duplicates.** Copy semantics let the same macro be placed twice. Fine
-  (they diverge as independent copies), or should the palette mark/grey
-  already-placed macros?
-- **DnD mechanism + keyboard fallback** (see Design): native HTML5 vs.
-  re-add a DnD library vs. Pragmatic DnD; and the exact keyboard action.
-- **Entry point**: View menu item, a canvas button, or elsewhere?
-- **Supersedes:** this restores layout delete/reorder that
-  `remove-layout-drag-reorder.md` / `inline-layout-toolbar.md` removed --
-  should those be linked as superseded-by, and does anything from the old
-  `confirm-remove-layout.md` (delete confirm/undo) carry over here?
+A follow-up moved **all** structural add controls off the canvas and into
+this view, so the two are cleanly split: the canvas *shows* the resume;
+the restructure view *builds* it.
+
+- **Removed from the canvas:** the per-zone "+ Add block" (`AddBlockControl`),
+  the per-layout "+ Add layout" (`AddLayoutControl`), and the between-layout
+  gap inserters (`LayoutGapInserter`) are gone, along with the now-unused
+  `addLayout` / `addLayoutAt` context actions. `LayoutSingle` /
+  `LayoutDouble` / `LayoutManager` render content only.
+- **Add block moved here:** each staging zone carries a "+ Add block" menu
+  (`RestructureAddBlock`, same plain-language type list as the old canvas
+  control) that inserts a **blank** block of the chosen type into that
+  zone. It's filled in on the canvas after Apply (this view has no block
+  form). Add layout is the existing "+ One/Two column" box controls.
+- **Empty state:** `EmptyLayoutState`'s CTA ("Restructure to build it")
+  opens this view instead of adding a layout inline -- it's now the only
+  way to bootstrap a resume from empty.
+- **A11y note:** while open this view replaces the canvas (whose only h1
+  is the resume name), so its "Restructure" title is the page `h1`; the
+  Apply button uses `bg-cyan-700` for AA contrast.
+
+## Resolved decisions
+
+- **Pre-filled right pane, with Clear.** Staging opens as a deep *copy*
+  of the current resume (`useStagingResume`), so deleting a box or
+  reordering is a few edits; **Clear** empties it for a from-scratch
+  rebuild. (Chosen over a blank start.)
+- **Togglable Apply/Cancel session.** A control-bar **Restructure**
+  button opens the two-pane view (replacing the canvas via `Main`); the
+  view's Apply/Cancel returns to the normal editor. Apply is
+  `pushUndoSnapshot('Resume restructured')` + `onImportFile(staging)`.
+- **Native HTML5 DnD + a keyboard "Send to…" menu.** No new dependency:
+  palette cards are `draggable` and carry the source `contentId` on
+  `text/plain`; staging zones are `onDrop` targets. The palette's
+  "Send to…" menu (reusing `useCanvasMenu`, like `move-to-control.tsx`)
+  is the required non-drag equivalent, so the view is fully keyboard- and
+  e2e-reachable.
+- **Unplaced content on Apply is dropped, undo rescues it.** Apply swaps
+  in exactly the staging arrangement; the single "Resume restructured"
+  undo snapshot restores the prior resume if that wasn't intended. No
+  "you have unplaced macros" guard.
+- **Duplicates allowed.** Copy semantics let the same macro be placed
+  more than once; the copies diverge as independent blocks. The palette
+  does not grey already-placed macros.
+- **Entry point: a control-bar button** (`RestructureButton`), hidden
+  while the view is open.
+- **Palette fidelity (simplification worth noting).** The left pane shows
+  compact labelled cards (type + one-line summary via
+  `deriveMacroLabel`), not the fully styled resume blocks. This kept the
+  drag surface simple and the coverage bar reachable; rendering the real
+  styled blocks in the palette is a possible follow-up.
+- **Supersedes:** this restores the layout delete/reorder that
+  `remove-layout-drag-reorder.md` / `inline-layout-toolbar.md` removed,
+  now scoped to the staging pane. Those specs stay `superseded`; the old
+  `confirm-remove-layout.md` confirm/highlight did **not** carry over
+  (staging edits are discardable via Cancel, and Apply is undoable).

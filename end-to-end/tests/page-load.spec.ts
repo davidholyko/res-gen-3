@@ -15,15 +15,16 @@ test.describe('page load', () => {
     expect(errors).toEqual([]);
   });
 
-  test('shows the canvas with prepopulated resume content and per-zone add controls', async ({
+  test('shows the prepopulated resume on a display-only canvas', async ({
     page,
   }) => {
-    // No Template ribbon anymore (specs/editor-redesign.md, Phase 6):
-    // adding content happens via each zone's "+ Add block" control.
-    await expect(page.locator('#editor-manager')).toHaveCount(0);
-    await expect(
-      page.getByRole('button', { name: '+ Add block' }),
-    ).toBeVisible();
+    // The canvas is display-only: adding content moved into the
+    // restructure view (specs/restructure-view.md), so there are no
+    // "+ Add block" / "+ Add layout" controls here anymore.
+    await expect(page.getByRole('button', { name: '+ Add block' })).toHaveCount(
+      0,
+    );
+    await expect(page.getByRole('button', { name: 'Restructure' })).toBeVisible();
 
     // Fresh localStorage falls back to a prepopulated example resume
     // (src/utils/prepopulate-util.ts) rather than an empty layout area.
