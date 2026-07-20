@@ -30,18 +30,24 @@ type LayoutHeaderProps = {
 // to float in the left gutter (absolute, right-full), but that gutter
 // gets squeezed to nothing when the edit panel slides the canvas left
 // (specs/canvas-edit-panel.md), pushing the toolbar off the viewport's
-// left edge. So it now reflows **inline** as a compact row at the top of
-// the layout, still hover/focus-revealed (specs/inline-layout-toolbar.md).
+// left edge (specs/inline-layout-toolbar.md).
 //
-// The reveal collapses the row to zero height when idle via a
-// `grid-rows-[0fr]`->`[1fr]` wrapper with `overflow-hidden`: the inner
-// toolbar stays in the DOM, tab order, and accessibility tree (so
-// keyboard users still reach reorder/remove without a hover), but takes
-// no vertical space until the layout is hovered or contains focus
-// (`group-hover` / `group-focus-within`, gated by the `group` wrapper in
-// layout-manager.tsx). While a remove is being confirmed the row stays
-// expanded regardless of hover so the Cancel/Delete choice can't slip
-// away.
+// The fix for *that* first reflowed the row inline, but revealing an
+// in-flow row pushed the layout's content down on every hover -- hover a
+// block and the whole layout visibly jumps. So the toolbar is now an
+// **absolute overlay** pinned to the top of the layout's `group relative`
+// wrapper (layout-manager.tsx), inside the page column: out of the page
+// flow (revealing it reflows nothing) yet never in the clip-prone gutter.
+// It floats over the top strip of the layout's content on reveal, with a
+// solid background so it stays legible.
+//
+// Reveal is opacity, gated by `group-hover` / `group-focus-within`. The
+// toolbar stays in the DOM, tab order, and accessibility tree so keyboard
+// users still reach reorder/remove without a hover; `pointer-events-none`
+// while idle keeps the invisible overlay from eating clicks on the
+// content beneath it (focus/hover restore `pointer-events`). While a
+// remove is being confirmed the row stays visible regardless of hover so
+// the Cancel/Delete choice can't slip away.
 export default function LayoutHeader({
   label,
   index,
@@ -58,22 +64,28 @@ export default function LayoutHeader({
   return (
     <div
       className={c(
-        'grid transition-[grid-template-rows] duration-150 ease-out',
+        // Absolute overlay pinned to the top of the layout wrapper, so
+        // revealing it never reflows the layout's content. z-20 keeps it
+        // above the content it floats over.
+        'absolute inset-x-0 top-0 z-20 transition-opacity duration-150 ease-out',
         isConfirming
-          ? 'grid-rows-[1fr]'
-          : 'grid-rows-[0fr] group-hover:grid-rows-[1fr] group-focus-within:grid-rows-[1fr]',
+          ? 'opacity-100'
+          : // pointer-events-none while idle: the overlay is invisible but
+            // still layered over the top of the content, and without this
+            // it would swallow clicks meant for that content. hover/focus
+            // reveal it and restore its clickability.
+            'opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto group-focus-within:opacity-100 group-focus-within:pointer-events-auto',
       )}
     >
-      {/* min-h-0 + overflow-hidden let the outer grid clip this row to
-          0fr while idle -- the toolbar stays mounted and focusable but
-          takes no vertical space. Only padding/border here, never a
-          vertical margin: margin sits outside the clip and would leak a
-          gap even while collapsed. border-b marks it as chrome distinct
-          from the resume content below. */}
+      {/* Solid bg so the floating row stays legible over the content
+          beneath it. border-b marks it as chrome distinct from the resume
+          content below. */}
       <div
         className={c(
-          'flex min-h-0 items-center gap-2 overflow-hidden whitespace-nowrap border-b px-1 pt-1 pb-2',
-          isConfirming ? 'border-red-300' : 'border-gray-200',
+          'flex items-center gap-2 whitespace-nowrap border-b px-1 pt-1 pb-2',
+          isConfirming
+            ? 'border-red-300 bg-red-50'
+            : 'border-gray-200 bg-white',
         )}
       >
         {isConfirming ? (

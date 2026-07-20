@@ -48,44 +48,51 @@ as that layout's controls.
 
 Amends the "Hover toolbar placement: left gutter (overlay, no content
 reflow)" resolved decision in `continuous-page-canvas.md`. The toolbar
-moves **from the left gutter into the page flow, as a compact row at the
-top of the layout**, still hover/focus-revealed. Because it's in flow,
-it can never sit outside the page and can never clip -- the tradeoff
-`continuous-page-canvas.md` was avoiding (a small reflow when it
-reveals) is accepted here in exchange for a control that's always
-on-screen and legible.
+stays an **overlay with no content reflow**, but moves **from the left
+gutter to the top of the layout, inside the page column** --
+hover/focus-revealed. Keeping it inside the page column (not the gutter)
+means it can never sit outside the page and can never clip; keeping it an
+overlay (not in the page flow) means revealing it never pushes content.
 
-- **`LayoutHeader` becomes an in-flow row.** Drop the gutter positioning
-  (`absolute top-0 right-full z-20 mr-2`). It renders as the first child
-  inside each layout's `group relative` wrapper (its position in
-  `layout-manager.tsx` is already first, so no structural reorder), as a
-  compact left-aligned toolbar row above the layout's content, with a
-  hairline bottom rule so it reads as chrome distinct from the resume
-  content below it. Same low visual weight (xs text, gray/red) as today.
+> **Correction (implementation feedback):** an earlier revision of this
+> spec put the toolbar *in the page flow* as a collapsing
+> `grid-rows-[0fr]`→`[1fr]` row and accepted a small reflow-on-reveal as
+> the tradeoff. In use that reflow was the problem, not an acceptable
+> cost: hovering any block visibly jumped the whole layout's content down
+> by the row's height. The overlay below replaces it -- no reflow at all.
 
-- **Reveal without reserving idle space.** The idle page must still show
-  only content, so the row must occupy **zero height when idle** yet
-  stay in the DOM, tab order, and accessibility tree (keyboard users
+- **`LayoutHeader` is an absolute overlay pinned to the top of the
+  layout.** Drop the gutter positioning (`absolute top-0 right-full z-20
+  mr-2`) but stay `absolute` -- now `inset-x-0 top-0` within each
+  layout's existing `group relative` wrapper (`layout-manager.tsx`), so
+  it floats over the top strip of the layout's content instead of sitting
+  in the left margin. A solid background (`bg-white`, `bg-red-50` while
+  confirming) keeps the floating row legible over the content beneath;
+  same low visual weight (xs text, gray/red) and hairline bottom rule as
+  before so it reads as chrome distinct from the resume content.
+
+- **Reveal without reserving idle space and without reflow.** The idle
+  page still shows only content: the overlay is out of the page flow
+  (absolute), so it reserves no space and its reveal shifts nothing. It
+  stays in the DOM, tab order, and accessibility tree (keyboard users
   reach reorder/remove without a hover -- WCAG, unchanged requirement).
-  Achieved with a collapse-on-idle wrapper (e.g. a
-  `grid-rows-[0fr]`→`grid-rows-[1fr]` or `max-h-0`→`max-h-*` +
-  `overflow-hidden`, `opacity-0`→`opacity-100`) gated by
-  `group-hover` / `group-focus-within`, so tabbing into the clipped
-  control (or hovering the layout) expands it. Exact classes settled in
-  implementation; the acceptance criteria pin the behavior.
+  Reveal is `opacity-0`→`opacity-100` gated by `group-hover` /
+  `group-focus-within`; `pointer-events-none` while idle stops the
+  invisible overlay from swallowing clicks meant for the content beneath
+  it, and hover/focus restore `pointer-events`. Tabbing into the control
+  triggers `group-focus-within` and reveals it.
 
 - **Confirming stays pinned open.** While a remove is being confirmed
-  (`isConfirming`), the row stays expanded and visible regardless of
-  hover -- same guarantee as today, so the Cancel/Delete choice can't
-  slip away when the pointer leaves. The confirm still lives in
-  `LayoutManager` (one layout confirming at a time; it also drives the
-  red preview-region highlight, `specs/confirm-remove-layout.md`).
+  (`isConfirming`), the row stays visible regardless of hover -- same
+  guarantee as today, so the Cancel/Delete choice can't slip away when
+  the pointer leaves. The confirm still lives in `LayoutManager` (one
+  layout confirming at a time; it also drives the red preview-region
+  highlight, `specs/confirm-remove-layout.md`).
 
-- **Reflow cost is the accepted tradeoff.** Revealing the row pushes the
-  layout's content down by the row's height. This is a small, local
-  shift (not the whole-page reflow the old inline editor caused), and it
-  only happens on hover/focus of that one layout. Keep the row short to
-  minimize it.
+- **No reflow on reveal.** Because the toolbar is an overlay, revealing
+  it never moves the layout's content. It floats over the top edge of the
+  content while shown; keep the row short so it covers as little as
+  possible.
 
 ## Acceptance criteria
 
@@ -94,7 +101,9 @@ on-screen and legible.
       clips off the left edge at any canvas position. (In-flow row; it
       can no longer render outside the page column.)
 - [x] The idle page (nothing hovered/focused) shows only resume content:
-      the toolbar occupies zero visible height and draws no row.
+      the toolbar is invisible, reserves no space, and is click-through.
+- [x] Revealing the toolbar (hover or focus) does not reflow the layout's
+      content -- nothing shifts down; the overlay floats over the content.
 - [x] Hovering a layout, or moving keyboard focus into it, reveals the
       toolbar row above that layout's content; the drag handle still
       registers as a `LAYOUT_DRAG_TYPE` source carrying `index`, and
@@ -111,12 +120,15 @@ on-screen and legible.
 
 ## Resolved decisions
 
-- **Collapse mechanism:** a `grid-rows-[0fr]`->`[1fr]` wrapper with an
-  `overflow-hidden min-h-0` inner row (the standard grid-collapse
-  pattern), gated by `group-hover` / `group-focus-within`. Chosen over
-  `max-height` because `0fr`->`1fr` collapses to the row's exact content
-  height with no magic-number cap. Tailwind v4 compiles all four
-  utilities (`grid-rows-[0fr]`, `grid-rows-[1fr]`, and the two variant
-  forms) and scopes the variants to `.group` descendants, which the
-  in-flow `LayoutHeader` is; tabbing into the clipped control triggers
-  `group-focus-within` and expands it.
+- **Overlay, not an in-flow collapsing row.** Superseding an earlier
+  revision that used a `grid-rows-[0fr]`->`[1fr]` collapse in the page
+  flow: that reflowed the layout's content down on every reveal, which
+  read as the content jumping whenever a block was hovered. The toolbar
+  is instead an absolute overlay (`absolute inset-x-0 top-0 z-20`) inside
+  the layout's `group relative` wrapper, revealed via
+  `opacity-0`->`opacity-100` + `pointer-events-none`->`auto`, gated by
+  `group-hover` / `group-focus-within`. Out of flow => zero reserved
+  space and no reflow; inside the page column => never clips like the old
+  gutter placement. The cost is that the revealed row floats over the top
+  strip of the layout's content; a solid background keeps it legible and
+  the short row keeps the coverage small.
