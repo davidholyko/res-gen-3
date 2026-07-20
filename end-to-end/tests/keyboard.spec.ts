@@ -52,7 +52,7 @@ test.describe('keyboard navigation', () => {
     await tabUntil(page, 'File');
 
     const seen: FocusInfo[] = [];
-    for (let i = 0; i < 4; i++) {
+    for (let i = 0; i < 3; i++) {
       await page.keyboard.press('Tab');
       seen.push(await currentFocus(page));
     }
@@ -61,11 +61,10 @@ test.describe('keyboard navigation', () => {
       'View',
       // The canvas follows directly -- the Template ribbon retired with
       // specs/editor-redesign.md Phase 6. First the top gap's inserters
-      // (revealed by focus, WCAG-reachable without hover)...
+      // (revealed by focus, WCAG-reachable without hover). The per-layout
+      // "Remove layout" control that used to follow was removed.
       '+ One column',
       '+ Two columns',
-      // ...then Layout 1's own header controls.
-      'Remove layout',
     ]);
   });
 

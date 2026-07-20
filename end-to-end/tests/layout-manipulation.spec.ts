@@ -15,12 +15,9 @@ test.describe('layout direct manipulation (specs/editor-redesign.md, Phase 6)', 
       .click();
 
     await expect(page.locator('.layout-single')).toHaveCount(2);
-    // The new layout is first (and empty); the prepopulated resume is
-    // now Layout 2. (Scoped to the canvas: the ribbon's zone <select>
-    // options also say "Layout 2".)
-    await expect(
-      page.locator('#layout-manager').getByText('Layout 2'),
-    ).toBeVisible();
+    // The new layout is inserted first (and empty); the prepopulated
+    // resume shifts down to second -- so the first layout now has no
+    // blocks and none of the prepopulated content.
     const firstLayout = page.locator('.layout-single').first();
     await expect(firstLayout.locator('[role="group"]')).toHaveCount(0);
     await expect(
@@ -36,10 +33,8 @@ test.describe('layout direct manipulation (specs/editor-redesign.md, Phase 6)', 
       .click();
 
     await expect(page.locator('.layout-double')).toHaveCount(1);
-    await expect(
-      page.locator('#layout-manager').getByText('Layout 2'),
-    ).toBeVisible();
-    // The prepopulated content stays in Layout 1, untouched.
+    // The two-column layout is appended at the end; the prepopulated
+    // content stays in the first layout, untouched.
     await expect(
       page.locator('.layout-single').first().locator(':text("Monkey D. Luffy")').first(),
     ).toBeVisible();

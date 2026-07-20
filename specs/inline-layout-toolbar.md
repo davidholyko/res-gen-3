@@ -1,6 +1,13 @@
 ---
-status: implemented
+status: superseded
 ---
+
+> **Superseded:** the per-layout hover toolbar this spec designed (the
+> "Layout N" label + "Remove layout", and later the drag handle) was
+> removed entirely — including layout drag-to-reorder (see
+> `specs/remove-layout-drag-reorder.md`) and then the whole toolbar. The
+> canvas currently shows no per-layout chrome; a replacement
+> layout-management affordance is planned separately. Kept as a record.
 
 # Layout toolbar reflows inline above the layout
 

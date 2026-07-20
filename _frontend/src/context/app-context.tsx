@@ -45,7 +45,6 @@ export type AppContextType = {
   layouts: LayoutItem[];
   addLayout: (newLayout: LayoutItem) => void;
   addLayoutAt: (newLayout: LayoutItem, index: number) => void;
-  removeLayout: (layoutId: LayoutId) => void;
   onImportFile: ({ items, layouts }: FileDropValue) => void;
   onCreate: (item: ContentAll) => void;
   onUpdate: (item: ContentAll) => void;
@@ -149,8 +148,8 @@ export function AppProvider({ children }: AppProviderProps) {
   }, [items, layouts]);
 
   useEffect(() => {
-    // Reconciles `items` against `layouts` (e.g. after removeLayout, so
-    // orphaned items are dropped). `items` is genuinely mutable
+    // Reconciles `items` against `layouts` (e.g. when a layout goes
+    // away, so orphaned items are dropped). `items` is genuinely mutable
     // state elsewhere (onCreate/onUpdate/onDelete/onMove all setItems
     // directly), not a pure derived view, so this can't just be computed
     // at render time without also touching those call sites. Preserved
@@ -318,16 +317,6 @@ export function AppProvider({ children }: AppProviderProps) {
     });
   }, []);
 
-  // Removes a specific layout by id, not just the last one -- the
-  // canvas-level "remove this layout" affordance next to each layout
-  // (unlike the Edit menu's "Remove Last Layout") needs to target
-  // whichever one the user is actually looking at.
-  const removeLayout = useCallback((layoutId: LayoutId) => {
-    setLayouts((prevLayouts) =>
-      prevLayouts.filter((layout) => layout.layoutId !== layoutId),
-    );
-  }, []);
-
   const focusCanvasBlock = useCallback((contentId: ContentId) => {
     setCanvasEditingContentId(contentId);
   }, []);
@@ -426,7 +415,6 @@ export function AppProvider({ children }: AppProviderProps) {
         layouts,
         addLayout,
         addLayoutAt,
-        removeLayout,
         onImportFile,
         onDelete,
         onUpdate,

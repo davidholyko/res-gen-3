@@ -75,11 +75,16 @@ describe('useAppContext', () => {
     const { result } = renderAppContext();
 
     act(() => {
-      result.current.removeLayout(LAYOUT.layoutId);
+      result.current.addLayout({
+        layoutId: 'persisted-layout' as LayoutItem['layoutId'],
+        layoutType: LAYOUTS.SINGLE,
+      });
     });
 
     const stored = JSON.parse(window.localStorage.getItem('res-gen-data')!);
-    expect(stored.layouts).toEqual([]);
+    expect(stored.layouts.map((l: LayoutItem) => l.layoutId)).toContain(
+      'persisted-layout',
+    );
   });
 
   describe('onCreate', () => {
@@ -368,35 +373,6 @@ describe('useAppContext', () => {
 
       expect(result.current.layouts).toEqual([newLayout, LAYOUT]);
     });
-
-    it('removeLayout removes a specific layout by id and drops its orphaned items', () => {
-      const { result } = renderAppContext();
-      const secondLayout: LayoutItem = {
-        layoutId: 'layout-2' as LayoutItem['layoutId'],
-        layoutType: LAYOUTS.SINGLE,
-      };
-
-      act(() => {
-        result.current.addLayout(secondLayout);
-      });
-
-      act(() => {
-        result.current.removeLayout(LAYOUT.layoutId);
-      });
-
-      expect(result.current.layouts).toEqual([secondLayout]);
-      expect(result.current.items).toEqual([]);
-    });
-
-    it('removeLayout is a no-op when the id does not match any layout', () => {
-      const { result } = renderAppContext();
-
-      act(() => {
-        result.current.removeLayout('does-not-exist' as LayoutItem['layoutId']);
-      });
-
-      expect(result.current.layouts).toEqual([LAYOUT]);
-    });
   });
 
   describe('canvas focus (specs/canvas-edit-panel.md)', () => {
@@ -579,13 +555,13 @@ describe('useAppContext', () => {
       const { result } = renderAppContext();
 
       act(() => {
-        result.current.pushUndoSnapshot('Layout 1 removed');
+        result.current.pushUndoSnapshot('Block deleted');
       });
 
       expect(result.current.undoSnapshot).toEqual({
         items: [CONTACT_ITEM, HEADER_ITEM],
         layouts: [LAYOUT],
-        description: 'Layout 1 removed',
+        description: 'Block deleted',
       });
     });
 
@@ -613,12 +589,12 @@ describe('useAppContext', () => {
       const { result } = renderAppContext();
 
       act(() => {
-        result.current.pushUndoSnapshot('Layout 1 removed');
+        result.current.pushUndoSnapshot('Block deleted');
       });
       act(() => {
-        result.current.removeLayout(LAYOUT.layoutId);
+        result.current.onDelete({ contentId: CONTACT_ITEM.contentId });
       });
-      expect(result.current.layouts).toEqual([]);
+      expect(result.current.items).toEqual([HEADER_ITEM]);
 
       act(() => {
         result.current.performUndo();
@@ -644,10 +620,10 @@ describe('useAppContext', () => {
       const { result } = renderAppContext();
 
       act(() => {
-        result.current.pushUndoSnapshot('Layout 1 removed');
+        result.current.pushUndoSnapshot('Block deleted');
       });
       act(() => {
-        result.current.removeLayout(LAYOUT.layoutId);
+        result.current.onDelete({ contentId: CONTACT_ITEM.contentId });
       });
 
       act(() => {
@@ -655,7 +631,7 @@ describe('useAppContext', () => {
       });
 
       expect(result.current.undoSnapshot).toBeNull();
-      expect(result.current.layouts).toEqual([]);
+      expect(result.current.items).toEqual([HEADER_ITEM]);
     });
   });
 

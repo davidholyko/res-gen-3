@@ -43,17 +43,16 @@ export const test = base.extend({
 export { expect };
 
 /**
- * Removes the last layout via its own canvas "Remove layout" link -- the
- * Edit menu's "Remove Last Layout" retired with specs/editor-redesign.md
- * Phase 6. Removal is now a two-step confirm (specs/confirm-remove-layout.md):
- * the first click only opens an inline Cancel/Delete confirm (and highlights
- * the layout), so this clicks "Remove layout" then its "Delete".
+ * Clears the whole resume back to the empty state via File > New. This is
+ * how tests reach "zero layouts" now that the per-layout canvas "Remove
+ * layout" control was removed (a replacement layout-management affordance
+ * is planned separately). The fixture's dialog handler auto-accepts New's
+ * confirm.
  */
-export async function removeLastLayout(page: Page) {
-  const before = await page.getByText('Remove layout').count();
-  await page.getByText('Remove layout').last().click();
-  await page.getByRole('button', { name: /^Confirm removing .* Button$/ }).click();
-  await expect(page.getByText('Remove layout')).toHaveCount(before - 1);
+export async function clearResume(page: Page) {
+  await page.getByText('File', { exact: true }).click();
+  await page.getByText('New', { exact: true }).click();
+  await expect(page.locator('.layout-single')).toHaveCount(0);
 }
 
 /**

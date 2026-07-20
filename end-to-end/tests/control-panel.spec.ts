@@ -1,6 +1,6 @@
 import path from 'node:path';
 
-import { addSingleLayout, expect, removeLastLayout, test } from './fixtures';
+import { addSingleLayout, clearResume, expect, test } from './fixtures';
 
 test.describe('control panel', () => {
   test('File/View menus open on click and close on Escape', async ({
@@ -19,16 +19,11 @@ test.describe('control panel', () => {
     }
   });
 
-  test('the canvas adds and removes layouts (no menus involved)', async ({
-    page,
-  }) => {
+  test('the canvas adds layouts (no menus involved)', async ({ page }) => {
     const before = await page.locator('.layout-single').count();
 
     await addSingleLayout(page);
     await expect(page.locator('.layout-single')).toHaveCount(before + 1);
-
-    await removeLastLayout(page);
-    await expect(page.locator('.layout-single')).toHaveCount(before);
   });
 
   test('JSON export downloads a file, and re-importing it round-trips the state', async ({
@@ -49,16 +44,12 @@ test.describe('control panel', () => {
     await download.saveAs(savedPath);
 
     // Downloading a JSON leaves the File menu open; close it before
-    // touching the canvas. Its dropdown (z-30) opens down over the top
-    // layout's gutter toolbar, so an open menu would intercept the
-    // "Remove layout" click (specs/continuous-page-canvas.md moved that
-    // control into the left gutter).
+    // touching the canvas.
     await page.keyboard.press('Escape');
 
     // Wipe state, then re-import the exported file -- the resume should
     // come back exactly as it was exported.
-    await removeLastLayout(page);
-    await expect(page.locator('.layout-single')).toHaveCount(0);
+    await clearResume(page);
 
     // The upload <input> only exists in the DOM while its menu is open
     // (BaseMenu doesn't render dropdown items when closed).
