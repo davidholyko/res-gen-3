@@ -9,7 +9,13 @@ import { deriveZones } from '@/utils/derive-zones';
 // the focused block's "Edit with preview"). Disabled with no blocks --
 // there is nothing to edit (layouts alone carry no editable form).
 export default function EditButton() {
-  const { items, layouts, focusCanvasBlock } = useAppContext();
+  const { items, layouts, focusCanvasBlock, isRestructuring } = useAppContext();
+
+  // Hidden while restructuring, like the Restructure button itself: that
+  // view replaces the whole canvas (main.tsx), so there is no block to
+  // focus and no docked panel to open -- a live Edit control there would
+  // just be a dead button.
+  if (isRestructuring) return null;
 
   // The first macro in document (reading) order -- the topmost block on
   // the canvas -- not merely items[0] in insertion order. Walks zones
