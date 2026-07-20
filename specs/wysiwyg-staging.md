@@ -92,20 +92,28 @@ resume behind one undo snapshot.
 - [ ] `_frontend` stays at 100% coverage; lint, build, and e2e pass; the
       restructure view stays axe-clean in a real-browser scan.
 
-## Open questions
+## Resolved decisions
 
-- **Overlay legibility.** Hover toolbars floating over styled blocks:
-  corner-anchored chip, a thin action gutter beside each block, or an
-  overlay bar? Needs to be reachable without hiding the content it acts
-  on.
-- **Drop precision.** Keep "drop lands at the end of the zone" (today's
-  behavior) or support dropping *between* blocks at the drop position?
-  (Between-blocks reads better but is more work / more drag math.)
-- **Palette drag onto styled content.** The drop target is now styled
-  resume, not a dashed box -- how to signal "droppable here" on hover
-  without disturbing the look.
-- **Refactor blast radius.** Extracting content components touches all
+- **Block controls: a side action gutter.** Each styled block gets a thin
+  vertical controls strip (move up / move down / remove) in a gutter to
+  its left, rather than an overlay chip/bar. It never covers the block's
+  content, at the cost of a small permanent left margin on each block in
+  the staging pane. Keyboard-reachable.
+- **Drops land at the end of the zone.** Dropping a palette macro (or
+  "Send to…") appends it to the bottom of the target zone -- today's
+  behavior; reorder afterward with the gutter's up/down. No
+  between-blocks drop indicator in this pass.
+- **Palette stays labelled cards.** The left source pane keeps its compact
+  type + summary cards (not styled) -- easy to scan/drag, no duplicate
+  styled render.
+- **Zone droppability signal.** Since the drop target is now styled
+  content (not a dashed box), a zone shows a subtle highlight/outline
+  while a drag is over it; an *empty* zone still shows a dashed "drop
+  here" placeholder so it stays targetable.
+
+## Implementation note
+
+- **Refactor blast radius.** Extracting the content components touches all
   five macros + their tests; the acceptance bar is a pixel-identical
-  canvas, so this needs careful before/after checking.
-- **Palette fidelity.** Confirm the palette stays cards (recommended) vs.
-  also rendering styled source blocks.
+  canvas, so the change is verified by the existing canvas/editor tests
+  staying green with no DOM changes, plus a before/after screenshot check.
