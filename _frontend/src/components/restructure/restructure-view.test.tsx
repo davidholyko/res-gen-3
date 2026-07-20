@@ -153,6 +153,131 @@ describe('RestructureView', () => {
     expect(getAllByLabelText(stagingMacroRemovers)).toHaveLength(3);
   });
 
+  it('reorders palette cards by dropping one into a gap', () => {
+    const { getAllByTestId } = render(<RestructureView />);
+
+    const cardText = () =>
+      getAllByTestId('palette-card').map((card) => card.textContent);
+
+    // Fixture order: the HEADER ("Summary") then the CONTACT ("Ada Lovelace").
+    expect(cardText()[0]).toContain('Summary');
+    expect(cardText()[1]).toContain('Ada Lovelace');
+
+    // Drop the CONTACT card (c1) into the first gap -- the one above the
+    // HEADER card -- so it moves to the top of the zone.
+    const firstGap = getAllByTestId('palette-gap')[0];
+    fireEvent.drop(firstGap, {
+      dataTransfer: {
+        getData: (type: string) => (type === MACRO_DRAG_MIME ? 'c1' : ''),
+      },
+    });
+
+    expect(cardText()[0]).toContain('Ada Lovelace');
+    expect(cardText()[1]).toContain('Summary');
+  });
+
+  it('moves a palette card to the end of its zone via the trailing gap', () => {
+    const { getAllByTestId } = render(<RestructureView />);
+    const cardText = () =>
+      getAllByTestId('palette-card').map((card) => card.textContent);
+
+    // Gaps for the single zone: [before h1, before c1, trailing]. Drop the
+    // HEADER (h1) into the trailing gap to send it to the bottom.
+    const gaps = getAllByTestId('palette-gap');
+    fireEvent.drop(gaps[gaps.length - 1], {
+      dataTransfer: {
+        getData: (type: string) => (type === MACRO_DRAG_MIME ? 'h1' : ''),
+      },
+    });
+
+    expect(cardText()[0]).toContain('Ada Lovelace');
+    expect(cardText()[1]).toContain('Summary');
+  });
+
+  it('handles dropping a zone’s only card into its trailing gap (a no-op)', () => {
+    // Two single-item zones: dropping zone-a's lone card into zone-a's own
+    // trailing gap leaves the order unchanged (empty-zone insertion path).
+    contextState.layouts = [
+      { layoutId: 'a' as LayoutId, layoutType: 'SINGLE' },
+      { layoutId: 'b' as LayoutId, layoutType: 'SINGLE' },
+    ];
+    contextState.items = [
+      macro('h1', 'HEADER', { header: 'Summary' }),
+      {
+        ...macro('p1', 'PARAGRAPH', { paragraph: 'Other zone' }),
+        layoutId: 'b',
+      },
+    ] as ContentAll[];
+
+    const { getAllByTestId } = render(<RestructureView />);
+    const order = () =>
+      getAllByTestId('palette-card').map((card) => card.textContent);
+    const before = order();
+
+    // Gaps: [before h1, trailing-a, before p1, trailing-b]; index 1 is
+    // zone a's trailing gap.
+    fireEvent.drop(getAllByTestId('palette-gap')[1], {
+      dataTransfer: {
+        getData: (type: string) => (type === MACRO_DRAG_MIME ? 'h1' : ''),
+      },
+    });
+
+    expect(order()).toEqual(before);
+  });
+
+  it('ignores a palette gap drop that carries no card id', () => {
+    const { getAllByTestId } = render(<RestructureView />);
+    const order = () =>
+      getAllByTestId('palette-card').map((card) => card.textContent);
+    const before = order();
+
+    fireEvent.drop(getAllByTestId('palette-gap')[0], {
+      dataTransfer: { getData: () => '' },
+    });
+
+    expect(order()).toEqual(before);
+  });
+
+  it('highlights a palette gap while a card is dragged over it, then clears', () => {
+    const { getAllByTestId } = render(<RestructureView />);
+    const gap = getAllByTestId('palette-gap')[0];
+
+    expect(gap.className).not.toContain('outline-cyan-400');
+    fireEvent.dragOver(gap);
+    expect(gap.className).toContain('outline-cyan-400');
+    fireEvent.dragLeave(gap);
+    expect(gap.className).not.toContain('outline-cyan-400');
+  });
+
+  it('ignores a palette drop whose card is from another zone', () => {
+    contextState.layouts = [
+      { layoutId: 'a' as LayoutId, layoutType: 'SINGLE' },
+      { layoutId: 'b' as LayoutId, layoutType: 'SINGLE' },
+    ];
+    contextState.items = [
+      macro('h1', 'HEADER', { header: 'Summary' }),
+      {
+        ...macro('p1', 'PARAGRAPH', { paragraph: 'Other zone' }),
+        layoutId: 'b',
+      },
+    ] as ContentAll[];
+
+    const { getAllByTestId } = render(<RestructureView />);
+    const order = () =>
+      getAllByTestId('palette-card').map((card) => card.textContent);
+    const before = order();
+
+    // Drop the zone-b paragraph into the (zone-a) first gap: cross-zone, so
+    // it's a no-op.
+    fireEvent.drop(getAllByTestId('palette-gap')[0], {
+      dataTransfer: {
+        getData: (type: string) => (type === MACRO_DRAG_MIME ? 'p1' : ''),
+      },
+    });
+
+    expect(order()).toEqual(before);
+  });
+
   it('has no automatically detectable accessibility violations', async () => {
     const { container } = render(<RestructureView />);
     expect((await axe.run(container)).violations).toEqual([]);

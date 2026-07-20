@@ -110,9 +110,16 @@ resume behind one undo snapshot.
   "Send to…") appends it to the bottom of the target zone -- today's
   behavior; reorder afterward with the gutter's up/down. No
   between-blocks drop indicator in this pass.
-- **Palette stays labelled cards.** The source pane keeps its compact
-  type + summary cards (not styled) -- easy to scan/drag, no duplicate
-  styled render.
+- **Palette stays labelled cards, now locally reorderable.** The source
+  pane keeps its compact type + summary cards (not styled) -- easy to
+  scan/drag, no duplicate styled render. Its order can be resorted by
+  dragging a card into a thin gap between cards (`palette-gap`): the gap is
+  a hairline at rest and thickens/highlights while a card is dragged over
+  it, showing where the drop lands. Reordering is confined to within one
+  zone group (a cross-zone drop is a no-op) and is purely a scanning aid --
+  it's local view state over the *source* list, so it never touches the
+  live resume or the staging copy you Apply, and it resets when the view
+  closes.
 - **Zone droppability signal.** Since the drop target is now styled
   content (not a dashed box), a zone shows a subtle highlight/outline
   while a drag is over it; an *empty* zone still shows a dashed "drop

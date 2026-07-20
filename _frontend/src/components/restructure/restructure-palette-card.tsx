@@ -43,7 +43,9 @@ export default function RestructurePaletteCard({
       draggable
       onDragStart={(event) => {
         event.dataTransfer.setData(MACRO_DRAG_MIME, item.contentId);
-        event.dataTransfer.effectAllowed = 'copy';
+        // copyMove: the same drag can either place a copy in a staging zone
+        // or move the card to a new spot in the palette (a gap drop).
+        event.dataTransfer.effectAllowed = 'copyMove';
       }}
       data-testid="palette-card"
     >

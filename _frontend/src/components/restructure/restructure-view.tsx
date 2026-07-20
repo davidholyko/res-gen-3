@@ -1,8 +1,11 @@
+import { Fragment, useState } from 'react';
+
 import { useAppContext } from '@/context/app-context';
 import type { ContentId } from '@/types/content-base-item';
 import { deriveZones, type Zone } from '@/utils/derive-zones';
 
 import RestructurePaletteCard from './restructure-palette-card';
+import RestructurePaletteGap from './restructure-palette-gap';
 import RestructureStagingBox from './restructure-staging-box';
 import { useStagingResume } from './use-staging-resume';
 
@@ -39,6 +42,45 @@ export default function RestructureView() {
   // The palette, grouped by the live resume's zones so it reads like the
   // resume it mirrors.
   const paletteZones = deriveZones(layouts);
+
+  // A local ordering of the palette cards, so the source list can be
+  // resorted by dragging a card into a gap (specs/wysiwyg-staging.md).
+  // It's purely a scanning aid over the *source* list -- it never touches
+  // the live resume or the staging copy you Apply -- so it lives only in
+  // this view's state and resets when the view closes.
+  const [paletteOrder, setPaletteOrder] = useState<ContentId[]>(() =>
+    items.map((item) => item.contentId),
+  );
+  const layoutOf = (contentId: ContentId) =>
+    items.find((item) => item.contentId === contentId)?.layoutId;
+  // Every rendered item is in `paletteOrder` -- it's seeded from `items`,
+  // which doesn't change while this takeover view is open -- so indexOf is
+  // always a real position.
+  const orderRank = (contentId: ContentId) => paletteOrder.indexOf(contentId);
+
+  // Move a dragged card so it sits just before `beforeId` (or at the end of
+  // its zone when `beforeId` is null -- the trailing gap). Reordering is
+  // confined to within a single zone: a drop from another zone is ignored,
+  // since the palette groups mirror the resume's layout structure.
+  const movePaletteCard = (
+    draggedId: ContentId,
+    beforeId: ContentId | null,
+    zone: Zone,
+  ) => {
+    if (layoutOf(draggedId) !== zone.layoutId) return;
+    setPaletteOrder((prev) => {
+      const next = prev.filter((id) => id !== draggedId);
+      if (beforeId === null) {
+        const zoneIds = next.filter((id) => layoutOf(id) === zone.layoutId);
+        const lastId = zoneIds[zoneIds.length - 1];
+        const at = lastId ? next.indexOf(lastId) + 1 : next.length;
+        next.splice(at, 0, draggedId);
+      } else {
+        next.splice(next.indexOf(beforeId), 0, draggedId);
+      }
+      return next;
+    });
+  };
 
   return (
     <section
@@ -125,25 +167,42 @@ export default function RestructureView() {
           </div>
         </div>
 
-        {/* Right: read-only palette of the current resume's macros. */}
+        {/* Right: the source palette of the current resume's macros. It's
+            read-only content, but its order can be resorted by dragging a
+            card into a gap between cards. */}
         <div aria-label="Your resume" className="flex flex-col gap-3">
           {paletteZones.map((zone) => {
-            const zoneItems = items.filter(
-              (item) => item.layoutId === zone.layoutId,
-            );
+            const zoneItems = items
+              .filter((item) => item.layoutId === zone.layoutId)
+              .sort((a, b) => orderRank(a.contentId) - orderRank(b.contentId));
             return (
-              <div key={zone.key} className="flex flex-col gap-1">
-                <span className="text-xs font-bold uppercase tracking-wide text-gray-600">
+              <div key={zone.key} className="flex flex-col">
+                <span className="mb-1 text-xs font-bold uppercase tracking-wide text-gray-600">
                   {zone.label}
                 </span>
                 {zoneItems.map((item) => (
-                  <RestructurePaletteCard
-                    key={item.contentId}
-                    item={item}
-                    zones={stagingZones}
-                    onSendTo={(target) => place(item.contentId, target)}
-                  />
+                  <Fragment key={item.contentId}>
+                    {/* Gap before this card -- drop here to move the
+                        dragged card just above it. */}
+                    <RestructurePaletteGap
+                      onDropCard={(draggedId) =>
+                        movePaletteCard(draggedId, item.contentId, zone)
+                      }
+                    />
+                    <RestructurePaletteCard
+                      item={item}
+                      zones={stagingZones}
+                      onSendTo={(target) => place(item.contentId, target)}
+                    />
+                  </Fragment>
                 ))}
+                {/* Trailing gap -- drop here to move a card to the end of
+                    this zone. */}
+                <RestructurePaletteGap
+                  onDropCard={(draggedId) =>
+                    movePaletteCard(draggedId, null, zone)
+                  }
+                />
               </div>
             );
           })}
