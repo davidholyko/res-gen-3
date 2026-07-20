@@ -12,13 +12,23 @@ dragging **labelled cards** ("Section heading — Summary"). The cards say
 the resume reads as you rearrange it. Reported directly: "I want to see
 what it looks like when I move stuff around in the side-by-side view."
 
-Chosen direction (confirmed): the staging (right) pane should render the
+Chosen direction (confirmed): the staging pane should render the
 **real styled resume** and be edited in place -- WYSIWYG -- rather than
-showing cards or a separate preview column.
+showing cards or a separate preview column. The styled preview sits in the
+**left** pane (the wider one) with the source palette on the **right**, so
+the eye lands on the resume being built first. The styled preview is
+usually much taller than the palette, so the palette column is **sticky**
+(`sticky top-2 self-start`) -- it stays pinned near the top of the viewport
+as you scroll the preview, so the top macros stay reachable to reorder from
+anywhere on the page. When the palette itself is taller than the viewport
+it caps to screen height and scrolls internally
+(`max-h-[calc(100vh-1rem)] overflow-y-auto`), so its lower cards can't get
+pinned off the bottom edge; the browser auto-scrolls that container while
+dragging near its edges, so reordering still reaches every card.
 
 ## Non-goals
 
-- **The palette (left pane) stays labelled cards.** It's the read-only
+- **The palette (right pane) stays labelled cards.** It's the read-only
   *source* list you drag from; styling it too would just duplicate the
   staging render and crowd the view.
 - **No block-content editing in this view.** You still fill in a block's
@@ -97,18 +107,38 @@ resume behind one undo snapshot.
 - **Block controls: a side action gutter.** Each styled block gets a thin
   vertical controls strip (move up / move down / remove) in a gutter to
   its left, rather than an overlay chip/bar. It never covers the block's
-  content, at the cost of a small permanent left margin on each block in
-  the staging pane. Keyboard-reachable. Hovering (or keyboard-focusing) a
-  block highlights the whole row -- the styled content and its gutter
-  together (a light cyan `hover:bg-cyan-50` / `focus-within:bg-cyan-50`)
-  -- so it's clear which block the controls act on.
+  content. Keyboard-reachable. The gutter is hidden until the block is
+  hovered or keyboard-focused (`opacity-0` -> `opacity-100` via
+  `group-hover` / `group-focus-within`, not `display`, so the controls
+  stay focusable and the content never shifts), and the whole row
+  highlights with it (a light cyan `hover:bg-cyan-50` /
+  `focus-within:bg-cyan-50`) -- so it's clear which block the controls act
+  on, without a permanent strip of controls beside every block.
 - **Drops land at the end of the zone.** Dropping a palette macro (or
   "Send to…") appends it to the bottom of the target zone -- today's
   behavior; reorder afterward with the gutter's up/down. No
   between-blocks drop indicator in this pass.
-- **Palette stays labelled cards.** The left source pane keeps its compact
-  type + summary cards (not styled) -- easy to scan/drag, no duplicate
-  styled render.
+- **Palette stays labelled cards, and reordering them drives the preview.**
+  The source pane keeps its compact type + summary cards (not styled) --
+  easy to scan/drag, no duplicate styled render. Its order can be resorted
+  by dragging a card into a gap between cards (`palette-gap`): the gap is a
+  hairline at rest, but as soon as a card is picked up every gap opens into
+  a roomy dashed drop slot -- making obvious room between the cards to aim
+  for, since a 2px target is too fiddly -- and the gap under the pointer
+  fills in solid to show where the drop lands. Only the gaps that would
+  actually move the card open: the two hugging the dragged card (just above
+  and just below it) stay collapsed, since dropping there is a no-op, and so
+  do the gaps in every other zone. The dragged card itself dims
+  (`opacity-40`) while in flight, so the browser's drag ghost reads as the
+  moving copy rather than the source looking duplicated. Reordering is
+  confined to
+  within one zone group (a cross-zone drop is a no-op). The drop mirrors
+  onto the staging copy (palette and staging share contentIds on open), so
+  the **styled preview on the left updates live** with the same drag, and
+  the new order is part of what Apply commits. It degrades gracefully when
+  the ids have diverged -- a placed copy or a block already removed from
+  staging -- leaving the preview untouched. The palette order resets when
+  the view closes.
 - **Zone droppability signal.** Since the drop target is now styled
   content (not a dashed box), a zone shows a subtle highlight/outline
   while a drag is over it; an *empty* zone still shows a dashed "drop

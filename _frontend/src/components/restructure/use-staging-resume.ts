@@ -153,6 +153,34 @@ export function useStagingResume(initial: StagingResume) {
     });
   };
 
+  // Move a staging block so it sits just before `beforeId`, or at the end
+  // of its zone when `beforeId` is null. This is what keeps the styled
+  // preview in step with a palette-card reorder (specs/wysiwyg-staging.md):
+  // the palette and staging share contentIds on open, so the same
+  // (dragged, before) pair addresses both. Gracefully no-ops when the ids
+  // aren't in staging (e.g. the block was removed, or is a placed copy the
+  // palette never knew about).
+  const reorderItem = (draggedId: ContentId, beforeId: ContentId | null) => {
+    setItems((prev) => {
+      const dragged = prev.find((item) => item.contentId === draggedId);
+      if (!dragged) return prev;
+      const next = prev.filter((item) => item.contentId !== draggedId);
+      let at: number;
+      if (beforeId !== null) {
+        at = next.findIndex((item) => item.contentId === beforeId);
+        if (at === -1) return prev;
+      } else {
+        const zoneItems = next.filter(
+          (item) => item.layoutId === dragged.layoutId,
+        );
+        const last = zoneItems[zoneItems.length - 1];
+        at = last ? next.indexOf(last) + 1 : next.length;
+      }
+      next.splice(at, 0, dragged);
+      return next;
+    });
+  };
+
   const clear = () => {
     setLayouts([]);
     setItems([]);
@@ -168,6 +196,7 @@ export function useStagingResume(initial: StagingResume) {
     addBlock,
     removeItem,
     moveItem,
+    reorderItem,
     clear,
   };
 }

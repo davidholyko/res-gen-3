@@ -1,3 +1,6 @@
+import c from 'classnames';
+import { useState } from 'react';
+
 import { useCanvasMenu } from '@/components/layouts/use-canvas-menu';
 import type { ContentAll } from '@/types/content-all';
 import { deriveMacroLabel } from '@/utils/derive-macro-label';
@@ -14,6 +17,10 @@ type RestructurePaletteCardProps = {
   // non-drag equivalent). Empty when there are no boxes yet.
   zones: Zone[];
   onSendTo: (zone: Zone) => void;
+  // Fired as this card's own drag starts (true) and ends (false), so the
+  // view can open up the reorder gaps into easy-to-hit drop slots while a
+  // card is in flight. Optional -- the card works standalone without it.
+  onDraggingChange?: (dragging: boolean) => void;
 };
 
 // One macro in the restructure view's left palette
@@ -25,8 +32,14 @@ export default function RestructurePaletteCard({
   item,
   zones,
   onSendTo,
+  onDraggingChange,
 }: RestructurePaletteCardProps) {
   const { typeLabel, summary } = deriveMacroLabel(item);
+  // Fade this card while it's the one being dragged: the browser already
+  // renders a drag ghost that follows the cursor, so leaving the source at
+  // full opacity makes the tile look duplicated. Dimming it reads as "this
+  // is the one moving," and the drop slot shows where it will land.
+  const [isDragging, setIsDragging] = useState(false);
   const {
     isOpen,
     setIsOpen,
@@ -39,11 +52,22 @@ export default function RestructurePaletteCard({
 
   return (
     <div
-      className="flex items-center gap-2 rounded border border-gray-300 bg-white px-2 py-1"
+      className={c(
+        'flex items-center gap-2 rounded border border-gray-300 bg-white px-2 py-1',
+        { 'opacity-40': isDragging },
+      )}
       draggable
       onDragStart={(event) => {
         event.dataTransfer.setData(MACRO_DRAG_MIME, item.contentId);
-        event.dataTransfer.effectAllowed = 'copy';
+        // copyMove: the same drag can either place a copy in a staging zone
+        // or move the card to a new spot in the palette (a gap drop).
+        event.dataTransfer.effectAllowed = 'copyMove';
+        setIsDragging(true);
+        onDraggingChange?.(true);
+      }}
+      onDragEnd={() => {
+        setIsDragging(false);
+        onDraggingChange?.(false);
       }}
       data-testid="palette-card"
     >
