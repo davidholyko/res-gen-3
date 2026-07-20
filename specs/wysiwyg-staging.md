@@ -16,7 +16,11 @@ Chosen direction (confirmed): the staging pane should render the
 **real styled resume** and be edited in place -- WYSIWYG -- rather than
 showing cards or a separate preview column. The styled preview sits in the
 **left** pane (the wider one) with the source palette on the **right**, so
-the eye lands on the resume being built first.
+the eye lands on the resume being built first. The styled preview is
+usually much taller than the palette, so the palette column is **sticky**
+(`sticky top-2 self-start`) -- it stays pinned near the top of the viewport
+as you scroll the preview, so the top macros stay reachable to reorder from
+anywhere on the page.
 
 ## Non-goals
 

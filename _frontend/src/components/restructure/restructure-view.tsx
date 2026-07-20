@@ -179,8 +179,17 @@ export default function RestructureView() {
 
         {/* Right: the source palette of the current resume's macros. It's
             read-only content, but its order can be resorted by dragging a
-            card into a gap between cards. */}
-        <div aria-label="Your resume" className="flex flex-col gap-3">
+            card into a gap between cards.
+            sticky + self-start: the styled preview on the left is usually
+            much taller, so the palette is pinned near the top of the
+            viewport and stays reachable while you scroll the preview --
+            without it, reordering the top macros means scrolling all the
+            way back up. self-start keeps the column at its content height
+            (not stretched to the grid row) so sticky has room to travel. */}
+        <div
+          aria-label="Your resume"
+          className="sticky top-2 flex flex-col gap-3 self-start"
+        >
           {paletteZones.map((zone) => {
             const zoneItems = items
               .filter((item) => item.layoutId === zone.layoutId)
