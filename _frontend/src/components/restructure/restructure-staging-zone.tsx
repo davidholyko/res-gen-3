@@ -84,10 +84,11 @@ export default function RestructureStagingZone({
                 className="group flex gap-1 rounded px-1 py-0.5 transition-colors hover:bg-cyan-50 focus-within:bg-cyan-50"
               >
                 {/* Left action gutter -- never over the content
-                    (specs/wysiwyg-staging.md). It sits inside the row's
-                    hover/focus highlight, so the controls light up with
-                    their block. */}
-                <div className="flex flex-col gap-0.5">
+                    (specs/wysiwyg-staging.md). Hidden until the row is
+                    hovered or focused (opacity, not display, so the
+                    buttons stay keyboard-focusable and the content never
+                    shifts), then it fades in with its block. */}
+                <div className="flex flex-col gap-0.5 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
                   <button
                     type="button"
                     aria-label={`Move ${typeLabel} up`}

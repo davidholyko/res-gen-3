@@ -12,13 +12,15 @@ dragging **labelled cards** ("Section heading — Summary"). The cards say
 the resume reads as you rearrange it. Reported directly: "I want to see
 what it looks like when I move stuff around in the side-by-side view."
 
-Chosen direction (confirmed): the staging (right) pane should render the
+Chosen direction (confirmed): the staging pane should render the
 **real styled resume** and be edited in place -- WYSIWYG -- rather than
-showing cards or a separate preview column.
+showing cards or a separate preview column. The styled preview sits in the
+**left** pane (the wider one) with the source palette on the **right**, so
+the eye lands on the resume being built first.
 
 ## Non-goals
 
-- **The palette (left pane) stays labelled cards.** It's the read-only
+- **The palette (right pane) stays labelled cards.** It's the read-only
   *source* list you drag from; styling it too would just duplicate the
   staging render and crowd the view.
 - **No block-content editing in this view.** You still fill in a block's
@@ -97,16 +99,18 @@ resume behind one undo snapshot.
 - **Block controls: a side action gutter.** Each styled block gets a thin
   vertical controls strip (move up / move down / remove) in a gutter to
   its left, rather than an overlay chip/bar. It never covers the block's
-  content, at the cost of a small permanent left margin on each block in
-  the staging pane. Keyboard-reachable. Hovering (or keyboard-focusing) a
-  block highlights the whole row -- the styled content and its gutter
-  together (a light cyan `hover:bg-cyan-50` / `focus-within:bg-cyan-50`)
-  -- so it's clear which block the controls act on.
+  content. Keyboard-reachable. The gutter is hidden until the block is
+  hovered or keyboard-focused (`opacity-0` -> `opacity-100` via
+  `group-hover` / `group-focus-within`, not `display`, so the controls
+  stay focusable and the content never shifts), and the whole row
+  highlights with it (a light cyan `hover:bg-cyan-50` /
+  `focus-within:bg-cyan-50`) -- so it's clear which block the controls act
+  on, without a permanent strip of controls beside every block.
 - **Drops land at the end of the zone.** Dropping a palette macro (or
   "Send to…") appends it to the bottom of the target zone -- today's
   behavior; reorder afterward with the gutter's up/down. No
   between-blocks drop indicator in this pass.
-- **Palette stays labelled cards.** The left source pane keeps its compact
+- **Palette stays labelled cards.** The source pane keeps its compact
   type + summary cards (not styled) -- easy to scan/drag, no duplicate
   styled render.
 - **Zone droppability signal.** Since the drop target is now styled

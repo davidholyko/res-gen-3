@@ -80,33 +80,10 @@ export default function RestructureView() {
 
       {/* Staging gets more room than the palette -- it renders the real
           styled resume now (specs/wysiwyg-staging.md), the palette is just
-          compact source cards. */}
-      <div className="grid grid-cols-[2fr_3fr] gap-4">
-        {/* Left: read-only palette of the current resume's macros. */}
-        <div aria-label="Your resume" className="flex flex-col gap-3">
-          {paletteZones.map((zone) => {
-            const zoneItems = items.filter(
-              (item) => item.layoutId === zone.layoutId,
-            );
-            return (
-              <div key={zone.key} className="flex flex-col gap-1">
-                <span className="text-xs font-bold uppercase tracking-wide text-gray-600">
-                  {zone.label}
-                </span>
-                {zoneItems.map((item) => (
-                  <RestructurePaletteCard
-                    key={item.contentId}
-                    item={item}
-                    zones={stagingZones}
-                    onSendTo={(target) => place(item.contentId, target)}
-                  />
-                ))}
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Right: the staging structure being built. */}
+          compact source cards. The styled preview sits on the left, the
+          source palette on the right. */}
+      <div className="grid grid-cols-[3fr_2fr] gap-4">
+        {/* Left: the staging structure being built (the styled preview). */}
         <div aria-label="New structure" className="flex flex-col gap-2">
           {staging.layouts.length === 0 && (
             <p className="rounded border-2 border-dashed border-gray-300 p-4 text-center text-sm text-gray-600">
@@ -146,6 +123,30 @@ export default function RestructureView() {
               + Two columns
             </button>
           </div>
+        </div>
+
+        {/* Right: read-only palette of the current resume's macros. */}
+        <div aria-label="Your resume" className="flex flex-col gap-3">
+          {paletteZones.map((zone) => {
+            const zoneItems = items.filter(
+              (item) => item.layoutId === zone.layoutId,
+            );
+            return (
+              <div key={zone.key} className="flex flex-col gap-1">
+                <span className="text-xs font-bold uppercase tracking-wide text-gray-600">
+                  {zone.label}
+                </span>
+                {zoneItems.map((item) => (
+                  <RestructurePaletteCard
+                    key={item.contentId}
+                    item={item}
+                    zones={stagingZones}
+                    onSendTo={(target) => place(item.contentId, target)}
+                  />
+                ))}
+              </div>
+            );
+          })}
         </div>
       </div>
     </section>
