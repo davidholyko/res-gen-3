@@ -40,15 +40,14 @@ export default function Main() {
   return (
     // overflow-x-clip, not overflow-x-hidden: hidden creates a scroll
     // container, which breaks the panel's sticky positioning; clip just
-    // crops the panel while its gutter animates open, without doing
-    // that.
+    // crops the panel when the gutter opens, without doing that.
     <main className="flex flex-row overflow-x-clip">
       {/* Mirrored spacers center the canvas while idle; when the panel
-          opens, its region's flex-basis animates up, so the canvas
-          slides left and the panel region absorbs the reserved width
-          PLUS its half of the leftover space -- which is what lets the
-          panel sit centered between the canvas and the viewport edge
-          instead of pinned flush right (specs/canvas-edit-panel.md). */}
+          opens, its region's flex-basis jumps up, so the canvas shifts
+          left and the panel region absorbs the reserved width PLUS its
+          half of the leftover space -- which is what lets the panel sit
+          centered between the canvas and the viewport edge instead of
+          pinned flush right (specs/canvas-edit-panel.md). */}
       <div className="grow basis-0" />
       <div className="flex flex-col items-center min-w-0">
         <LayoutManager />
@@ -62,18 +61,16 @@ export default function Main() {
         // stretch to the gutter's full (canvas) height -- the sticky
         // panel only travels within its own parent's box, so a wrapper
         // sized to the panel gives it nowhere to stick.
-        className={c(
-          'flex flex-col grow basis-0 min-w-0 transition-[flex-basis] duration-300 ease-out',
-          { 'basis-[506px]': isPanelOpen },
-        )}
+        className={c('flex flex-col grow basis-0 min-w-0', {
+          'basis-[506px]': isPanelOpen,
+        })}
       >
         {/* Fixed-width inner wrapper, matching the reserved basis: the
-            panel sizes against this (95%), NOT the animating region --
-            sizing against the animation resizes the form every frame
-            and drops keystrokes typed mid-slide (see the panel).
+            panel sizes against this (95%), NOT the flexing region.
             mx-auto centers it once the region exceeds it; auto margins
-            never go negative, so mid-animation it overflows rightward
-            (clipped by main) rather than over the canvas. */}
+            never go negative, so before the region reaches full width it
+            overflows rightward (clipped by main) rather than over the
+            canvas. */}
         <div className="w-[506px] mx-auto grow">
           <CanvasEditPanel />
         </div>
