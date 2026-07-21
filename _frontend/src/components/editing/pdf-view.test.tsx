@@ -66,14 +66,15 @@ describe('PdfView', () => {
   it('renders nothing when closed', () => {
     render(<PdfView />);
 
-    expect(screen.queryByLabelText('Exit PDF View Button')).toBeNull();
+    expect(
+      document.querySelector('[data-testid="pdf-frame-staging"]'),
+    ).toBeNull();
   });
 
-  it('renders the preview area and top bar when open, with no edit panel in view mode', () => {
+  it('renders the preview area when open, with no edit panel in view mode', () => {
     contextState.isPdfViewOpen = true;
     render(<PdfView />);
 
-    expect(screen.getByLabelText('Exit PDF View Button')).not.toBeNull();
     // The staged preview frame is present (double-buffered load).
     expect(
       document.querySelector('[data-testid="pdf-frame-staging"]'),
@@ -93,39 +94,6 @@ describe('PdfView', () => {
     expect(
       document.querySelector('[data-testid="pdf-frame-staging"]'),
     ).not.toBeNull();
-  });
-
-  it('resets the page anchor to 1 on each fresh open', () => {
-    contextState.isPdfViewOpen = true;
-    contextState.editingContentId = 'h1';
-    contextState.pageCount = 3;
-    const { rerender } = render(<PdfView />);
-
-    fireEvent.click(screen.getByLabelText('Next page'));
-    expect(screen.getByText('Page 2 of 3')).not.toBeNull();
-
-    contextState.isPdfViewOpen = false;
-    rerender(<PdfView />);
-    contextState.isPdfViewOpen = true;
-    rerender(<PdfView />);
-
-    expect(screen.getByText('Page 1 of 3')).not.toBeNull();
-  });
-
-  it('clamps the anchor when the document shrinks below it mid-session', () => {
-    contextState.isPdfViewOpen = true;
-    contextState.editingContentId = 'h1';
-    contextState.pageCount = 3;
-    const { rerender } = render(<PdfView />);
-
-    fireEvent.click(screen.getByLabelText('Next page'));
-    fireEvent.click(screen.getByLabelText('Next page'));
-    expect(screen.getByText('Page 3 of 3')).not.toBeNull();
-
-    contextState.pageCount = 2;
-    rerender(<PdfView />);
-
-    expect(screen.getByText('Page 2 of 2')).not.toBeNull();
   });
 
   it('closes on Escape while open', () => {

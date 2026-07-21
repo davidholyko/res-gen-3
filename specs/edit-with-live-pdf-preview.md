@@ -217,3 +217,18 @@ is being edited, and the double-buffered live refresh. `ResumeModal`
 became `PdfView` (`components/modals/pdf-view.tsx`); `react-modal` is no
 longer used. Restructure is checked before the preview in `Main` so its
 in-progress staging is never unmounted.
+
+## Later change: the top bar (blue bar, Exit ✕, and page stepper) is gone
+
+The PDF view's `bg-blue-500` top bar was removed entirely along with
+everything it hosted: the Exit (✕) close button and the page stepper
+(`PdfViewTopBar` is deleted). The preview now fills the view with no
+chrome above it.
+
+- **Dismissal** is Escape-only — the redundant close button is gone, and
+  the PDF control-bar button still toggles the view off.
+- **Page re-anchoring is dropped.** With no stepper, the preview always
+  opens at page 1 (`PdfPreview`'s default `anchorPage`), so a live
+  refresh while editing a later page snaps back to page 1. This trades
+  away the mid-edit page anchoring described above; revisit with a
+  chrome-free re-anchoring affordance if it proves annoying in practice.

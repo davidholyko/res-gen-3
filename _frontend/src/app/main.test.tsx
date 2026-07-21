@@ -103,7 +103,7 @@ describe('Main', () => {
     // The PDF view pulls from the shared PDF instance, so it needs the
     // same provider stack page.tsx wraps the app in -- more than the bare
     // AppProvider the other cases use.
-    const { getByText, getByLabelText, queryByTestId } = render(
+    const { getByText, queryByTestId } = render(
       <AppProvider>
         <PdfPreviewProvider>
           <PdfInstanceProvider>
@@ -117,7 +117,7 @@ describe('Main', () => {
 
     fireEvent.click(getByText('go'));
 
-    expect(getByLabelText('Exit PDF View Button')).not.toBeNull();
+    expect(queryByTestId('pdf-view')).not.toBeNull();
     expect(queryByTestId('edit-panel-gutter')).toBeNull();
   });
 });
