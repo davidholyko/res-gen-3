@@ -150,3 +150,16 @@ resume behind one undo snapshot.
   five macros + their tests; the acceptance bar is a pixel-identical
   canvas, so the change is verified by the existing canvas/editor tests
   staying green with no DOM changes, plus a before/after screenshot check.
+
+## Later change: two-column drop zones read as two distinct targets
+
+A two-column (DOUBLE) staging box always exposed a Left and a Right zone,
+each its own drop target, but the only visual cue was the thin `divide-x`
+hairline plus a faint "Left"/"Right" label — easy to miss when deciding
+where to drop, so users read the box as a single column. Made the two
+columns obvious without changing behavior: each half now sits on a faint
+tinted panel (`bg-gray-50/70`) and the Left/Right label is a small filled
+badge rather than plain grey text. Also corrected the header hint, which
+told users to drag "into the boxes on the **right**" — the boxes are on
+the **left** (this spec's swap); the palette ("your resume") is on the
+right. The hint now names the Left/Right columns explicitly.

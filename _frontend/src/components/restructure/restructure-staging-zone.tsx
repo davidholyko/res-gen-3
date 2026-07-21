@@ -42,7 +42,11 @@ export default function RestructureStagingZone({
 
   return (
     <div
-      className={c('p-2', { 'grow w-[50%]': isDouble })}
+      // A DOUBLE box's two halves each get a faint tinted panel so the two
+      // columns read as separate drop targets at a glance -- otherwise the
+      // only cue that a two-column box has a Left and a Right zone is the
+      // thin divider, easy to miss when deciding where to drop.
+      className={c('p-2', { 'grow w-[50%] bg-gray-50/70': isDouble })}
       data-testid="staging-zone"
       aria-label={`${zone.label} drop zone`}
       onDragOver={(event) => {
@@ -58,7 +62,7 @@ export default function RestructureStagingZone({
       }}
     >
       {isDouble && (
-        <span className="block px-1 text-[10px] uppercase tracking-wide text-gray-600">
+        <span className="mb-1 inline-block rounded bg-gray-200 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-gray-700">
           {zone.layoutType === LAYOUTS.DOUBLE_LEFT ? 'Left' : 'Right'}
         </span>
       )}

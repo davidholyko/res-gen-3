@@ -10,11 +10,12 @@ import RestructureStagingBox from './restructure-staging-box';
 import { useStagingResume } from './use-staging-resume';
 
 // The restructure view (specs/restructure-view.md): a two-pane surface
-// that replaces the normal canvas while `isRestructuring`. Left = the
-// current resume as a read-only palette of draggable macro cards; right =
-// a staging copy of the resume the user reshapes (add/remove/reorder
-// boxes, drop macros into them). Apply commits the staging arrangement as
-// the new resume behind one undo snapshot; Cancel discards it.
+// that replaces the normal canvas while `isRestructuring`. Left = a
+// staging copy of the resume the user reshapes (add/remove/reorder boxes,
+// drop macros into them), rendered WYSIWYG (specs/wysiwyg-staging.md);
+// right = the current resume as a read-only palette of draggable macro
+// cards. Apply commits the staging arrangement as the new resume behind
+// one undo snapshot; Cancel discards it.
 export default function RestructureView() {
   const { items, layouts, toggleRestructure, onImportFile, pushUndoSnapshot } =
     useAppContext();
@@ -106,7 +107,9 @@ export default function RestructureView() {
             heading itself (WCAG / axe page-has-heading-one). */}
         <h1 className="text-lg font-bold text-gray-700">Restructure</h1>
         <p className="text-sm text-gray-600">
-          Drag macros from your resume into the boxes on the right, then Apply.
+          Drag macros from your resume on the right into the boxes on the left.
+          A two-column box has a Left and a Right column — drop into either.
+          Then Apply.
         </p>
         <div className="ml-auto flex items-center gap-2">
           <button
