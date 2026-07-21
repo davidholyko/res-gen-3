@@ -53,7 +53,7 @@ export default function CanvasEditPanel() {
       id={CANVAS_EDIT_PANEL_ID}
       ref={panelRef}
       aria-label="Edit block"
-      // Sticky inside its animated gutter (see main.tsx): the panel
+      // Sticky inside its gutter (see main.tsx): the panel
       // follows the viewport while the (much taller) canvas scrolls
       // past. 30rem + 18px canvas-side gap + 8px edge margin fits the
       // 506px gutter exactly.

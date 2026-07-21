@@ -7,7 +7,7 @@ test.describe('canvas edit panel', () => {
   const panel = (page: import('@playwright/test').Page) =>
     page.locator('#canvas-edit-panel');
 
-  test('the canvas sits centered while idle and slides left while the panel is open', async ({
+  test('the canvas sits centered while idle and shifts left while the panel is open', async ({
     page,
   }) => {
     const canvas = page.locator('#layout-manager');
@@ -18,8 +18,8 @@ test.describe('canvas edit panel', () => {
 
     await page.locator('.layout-single [role="group"]').first().click();
     await expect(panel(page)).toBeVisible();
-    // The gutter animates open (~300ms): the canvas slides left to make
-    // room, its vertical position untouched.
+    // The gutter opens to make room: the canvas shifts left, its
+    // vertical position untouched.
     await expect
       .poll(async () => (await canvas.boundingBox())!.x)
       .toBeLessThan(before.x - 100);

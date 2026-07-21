@@ -41,11 +41,12 @@ you type, without a single layout shift inside it.
   the viewport with its own scroll. It renders the focused block's form
   (the same `EditorItem` the inline editor used) plus a "Done" button
   that closes it. It mounts only while a block is focused.
-- **The canvas sits centered while idle and slides left when the panel
+- **The canvas sits centered while idle and shifts left when the panel
   opens** (amended by review after the first cut shipped a permanently
-  reserved gutter): the panel's gutter animates between zero width and
-  the panel's width, so making room is one smooth, deliberate motion —
-  and nothing ever reflows *within* the canvas either way.
+  reserved gutter): the panel's gutter opens from zero width to the
+  panel's width to make room — and nothing ever reflows *within* the
+  canvas either way. (The open/close was originally a 300ms slide; that
+  animation was later removed — see "Later change" below.)
 - **Focus becomes app state, not per-block component state.** Which
   block is being edited moves from `BaseMacro`'s local `isFocused` into
   app context (`canvasEditingContentId`, with `focusCanvasBlock`/
@@ -67,8 +68,9 @@ you type, without a single layout shift inside it.
 
 - [x] Clicking a block opens its form in the docked panel; nothing
       renders inside or below the block, and nothing reflows within the
-      canvas — it stays centered while idle and slides left as one
-      animated motion when the panel opens, recentering on close
+      canvas — it stays centered while idle and shifts left when the
+      panel opens, recentering on close (originally an animated slide;
+      the animation was later removed — see "Later change")
 - [x] Typing in the panel updates the canvas live, exactly as the inline
       editor did (same validation, same live-save, same per-field
       errors)
@@ -135,3 +137,18 @@ you type, without a single layout shift inside it.
   stick across the whole scroll. jsdom can't exercise sticky scrolling,
   so this was invisible to the Vitest suite; an e2e test (scroll a tall
   page, assert the panel stays pinned near the top) now guards it.
+
+## Later change: the gutter open/close is no longer animated
+
+The gutter's `transition-[flex-basis] duration-300 ease-out` was removed
+(user request): opening a block now snaps the gutter to its reserved
+width and closing snaps it back, with no 300ms slide. Everything else
+holds — the canvas still stays centered while idle and shifts left when
+the panel opens, and nothing reflows *within* the canvas.
+
+The findings above about the animation are now historical: the panel's
+fixed-width inner wrapper (rather than sizing against the flexing gutter)
+was introduced to stop keystrokes being dropped *mid-slide*. With no
+slide that failure mode is gone, but the wrapper is kept — it's what
+`mx-auto`-centers the panel within the reserved width, independent of the
+animation.
