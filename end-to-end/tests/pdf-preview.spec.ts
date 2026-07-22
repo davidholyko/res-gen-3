@@ -1,19 +1,23 @@
 import { clearResume, expect, test } from './fixtures';
 
-test.describe('PDF preview modal', () => {
+// The PDF preview is an inline view now (specs/edit-with-live-pdf-preview.md,
+// "Later change"): the "PDF" control-bar button replaces the editor area
+// with the preview instead of opening a react-modal, the control bar stays
+// visible above it, and it closes on Escape or by toggling the PDF button
+// (there is no exit ✕ button, and no page stepper).
+test.describe('PDF preview view', () => {
   test('opens, renders a real PDF in the iframe, and is properly labelled', async ({
     page,
   }) => {
-    await page.getByText('View', { exact: true }).click();
-    await page.getByText('Open PDF View').click();
+    await page.getByRole('button', { name: 'PDF' }).click();
 
-    const modal = page.locator('.ReactModal__Content');
-    await expect(modal).toBeVisible();
+    const view = page.getByTestId('pdf-view');
+    await expect(view).toBeVisible();
 
     // The visible frame specifically: the preview is double-buffered
     // now (specs/edit-with-live-pdf-preview.md), so a hidden staging
     // iframe can coexist with it during refreshes.
-    const iframe = modal.locator('[data-testid="pdf-frame-visible"]');
+    const iframe = view.locator('[data-testid="pdf-frame-visible"]');
     await expect(iframe).toBeVisible({ timeout: 10000 });
     const title = await iframe.getAttribute('title');
     expect(title).toBeTruthy();
@@ -36,43 +40,45 @@ test.describe('PDF preview modal', () => {
     expect(header).toMatch(/^%PDF-1\./);
   });
 
-  test('hides the app behind it from assistive tech while open', async ({
+  test('replaces the canvas while the control bar stays visible', async ({
     page,
   }) => {
-    const appRoot = page.locator('#res-gen');
-    await expect(appRoot).not.toHaveAttribute('aria-hidden', 'true');
+    // The canvas is present to begin with.
+    await expect(page.locator('.layout-single')).not.toHaveCount(0);
 
-    await page.getByText('View', { exact: true }).click();
-    await page.getByText('Open PDF View').click();
-    await expect(page.locator('.ReactModal__Content')).toBeVisible();
+    await page.getByRole('button', { name: 'PDF' }).click();
 
-    await expect(appRoot).toHaveAttribute('aria-hidden', 'true');
+    // The inline view takes over the editor area -- the canvas is gone --
+    // but the control bar (and its PDF button) stay put above it, unlike
+    // the old modal that covered the whole app.
+    await expect(page.getByTestId('pdf-view')).toBeVisible();
+    await expect(page.locator('.layout-single')).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'PDF' })).toBeVisible();
   });
 
-  test('closes on Escape and via the exit button', async ({ page }) => {
-    await page.getByText('View', { exact: true }).click();
-    await page.getByText('Open PDF View').click();
-    const modal = page.locator('.ReactModal__Content');
-    await expect(modal).toBeVisible();
+  test('closes on Escape and by toggling the PDF button', async ({ page }) => {
+    const pdfButton = page.getByRole('button', { name: 'PDF' });
+    const view = page.getByTestId('pdf-view');
+
+    await pdfButton.click();
+    await expect(view).toBeVisible();
 
     await page.keyboard.press('Escape');
-    await expect(modal).not.toBeVisible();
+    await expect(view).toHaveCount(0);
 
-    await page.getByText('View', { exact: true }).click();
-    await page.getByText('Open PDF View').click();
-    await expect(modal).toBeVisible();
-
-    await page.getByLabel('Exit PDF View Button').click();
-    await expect(modal).not.toBeVisible();
+    // Reopen, then close by pressing the (now active) PDF button again.
+    await pdfButton.click();
+    await expect(view).toBeVisible();
+    await pdfButton.click();
+    await expect(view).toHaveCount(0);
   });
 
-  test('the "Open PDF View" action is disabled when there is nothing to preview', async ({
+  test('the PDF button is disabled when there is nothing to preview', async ({
     page,
   }) => {
     // Clear the resume to reach the true empty state.
     await clearResume(page);
 
-    await page.getByText('View', { exact: true }).click();
-    await expect(page.getByText('Open PDF View')).toBeDisabled();
+    await expect(page.getByRole('button', { name: 'PDF' })).toBeDisabled();
   });
 });

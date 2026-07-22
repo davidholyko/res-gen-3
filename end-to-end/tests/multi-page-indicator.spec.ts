@@ -7,8 +7,8 @@ import {
 } from './fixtures';
 
 // Happy-path coverage for specs/multi-page-indicator.md. The page count
-// comes from react-pdf's own real render pipeline (shared with the PDF
-// preview modal via PdfInstanceProvider), debounced ~1.75s after the
+// comes from react-pdf's own real render pipeline (shared with the inline
+// PDF preview view via PdfInstanceProvider), debounced ~1.75s after the
 // last change -- these tests wait past that window before asserting.
 test.describe('multi-page indicator', () => {
   test('shows the real page count once the resume spans more than one page', async ({
@@ -43,17 +43,16 @@ test.describe('multi-page indicator', () => {
     });
   });
 
-  test('the PDF preview modal still opens and renders real content, sharing the same instance', async ({
+  test('the PDF preview view still opens and renders real content, sharing the same instance', async ({
     page,
   }) => {
-    await page.getByText('View', { exact: true }).click();
-    await page.getByText('Open PDF View').click();
+    await page.getByRole('button', { name: 'PDF' }).click();
 
-    const modal = page.locator('.ReactModal__Content');
-    await expect(modal).toBeVisible();
+    const view = page.getByTestId('pdf-view');
+    await expect(view).toBeVisible();
 
-    const iframe = modal.locator('iframe');
-    await expect(iframe).toBeVisible();
+    const iframe = view.locator('[data-testid="pdf-frame-visible"]');
+    await expect(iframe).toBeVisible({ timeout: 10000 });
     await expect(iframe).toHaveAttribute('src', /.+/, { timeout: 10000 });
   });
 });

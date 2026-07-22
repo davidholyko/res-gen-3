@@ -46,22 +46,24 @@ async function tabUntil(
 }
 
 test.describe('keyboard navigation', () => {
-  test('Tab reaches the control panel menus, then the Restructure button, in order', async ({
+  test('Tab reaches the control panel controls, in order', async ({
     page,
   }) => {
     await tabUntil(page, 'File');
 
     const seen: FocusInfo[] = [];
-    for (let i = 0; i < 2; i++) {
+    for (let i = 0; i < 3; i++) {
       await page.keyboard.press('Tab');
       seen.push(await currentFocus(page));
     }
 
-    // File -> View -> Restructure. The canvas itself is display-only now
-    // (add controls moved into the restructure view,
-    // specs/restructure-view.md), so Restructure is the last control-bar
-    // stop before the canvas content.
-    expect(seen.map((f) => f.text)).toEqual(['View', 'Restructure']);
+    // File -> Edit -> PDF -> Restructure. The View menu was retired in
+    // favour of a top-level "PDF" button, and "Edit" is a control-bar
+    // shortcut to the first block (specs/edit-with-live-pdf-preview.md).
+    // The canvas itself is display-only (add controls moved into the
+    // restructure view, specs/restructure-view.md), so Restructure is
+    // the last control-bar stop before the canvas content.
+    expect(seen.map((f) => f.text)).toEqual(['Edit', 'PDF', 'Restructure']);
   });
 
   test('no keyboard trap across a long Tab run', async ({ page }) => {

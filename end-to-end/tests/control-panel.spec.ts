@@ -3,20 +3,17 @@ import path from 'node:path';
 import { addSingleLayout, clearResume, expect, test } from './fixtures';
 
 test.describe('control panel', () => {
-  test('File/View menus open on click and close on Escape', async ({
+  test('the File menu opens on click and closes on Escape', async ({
     page,
   }) => {
-    // No Edit menu anymore: add-layout moved onto the canvas beside
-    // "+ Add block" (specs/add-layout-beside-add-block.md).
-    for (const [menu, item] of [
-      ['File', 'Download JSON'],
-      ['View', 'Open PDF View'],
-    ] as const) {
-      await page.getByText(menu, { exact: true }).click();
-      await expect(page.getByText(item)).toBeVisible();
-      await page.keyboard.press('Escape');
-      await expect(page.getByText(item)).not.toBeVisible();
-    }
+    // File is the only control-bar menu now: the Edit menu's add-layout
+    // moved onto the canvas (specs/add-layout-beside-add-block.md), and
+    // the View menu was retired -- its one action is the top-level "PDF"
+    // button (specs/edit-with-live-pdf-preview.md).
+    await page.getByText('File', { exact: true }).click();
+    await expect(page.getByText('Download JSON')).toBeVisible();
+    await page.keyboard.press('Escape');
+    await expect(page.getByText('Download JSON')).not.toBeVisible();
   });
 
   test('layouts are added through the restructure view', async ({ page }) => {
