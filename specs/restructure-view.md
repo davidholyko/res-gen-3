@@ -184,3 +184,21 @@ the restructure view *builds* it.
   now scoped to the staging pane. Those specs stay `superseded`; the old
   `confirm-remove-layout.md` confirm/highlight did **not** carry over
   (staging edits are discardable via Cancel, and Apply is undoable).
+
+## Later change: auto-scroll while dragging
+
+Native HTML5 drag does not reliably scroll an off-screen drop target into
+view mid-gesture. When a two-column box (or any layout) is added at the
+bottom of a long resume, its drop zones sit below the fold, and dragging a
+palette card down to them silently no-ops -- the target never comes into
+reach. (This is the same limitation the e2e suite sidesteps with a giant
+2400px viewport; real users can't.)
+
+Fixed with `useDragAutoScroll` (armed by `RestructureView` while a palette
+card is in flight): a `document`-level `dragover` listener tracks the
+pointer's Y, and a `requestAnimationFrame` loop scrolls the window when the
+pointer sits within an edge band (top/bottom), accelerating toward the very
+edge. The rAF loop -- rather than scrolling straight from the handler --
+keeps scrolling while the pointer is simply *held* in the band, since
+`dragover` only fires on movement. This makes any drop target reachable
+regardless of where it sits on the page.
