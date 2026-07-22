@@ -117,17 +117,34 @@ describe('useStagingResume', () => {
     expect(result.current.layouts.map((l) => l.layoutId)).toEqual(['L1', 'L2']);
   });
 
-  it('places a copy of a macro with a fresh id and the zone fields', () => {
-    const source = macro('orig', 'somewhere');
-    const { result } = setup({ layouts: [SINGLE], items: [] });
+  it('moves a block to another zone, retagged and appended at its end', () => {
+    const { result } = setup({
+      layouts: [SINGLE],
+      items: [macro('a', 'L1'), macro('b', 'L2'), macro('c', 'L2')],
+    });
 
-    act(() => result.current.placeMacro(source, zoneFor('L1')));
+    act(() => result.current.moveItemTo('a' as ContentId, zoneFor('L2')));
 
-    expect(result.current.items).toHaveLength(1);
-    const placed = result.current.items[0];
-    expect(placed.contentId).not.toBe('orig');
-    expect(placed.layoutId).toBe('L1');
-    expect(placed.content).toEqual(source.content);
+    // Same block (same id -- a move, not a copy), new zone tag, at the
+    // end of the destination zone.
+    expect(result.current.items.map((i) => i.contentId)).toEqual([
+      'b',
+      'c',
+      'a',
+    ]);
+    expect(result.current.items[2].layoutId).toBe('L2');
+    expect(result.current.items).toHaveLength(3);
+  });
+
+  it('moves a block into an empty zone (lands at the end of the array)', () => {
+    const { result } = setup({
+      layouts: [SINGLE],
+      items: [macro('a', 'L1')],
+    });
+
+    act(() => result.current.moveItemTo('a' as ContentId, zoneFor('L9')));
+
+    expect(result.current.items[0].layoutId).toBe('L9');
   });
 
   it('adds a new blank block of a chosen type to a zone', () => {
@@ -181,59 +198,77 @@ describe('useStagingResume', () => {
     expect(result.current.items.map((i) => i.contentId)).toEqual(['a', 'x']);
   });
 
-  it('reorders a block before another, and to the end of its zone', () => {
+  it('moves a block just before another (a gap drop), cross-zone included', () => {
+    const { result } = setup({
+      layouts: [SINGLE],
+      items: [macro('a', 'L1'), macro('b', 'L1'), macro('c', 'L2')],
+    });
+
+    // Drop c into the gap above b: exact position, retagged into L1.
+    act(() =>
+      result.current.moveItemTo(
+        'c' as ContentId,
+        zoneFor('L1'),
+        'b' as ContentId,
+      ),
+    );
+
+    expect(result.current.items.map((i) => i.contentId)).toEqual([
+      'a',
+      'c',
+      'b',
+    ]);
+    expect(result.current.items[1].layoutId).toBe('L1');
+  });
+
+  it('moves a block to the end of its own zone (trailing gap -> beforeId null)', () => {
     const { result } = setup({
       layouts: [SINGLE],
       items: [macro('a', 'L1'), macro('b', 'L1'), macro('c', 'L1')],
     });
 
-    // Move c before a (drop into a's gap).
-    act(() => result.current.reorderItem('c' as ContentId, 'a' as ContentId));
-    expect(result.current.items.map((i) => i.contentId)).toEqual([
-      'c',
-      'a',
-      'b',
-    ]);
+    act(() => result.current.moveItemTo('a' as ContentId, zoneFor('L1'), null));
 
-    // Move c to the end of its zone (trailing gap -> beforeId null).
-    act(() => result.current.reorderItem('c' as ContentId, null));
     expect(result.current.items.map((i) => i.contentId)).toEqual([
-      'a',
       'b',
       'c',
+      'a',
     ]);
   });
 
-  it('reorders a zone’s only block to the end (empty-zone insertion path)', () => {
-    // 'a' is the sole block in L1; with no L1 neighbour, it lands at the end
-    // of the flat array (after the L2 block). Within its own zone -- all the
-    // preview groups by -- it's still the only block, so the render is
-    // unchanged; only the flat position moves.
-    const { result } = setup({
-      layouts: [SINGLE],
-      items: [macro('a', 'L1'), macro('x', 'L2')],
-    });
-
-    act(() => result.current.reorderItem('a' as ContentId, null));
-
-    expect(result.current.items.map((i) => i.contentId)).toEqual(['x', 'a']);
-  });
-
-  it('ignores a reorder of an unknown block, or before an unknown target', () => {
+  it('ignores a move of an unknown block, before an unknown target, or before itself', () => {
     const { result } = setup({
       layouts: [SINGLE],
       items: [macro('a', 'L1'), macro('b', 'L1')],
     });
 
-    // Dragged id isn't in staging (e.g. already removed) -> no change.
+    // Dragged id isn't in staging (e.g. a stale drag payload) -> no change.
     act(() =>
-      result.current.reorderItem('ghost' as ContentId, 'a' as ContentId),
+      result.current.moveItemTo(
+        'ghost' as ContentId,
+        zoneFor('L1'),
+        'a' as ContentId,
+      ),
     );
     expect(result.current.items.map((i) => i.contentId)).toEqual(['a', 'b']);
 
     // Target id isn't in staging -> leave the order alone.
     act(() =>
-      result.current.reorderItem('a' as ContentId, 'ghost' as ContentId),
+      result.current.moveItemTo(
+        'a' as ContentId,
+        zoneFor('L1'),
+        'ghost' as ContentId,
+      ),
+    );
+    expect(result.current.items.map((i) => i.contentId)).toEqual(['a', 'b']);
+
+    // Dropping a card "before itself" is a no-op, not a self-splice.
+    act(() =>
+      result.current.moveItemTo(
+        'a' as ContentId,
+        zoneFor('L1'),
+        'a' as ContentId,
+      ),
     );
     expect(result.current.items.map((i) => i.contentId)).toEqual(['a', 'b']);
   });

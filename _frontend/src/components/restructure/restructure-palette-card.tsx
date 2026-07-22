@@ -13,25 +13,26 @@ export const MACRO_DRAG_MIME = 'text/plain';
 
 type RestructurePaletteCardProps = {
   item: ContentAll;
-  // Staging zones this card can be sent to via the keyboard menu (the
+  // Staging zones this card can be moved to via the keyboard menu (the
   // non-drag equivalent). Empty when there are no boxes yet.
   zones: Zone[];
-  onSendTo: (zone: Zone) => void;
+  onMoveTo: (zone: Zone) => void;
   // Fired as this card's own drag starts (true) and ends (false), so the
-  // view can open up the reorder gaps into easy-to-hit drop slots while a
-  // card is in flight. Optional -- the card works standalone without it.
+  // view can open up the gaps into easy-to-hit drop slots while a card is
+  // in flight. Optional -- the card works standalone without it.
   onDraggingChange?: (dragging: boolean) => void;
 };
 
-// One macro in the restructure view's left palette
-// (specs/restructure-view.md): a compact, draggable "what is this" card
-// (type + one-line summary), never the full styled block. Dragging it
-// copies it into a staging box; the "Send to…" menu is the
+// One macro in the restructure view's staging outline
+// (specs/restructure-palette-mirror.md): a compact, draggable "what is
+// this" card (type + one-line summary), never the full styled block.
+// Dragging it *moves* the block within staging -- the outline and the
+// styled preview mirror the same state; the "Move to…" menu is the
 // keyboard-accessible equivalent so the feature is never drag-only.
 export default function RestructurePaletteCard({
   item,
   zones,
-  onSendTo,
+  onMoveTo,
   onDraggingChange,
 }: RestructurePaletteCardProps) {
   const { typeLabel, summary } = deriveMacroLabel(item);
@@ -59,9 +60,9 @@ export default function RestructurePaletteCard({
       draggable
       onDragStart={(event) => {
         event.dataTransfer.setData(MACRO_DRAG_MIME, item.contentId);
-        // copyMove: the same drag can either place a copy in a staging zone
-        // or move the card to a new spot in the palette (a gap drop).
-        event.dataTransfer.effectAllowed = 'copyMove';
+        // Every drag is a move now: into a staging zone, or into a gap in
+        // the outline (specs/restructure-palette-mirror.md).
+        event.dataTransfer.effectAllowed = 'move';
         setIsDragging(true);
         onDraggingChange?.(true);
       }}
@@ -90,14 +91,14 @@ export default function RestructurePaletteCard({
         <div className="relative" ref={containerRef}>
           <button
             type="button"
-            aria-label={`Send ${typeLabel} to a box`}
+            aria-label={`Move ${typeLabel} to a box`}
             aria-haspopup="true"
             aria-expanded={isOpen}
             aria-controls={menuId}
             className="rounded px-2 py-0.5 text-xs text-gray-600 hover:bg-gray-200"
             onClick={() => setIsOpen((prev) => !prev)}
           >
-            Send to…
+            Move to…
           </button>
           {isOpen && (
             <div
@@ -116,7 +117,7 @@ export default function RestructurePaletteCard({
                   tabIndex={0}
                   className="px-3 py-2 text-left text-sm hover:bg-cyan-100"
                   onClick={() => {
-                    onSendTo(zone);
+                    onMoveTo(zone);
                     close();
                   }}
                 >

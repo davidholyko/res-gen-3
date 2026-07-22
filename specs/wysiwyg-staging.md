@@ -119,6 +119,10 @@ resume behind one undo snapshot.
   behavior; reorder afterward with the gutter's up/down. No
   between-blocks drop indicator in this pass.
 - **Palette stays labelled cards, and reordering them drives the preview.**
+  *(Partially superseded by `restructure-palette-mirror.md`: the cards
+  stay, but the palette now renders the staging state itself -- its order
+  IS staging order, the local scanning-aid order is gone, and every drag
+  is a move.)*
   The source pane keeps its compact type + summary cards (not styled) --
   easy to scan/drag, no duplicate styled render. Its order can be resorted
   by dragging a card into a gap between cards (`palette-gap`): the gap is a

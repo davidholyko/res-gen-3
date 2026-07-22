@@ -61,10 +61,10 @@ beforeEach(() => {
 });
 
 describe('RestructureView', () => {
-  it('shows both panes, the palette cards, and a staging copy of the resume', () => {
+  it('shows both panes, the outline cards, and a staging copy of the resume', () => {
     const { getByLabelText, getAllByTestId } = render(<RestructureView />);
 
-    expect(getByLabelText('Your resume')).not.toBeNull();
+    expect(getByLabelText('Staging outline')).not.toBeNull();
     expect(getByLabelText('New structure')).not.toBeNull();
     expect(getAllByTestId('palette-card')).toHaveLength(2);
     // Copy-on-open: staging already mirrors the one existing layout.
@@ -82,13 +82,20 @@ describe('RestructureView', () => {
     expect(getAllByTestId('staging-zone')).toHaveLength(4);
   });
 
-  it('Clear empties the staging pane', () => {
+  it('Clear empties both panes -- the outline mirrors the emptied staging', () => {
     const { getByText, queryAllByTestId } = render(<RestructureView />);
 
     fireEvent.click(getByText('Clear'));
 
     expect(queryAllByTestId('staging-zone')).toHaveLength(0);
-    expect(getByText('Add a box, then drag macros into it.')).not.toBeNull();
+    // The outline is a mirror, so it empties too; the hint points at
+    // Cancel as the way back (specs/restructure-palette-mirror.md).
+    expect(queryAllByTestId('palette-card')).toHaveLength(0);
+    expect(
+      getByText(
+        'Add a box to start building. Cancel brings back your resume unchanged.',
+      ),
+    ).not.toBeNull();
   });
 
   it('Cancel closes the view without applying', () => {
@@ -113,20 +120,27 @@ describe('RestructureView', () => {
     expect(toggleRestructure).toHaveBeenCalledWith(false);
   });
 
-  it('places a copy via the palette "Send to…" menu', () => {
-    const { getAllByTestId, getByRole, getAllByLabelText } = render(
+  it('moves a block to another box via the "Move to…" menu -- both panes update, nothing duplicates', () => {
+    const { getAllByTestId, getByText, getByRole, getAllByLabelText } = render(
       <RestructureView />,
     );
+    // A second, empty box to move into.
+    fireEvent.click(getByText('+ One column'));
     expect(getAllByLabelText(stagingMacroRemovers)).toHaveLength(2);
 
-    // Send the first palette card to the (only) staging zone.
+    // Move the first outline card (the HEADER) to the new Layout 2.
     const firstCard = getAllByTestId('palette-card')[0];
     fireEvent.click(
       firstCard.querySelector('[aria-haspopup="true"]') as HTMLElement,
     );
-    fireEvent.click(getByRole('menuitem', { name: 'Layout 1' }));
+    fireEvent.click(getByRole('menuitem', { name: 'Layout 2' }));
 
-    expect(getAllByLabelText(stagingMacroRemovers)).toHaveLength(3);
+    // Still two blocks total (a move, not a copy)...
+    expect(getAllByLabelText(stagingMacroRemovers)).toHaveLength(2);
+    expect(getAllByTestId('palette-card')).toHaveLength(2);
+    // ...and the outline regrouped it under Layout 2 (the last card now).
+    const cards = getAllByTestId('palette-card');
+    expect(cards[cards.length - 1].textContent).toContain('Summary');
   });
 
   it('ignores a drop whose contentId is not a known macro', () => {
@@ -137,20 +151,26 @@ describe('RestructureView', () => {
       dataTransfer: { getData: () => 'ghost-id' },
     });
 
-    // Unknown id resolves to no source -> nothing placed.
+    // Unknown id resolves to no staging block -> nothing moves.
     expect(getAllByLabelText(stagingMacroRemovers)).toHaveLength(2);
   });
 
-  it('places a copy via a native drop of a known macro', () => {
-    const { getByTestId, getAllByLabelText } = render(<RestructureView />);
+  it('moves a block via a native drop on a staging zone', () => {
+    const { getAllByTestId, getByText, getAllByLabelText } = render(
+      <RestructureView />,
+    );
+    fireEvent.click(getByText('+ One column'));
 
-    fireEvent.drop(getByTestId('staging-zone'), {
+    // Drop the HEADER onto the new (second, empty) zone: it moves there.
+    fireEvent.drop(getAllByTestId('staging-zone')[1], {
       dataTransfer: {
         getData: (type: string) => (type === MACRO_DRAG_MIME ? 'h1' : ''),
       },
     });
 
-    expect(getAllByLabelText(stagingMacroRemovers)).toHaveLength(3);
+    // Move, not copy: still two blocks, and the second zone now has one.
+    expect(getAllByLabelText(stagingMacroRemovers)).toHaveLength(2);
+    expect(getAllByTestId('staging-zone')[1].textContent).toContain('Summary');
   });
 
   it('reorders palette cards by dropping one into a gap', () => {
@@ -295,7 +315,7 @@ describe('RestructureView', () => {
     gaps().forEach((g) => expect(g.className).toContain('h-0.5'));
   });
 
-  it('keeps another zone’s gaps closed while dragging (no cross-zone reorder)', () => {
+  it('opens other zones’ gaps too while dragging -- cross-zone moves are live targets', () => {
     contextState.layouts = [
       { layoutId: 'a' as LayoutId, layoutType: 'SINGLE' },
       { layoutId: 'b' as LayoutId, layoutType: 'SINGLE' },
@@ -315,8 +335,9 @@ describe('RestructureView', () => {
       dataTransfer: { setData: vi.fn(), effectAllowed: '' },
     });
 
-    // Dragging a zone-a card never opens zone b's gap.
-    expect(zoneBTrailingGap().className).toContain('h-0.5');
+    // Dragging a zone-a card opens zone b's gap: dropping there moves the
+    // block into zone b (specs/restructure-palette-mirror.md).
+    expect(zoneBTrailingGap().className).toContain('border-cyan-300');
   });
 
   it('treats dropping a card into its own gap as a no-op', () => {
@@ -336,7 +357,7 @@ describe('RestructureView', () => {
     expect(order()).toEqual(before);
   });
 
-  it('ignores a palette drop whose card is from another zone', () => {
+  it('a cross-zone gap drop moves the block into that zone at that exact position', () => {
     contextState.layouts = [
       { layoutId: 'a' as LayoutId, layoutType: 'SINGLE' },
       { layoutId: 'b' as LayoutId, layoutType: 'SINGLE' },
@@ -349,20 +370,37 @@ describe('RestructureView', () => {
       },
     ] as ContentAll[];
 
-    const { getAllByTestId } = render(<RestructureView />);
-    const order = () =>
-      getAllByTestId('palette-card').map((card) => card.textContent);
-    const before = order();
+    const { getAllByTestId, getByLabelText } = render(<RestructureView />);
 
-    // Drop the zone-b paragraph into the (zone-a) first gap: cross-zone, so
-    // it's a no-op.
+    // Drop the zone-b paragraph into the (zone-a) gap above the HEADER: it
+    // moves into zone a, just above the HEADER, in both panes.
     fireEvent.drop(getAllByTestId('palette-gap')[0], {
       dataTransfer: {
         getData: (type: string) => (type === MACRO_DRAG_MIME ? 'p1' : ''),
       },
     });
 
-    expect(order()).toEqual(before);
+    const order = getAllByTestId('palette-card').map(
+      (card) => card.textContent,
+    );
+    expect(order[0]).toContain('Other zone');
+    expect(order[1]).toContain('Summary');
+    // The styled preview's first zone mirrors the same move.
+    const firstZone = getByLabelText('Layout 1 drop zone');
+    expect(firstZone.textContent).toContain('Other zone');
+  });
+
+  it('mirrors staging edits into the outline: removing a block drops its card', () => {
+    const { getAllByTestId, getAllByLabelText } = render(<RestructureView />);
+    expect(getAllByTestId('palette-card')).toHaveLength(2);
+
+    // Remove the HEADER via the staging pane's own gutter control.
+    fireEvent.click(getAllByLabelText('Remove Section heading')[0]);
+
+    // The outline re-renders from the same staging state -- one card left.
+    const cards = getAllByTestId('palette-card');
+    expect(cards).toHaveLength(1);
+    expect(cards[0].textContent).toContain('Ada Lovelace');
   });
 
   it('has no automatically detectable accessibility violations', async () => {

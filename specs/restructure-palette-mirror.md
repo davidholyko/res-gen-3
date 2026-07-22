@@ -1,5 +1,5 @@
 ---
-status: draft
+status: implemented
 ---
 
 # Restructure palette mirrors staging (move semantics)
@@ -78,19 +78,22 @@ with every edit on either side.
 
 ## Acceptance criteria
 
-- [ ] Any staging edit (place, remove item, reorder item, add block,
+- [x] Any staging edit (place, remove item, reorder item, add block,
       add/move/remove layout, Clear) is reflected in the palette
       immediately, and vice-versa — the two panes never disagree.
-- [ ] Dragging a card (from either pane) into a staging zone or palette
+- [x] Dragging a card (from either pane) into a staging zone or palette
       gap moves the block; the block count never changes from a drag.
-- [ ] "Move to…" (renamed from "Send to…") moves the block to the chosen
+- [x] "Move to…" (renamed from "Send to…") moves the block to the chosen
       zone from the keyboard, no drag required.
-- [ ] Clear empties both panes; Cancel restores the resume untouched.
-- [ ] `_frontend` stays at 100% coverage; existing e2e suite updated and
+- [x] Clear empties both panes; Cancel restores the resume untouched.
+- [x] `_frontend` stays at 100% coverage; existing e2e suite updated and
       green; the view stays axe-clean.
 
 ## Open questions
 
-- Should a cross-zone palette-gap drop land at the gap's exact position
-  (proposed) or append to the zone like zone drops do? Exact position is
-  more direct but adds a code path the same-zone reorder doesn't have.
+- ~~Should a cross-zone palette-gap drop land at the gap's exact position
+  (proposed) or append to the zone like zone drops do?~~ **Resolved at
+  implementation: exact position.** One `moveItemTo(contentId, zone,
+  beforeId)` covers every path — gap drops pass the card below the gap as
+  `beforeId` (exact position, cross-zone retag included), zone drops and
+  "Move to…" pass `null` (append) — so exact position cost nothing extra.
