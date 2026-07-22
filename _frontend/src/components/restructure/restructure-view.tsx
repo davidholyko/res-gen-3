@@ -7,6 +7,7 @@ import { deriveZones, type Zone } from '@/utils/derive-zones';
 import RestructurePaletteCard from './restructure-palette-card';
 import RestructurePaletteGap from './restructure-palette-gap';
 import RestructureStagingBox from './restructure-staging-box';
+import { useDragAutoScroll } from './use-drag-auto-scroll';
 import { useStagingResume } from './use-staging-resume';
 
 // The restructure view (specs/restructure-view.md): a two-pane surface
@@ -58,6 +59,11 @@ export default function RestructureView() {
   // just above or just below itself is a no-op), and never gaps in another
   // zone (cross-zone reordering isn't allowed).
   const [draggingId, setDraggingId] = useState<ContentId | null>(null);
+  // While a palette card is in flight, auto-scroll the page as the pointer
+  // nears the top/bottom edge, so drop targets below the fold (e.g. a
+  // two-column box added at the bottom of a long resume) are reachable --
+  // native drag won't scroll them into view on its own.
+  useDragAutoScroll(draggingId !== null);
   const layoutOf = (contentId: ContentId) =>
     items.find((item) => item.contentId === contentId)?.layoutId;
   // Every rendered item is in `paletteOrder` -- it's seeded from `items`,
