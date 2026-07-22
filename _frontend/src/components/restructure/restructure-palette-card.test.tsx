@@ -31,7 +31,7 @@ describe('RestructurePaletteCard', () => {
       <RestructurePaletteCard
         item={item({ header: 'Summary' })}
         zones={[]}
-        onSendTo={vi.fn()}
+        onMoveTo={vi.fn()}
       />,
     );
     expect(getByText('Section heading')).not.toBeNull();
@@ -43,7 +43,7 @@ describe('RestructurePaletteCard', () => {
       <RestructurePaletteCard
         item={item({ header: '' })}
         zones={[]}
-        onSendTo={vi.fn()}
+        onMoveTo={vi.fn()}
       />,
     );
     expect(getByText('(empty)')).not.toBeNull();
@@ -54,7 +54,7 @@ describe('RestructurePaletteCard', () => {
       <RestructurePaletteCard
         item={item({ header: 'x' })}
         zones={[]}
-        onSendTo={vi.fn()}
+        onMoveTo={vi.fn()}
       />,
     );
     const dataTransfer = { setData: vi.fn(), effectAllowed: '' };
@@ -72,7 +72,7 @@ describe('RestructurePaletteCard', () => {
       <RestructurePaletteCard
         item={item({ header: 'x' })}
         zones={[]}
-        onSendTo={vi.fn()}
+        onMoveTo={vi.fn()}
         onDraggingChange={onDraggingChange}
       />,
     );
@@ -90,31 +90,31 @@ describe('RestructurePaletteCard', () => {
     expect(card.className).not.toContain('opacity-40');
   });
 
-  it('hides the "Send to…" menu when there are no zones to send to', () => {
+  it('hides the "Move to…" menu when there are no zones to move to', () => {
     const { queryByRole } = render(
       <RestructurePaletteCard
         item={item({ header: 'x' })}
         zones={[]}
-        onSendTo={vi.fn()}
+        onMoveTo={vi.fn()}
       />,
     );
-    expect(queryByRole('button', { name: /Send .* to a box/ })).toBeNull();
+    expect(queryByRole('button', { name: /Move .* to a box/ })).toBeNull();
   });
 
-  it('opens the menu and sends the macro to a picked zone', () => {
-    const onSendTo = vi.fn();
+  it('opens the menu and moves the macro to a picked zone', () => {
+    const onMoveTo = vi.fn();
     const { getByRole, getByText } = render(
       <RestructurePaletteCard
         item={item({ header: 'x' })}
         zones={[ZONE]}
-        onSendTo={onSendTo}
+        onMoveTo={onMoveTo}
       />,
     );
 
-    fireEvent.click(getByRole('button', { name: /Send .* to a box/ }));
+    fireEvent.click(getByRole('button', { name: /Move .* to a box/ }));
     fireEvent.click(getByText('Layout 1'));
 
-    expect(onSendTo).toHaveBeenCalledWith(ZONE);
+    expect(onMoveTo).toHaveBeenCalledWith(ZONE);
   });
 
   it('has no automatically detectable accessibility violations', async () => {
@@ -122,7 +122,7 @@ describe('RestructurePaletteCard', () => {
       <RestructurePaletteCard
         item={item({ header: 'x' })}
         zones={[ZONE]}
-        onSendTo={vi.fn()}
+        onMoveTo={vi.fn()}
       />,
     );
     expect((await axe.run(container)).violations).toEqual([]);

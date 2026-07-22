@@ -13,27 +13,21 @@ import { useStagingResume } from './use-staging-resume';
 // The restructure view (specs/restructure-view.md): a two-pane surface
 // that replaces the normal canvas while `isRestructuring`. Left = a
 // staging copy of the resume the user reshapes (add/remove/reorder boxes,
-// drop macros into them), rendered WYSIWYG (specs/wysiwyg-staging.md);
-// right = the current resume as a read-only palette of draggable macro
-// cards. Apply commits the staging arrangement as the new resume behind
-// one undo snapshot; Cancel discards it.
+// move macros between them), rendered WYSIWYG (specs/wysiwyg-staging.md);
+// right = a compact outline of that same staging arrangement
+// (specs/restructure-palette-mirror.md) -- the two panes are live mirrors
+// of one staging state, so an edit to either updates both. Apply commits
+// the staging arrangement as the new resume behind one undo snapshot;
+// Cancel discards it.
 export default function RestructureView() {
   const { items, layouts, toggleRestructure, onImportFile, pushUndoSnapshot } =
     useAppContext();
 
   const staging = useStagingResume({ items, layouts });
 
-  // The zones the palette's "Send to…" menu (and drops) target -- the
-  // *staging* boxes, recomputed as the user adds/removes them.
+  // The zones both panes group by and every move targets -- the *staging*
+  // boxes, recomputed as the user adds/removes them.
   const stagingZones = deriveZones(staging.layouts);
-
-  // Copy a palette macro into a staging zone (shared by drag-drop and the
-  // keyboard menu). Resolves the source from the live items by id, so a
-  // stale/unknown id is simply ignored.
-  const place = (contentId: ContentId, zone: Zone) => {
-    const source = items.find((item) => item.contentId === contentId);
-    if (source) staging.placeMacro(source, zone);
-  };
 
   const onApply = () => {
     pushUndoSnapshot('Resume restructured');
@@ -41,65 +35,33 @@ export default function RestructureView() {
     toggleRestructure(false);
   };
 
-  // The palette, grouped by the live resume's zones so it reads like the
-  // resume it mirrors.
-  const paletteZones = deriveZones(layouts);
-
-  // A local ordering of the palette cards, so the source list can be
-  // resorted by dragging a card into a gap (specs/wysiwyg-staging.md).
-  // It's purely a scanning aid over the *source* list -- it never touches
-  // the live resume or the staging copy you Apply -- so it lives only in
-  // this view's state and resets when the view closes.
-  const [paletteOrder, setPaletteOrder] = useState<ContentId[]>(() =>
-    items.map((item) => item.contentId),
-  );
   // The palette card currently mid-drag (null when none). Drives which
-  // reorder gaps open into drop slots: only the ones that would actually
-  // move this card -- never the two flanking its current spot (dropping
-  // just above or just below itself is a no-op), and never gaps in another
-  // zone (cross-zone reordering isn't allowed).
+  // gaps open into drop slots: every gap except the two flanking the
+  // dragged card's current spot (dropping just above or just below itself
+  // is a no-op). Cross-zone gaps are live -- a gap drop moves the block to
+  // that exact position in that zone (specs/restructure-palette-mirror.md,
+  // resolved open question).
   const [draggingId, setDraggingId] = useState<ContentId | null>(null);
   // While a palette card is in flight, auto-scroll the page as the pointer
   // nears the top/bottom edge, so drop targets below the fold (e.g. a
   // two-column box added at the bottom of a long resume) are reachable --
   // native drag won't scroll them into view on its own.
   useDragAutoScroll(draggingId !== null);
-  const layoutOf = (contentId: ContentId) =>
-    items.find((item) => item.contentId === contentId)?.layoutId;
-  // Every rendered item is in `paletteOrder` -- it's seeded from `items`,
-  // which doesn't change while this takeover view is open -- so indexOf is
-  // always a real position.
-  const orderRank = (contentId: ContentId) => paletteOrder.indexOf(contentId);
 
-  // Move a dragged card so it sits just before `beforeId` (or at the end of
-  // its zone when `beforeId` is null -- the trailing gap). Reordering is
-  // confined to within a single zone: a drop from another zone is ignored,
-  // since the palette groups mirror the resume's layout structure.
-  const movePaletteCard = (
-    draggedId: ContentId,
-    beforeId: ContentId | null,
+  // Every drop lands through here so the drag always ends. The card's own
+  // dragend can't be relied on for a successful drop: the move re-parents
+  // the card into another zone group, React replaces its DOM node, and the
+  // browser never fires dragend on a detached node -- without this, the
+  // gaps a drag opened would be stuck open after a cross-zone drop. The
+  // card's own dragend still covers cancelled drags (Escape, dropped
+  // outside any target), where nothing moved and the node survives.
+  const dropMove = (
+    contentId: ContentId,
     zone: Zone,
+    beforeId: ContentId | null = null,
   ) => {
-    if (layoutOf(draggedId) !== zone.layoutId) return;
-    // Dropping a card into the gap immediately above itself is a no-op --
-    // and guarding it keeps the splice below from ever seeing a `beforeId`
-    // that was just filtered out (indexOf -1).
-    if (beforeId === draggedId) return;
-    setPaletteOrder((prev) => {
-      const next = prev.filter((id) => id !== draggedId);
-      if (beforeId === null) {
-        const zoneIds = next.filter((id) => layoutOf(id) === zone.layoutId);
-        const lastId = zoneIds[zoneIds.length - 1];
-        const at = lastId ? next.indexOf(lastId) + 1 : next.length;
-        next.splice(at, 0, draggedId);
-      } else {
-        next.splice(next.indexOf(beforeId), 0, draggedId);
-      }
-      return next;
-    });
-    // Mirror the move onto the staging copy so the styled preview on the
-    // left updates live with the same drag-and-drop.
-    staging.reorderItem(draggedId, beforeId);
+    staging.moveItemTo(contentId, zone, beforeId);
+    setDraggingId(null);
   };
 
   return (
@@ -113,9 +75,8 @@ export default function RestructureView() {
             heading itself (WCAG / axe page-has-heading-one). */}
         <h1 className="text-lg font-bold text-gray-700">Restructure</h1>
         <p className="text-sm text-gray-600">
-          Drag macros from your resume on the right into the boxes on the left.
-          A two-column box has a Left and a Right column — drop into either.
-          Then Apply.
+          The outline on the right mirrors the boxes on the left — drag a macro
+          in either pane to move it. Then Apply.
         </p>
         <div className="ml-auto flex items-center gap-2">
           <button
@@ -143,15 +104,16 @@ export default function RestructureView() {
       </div>
 
       {/* Staging gets more room than the palette -- it renders the real
-          styled resume now (specs/wysiwyg-staging.md), the palette is just
-          compact source cards. The styled preview sits on the left, the
-          source palette on the right. */}
+          styled resume (specs/wysiwyg-staging.md), the palette is a compact
+          outline of the same arrangement. The styled preview sits on the
+          left, the outline on the right. */}
       <div className="grid grid-cols-[3fr_2fr] gap-4">
         {/* Left: the staging structure being built (the styled preview). */}
         <div aria-label="New structure" className="flex flex-col gap-2">
           {staging.layouts.length === 0 && (
             <p className="rounded border-2 border-dashed border-gray-300 p-4 text-center text-sm text-gray-600">
-              Add a box, then drag macros into it.
+              Add a box to start building. Cancel brings back your resume
+              unchanged.
             </p>
           )}
           {staging.layouts.map((layout, index) => (
@@ -164,7 +126,7 @@ export default function RestructureView() {
               isLast={index === staging.layouts.length - 1}
               onRemoveLayout={staging.removeLayout}
               onMoveLayout={staging.moveLayout}
-              onPlace={place}
+              onPlace={dropMove}
               onAddBlock={staging.addBlock}
               onRemoveItem={staging.removeItem}
               onMoveItem={staging.moveItem}
@@ -189,37 +151,38 @@ export default function RestructureView() {
           </div>
         </div>
 
-        {/* Right: the source palette of the current resume's macros. It's
-            read-only content, but its order can be resorted by dragging a
-            card into a gap between cards.
+        {/* Right: a compact outline of the staging arrangement -- same
+            boxes, same zones, same order, derived from the same staging
+            state as the left pane, so the two can never disagree
+            (specs/restructure-palette-mirror.md). Cards drag to move (a
+            gap drop lands at that exact position, a zone drop appends).
             sticky + self-start: the styled preview on the left is usually
-            much taller, so the palette is pinned near the top of the
-            viewport and stays reachable while you scroll the preview --
-            without it, reordering the top macros means scrolling all the
-            way back up. self-start keeps the column at its content height
-            (not stretched to the grid row) so sticky has room to travel.
-            max-h + overflow-y-auto: when the palette itself is taller than
+            much taller, so the outline is pinned near the top of the
+            viewport and stays reachable while you scroll the preview.
+            self-start keeps the column at its content height (not
+            stretched to the grid row) so sticky has room to travel.
+            max-h + overflow-y-auto: when the outline itself is taller than
             the viewport, cap it to the screen and let it scroll internally
             -- otherwise its lower cards would be pinned off the bottom edge
             with no way to reach them. (The browser auto-scrolls this
-            container while dragging near its edges, so reordering still
-            works.) */}
+            container while dragging near its edges, so moves still
+            work.) */}
         <div
-          aria-label="Your resume"
+          aria-label="Staging outline"
           className="sticky top-2 flex max-h-[calc(100vh-1rem)] flex-col gap-3 self-start overflow-y-auto"
         >
-          {paletteZones.map((zone) => {
-            const zoneItems = items
-              .filter((item) => item.layoutId === zone.layoutId)
-              .sort((a, b) => orderRank(a.contentId) - orderRank(b.contentId));
-            const draggingHere =
-              draggingId !== null && layoutOf(draggingId) === zone.layoutId;
-            // A gap between the cards `aboveId` and `belowId` is a live drop
-            // slot only while a card from this zone is dragging and neither
-            // neighbour is that card -- i.e. it's not one of the two gaps
-            // hugging the dragged card, where a drop wouldn't move anything.
+          {stagingZones.map((zone) => {
+            const zoneItems = staging.items.filter(
+              (item) => item.layoutId === zone.layoutId,
+            );
+            // A gap between the cards `aboveId` and `belowId` is a live
+            // drop slot while any card is dragging, except the two gaps
+            // hugging the dragged card itself, where a drop wouldn't move
+            // anything.
             const gapActive = (aboveId?: ContentId, belowId?: ContentId) =>
-              draggingHere && draggingId !== aboveId && draggingId !== belowId;
+              draggingId !== null &&
+              draggingId !== aboveId &&
+              draggingId !== belowId;
             return (
               <div key={zone.key} className="flex flex-col">
                 <span className="mb-1 text-xs font-bold uppercase tracking-wide text-gray-600">
@@ -228,20 +191,23 @@ export default function RestructureView() {
                 {zoneItems.map((item, index) => (
                   <Fragment key={item.contentId}>
                     {/* Gap before this card -- drop here to move the
-                        dragged card just above it. */}
+                        dragged card just above it (retagged into this
+                        zone if it came from another). */}
                     <RestructurePaletteGap
                       active={gapActive(
                         zoneItems[index - 1]?.contentId,
                         item.contentId,
                       )}
                       onDropCard={(draggedId) =>
-                        movePaletteCard(draggedId, item.contentId, zone)
+                        dropMove(draggedId, zone, item.contentId)
                       }
                     />
                     <RestructurePaletteCard
                       item={item}
                       zones={stagingZones}
-                      onSendTo={(target) => place(item.contentId, target)}
+                      onMoveTo={(target) =>
+                        staging.moveItemTo(item.contentId, target)
+                      }
                       onDraggingChange={(dragging) =>
                         setDraggingId(dragging ? item.contentId : null)
                       }
@@ -255,9 +221,7 @@ export default function RestructureView() {
                     zoneItems[zoneItems.length - 1]?.contentId,
                     undefined,
                   )}
-                  onDropCard={(draggedId) =>
-                    movePaletteCard(draggedId, null, zone)
-                  }
+                  onDropCard={(draggedId) => dropMove(draggedId, zone, null)}
                 />
               </div>
             );

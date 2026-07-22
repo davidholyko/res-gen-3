@@ -87,21 +87,43 @@ export function useStagingResume(initial: StagingResume) {
     });
   };
 
-  // Place a *copy* of a palette macro into a staging zone: a fresh
-  // contentId plus the destination zone's layout fields, appended to the
-  // end of that zone (copy semantics -- the source palette is untouched;
-  // matches how moveContentToZone retags a block, minus the removal).
-  const placeMacro = (source: ContentAll, zone: Zone) => {
-    setItems((prev) => [
-      ...prev,
-      {
+  // Move a staging block to a zone (specs/restructure-palette-mirror.md):
+  // retagged with the destination zone's layout fields and inserted just
+  // before `beforeId` (a palette-gap drop's exact position), or appended
+  // to the end of the zone when `beforeId` is null (zone drops and the
+  // "Move to…" menu). Move, not copy -- the palette mirrors staging now,
+  // so a drag relocates the one block rather than duplicating it.
+  // Gracefully no-ops on unknown ids (a stale drag payload).
+  const moveItemTo = (
+    contentId: ContentId,
+    zone: Zone,
+    beforeId: ContentId | null = null,
+  ) => {
+    if (beforeId === contentId) return;
+    setItems((prev) => {
+      const source = prev.find((item) => item.contentId === contentId);
+      if (!source) return prev;
+      const moved: ContentAll = {
         ...source,
-        contentId: uuidv4() as ContentId,
         layoutId: zone.layoutId,
         layoutType: zone.layoutType,
         layoutParentId: zone.layoutParentId,
-      },
-    ]);
+      };
+      const next = prev.filter((item) => item.contentId !== contentId);
+      let at: number;
+      if (beforeId !== null) {
+        at = next.findIndex((item) => item.contentId === beforeId);
+        if (at === -1) return prev;
+      } else {
+        const zoneItems = next.filter(
+          (item) => item.layoutId === zone.layoutId,
+        );
+        const last = zoneItems[zoneItems.length - 1];
+        at = last ? next.indexOf(last) + 1 : next.length;
+      }
+      next.splice(at, 0, moved);
+      return next;
+    });
   };
 
   // Create a brand-new *blank* block of a chosen type in a staging zone
@@ -153,34 +175,6 @@ export function useStagingResume(initial: StagingResume) {
     });
   };
 
-  // Move a staging block so it sits just before `beforeId`, or at the end
-  // of its zone when `beforeId` is null. This is what keeps the styled
-  // preview in step with a palette-card reorder (specs/wysiwyg-staging.md):
-  // the palette and staging share contentIds on open, so the same
-  // (dragged, before) pair addresses both. Gracefully no-ops when the ids
-  // aren't in staging (e.g. the block was removed, or is a placed copy the
-  // palette never knew about).
-  const reorderItem = (draggedId: ContentId, beforeId: ContentId | null) => {
-    setItems((prev) => {
-      const dragged = prev.find((item) => item.contentId === draggedId);
-      if (!dragged) return prev;
-      const next = prev.filter((item) => item.contentId !== draggedId);
-      let at: number;
-      if (beforeId !== null) {
-        at = next.findIndex((item) => item.contentId === beforeId);
-        if (at === -1) return prev;
-      } else {
-        const zoneItems = next.filter(
-          (item) => item.layoutId === dragged.layoutId,
-        );
-        const last = zoneItems[zoneItems.length - 1];
-        at = last ? next.indexOf(last) + 1 : next.length;
-      }
-      next.splice(at, 0, dragged);
-      return next;
-    });
-  };
-
   const clear = () => {
     setLayouts([]);
     setItems([]);
@@ -192,11 +186,10 @@ export function useStagingResume(initial: StagingResume) {
     addLayout,
     removeLayout,
     moveLayout,
-    placeMacro,
+    moveItemTo,
     addBlock,
     removeItem,
     moveItem,
-    reorderItem,
     clear,
   };
 }

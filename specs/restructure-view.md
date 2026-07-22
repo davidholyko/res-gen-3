@@ -171,7 +171,9 @@ the restructure view *builds* it.
   "you have unplaced macros" guard.
 - **Duplicates allowed.** Copy semantics let the same macro be placed
   more than once; the copies diverge as independent blocks. The palette
-  does not grey already-placed macros.
+  does not grey already-placed macros. *(Superseded by
+  `restructure-palette-mirror.md`: the palette now mirrors staging and
+  drags are moves, so copy semantics and duplicates-by-drag are gone.)*
 - **Entry point: a control-bar button** (`RestructureButton`), hidden
   while the view is open.
 - **Palette fidelity (simplification worth noting).** The left pane shows
