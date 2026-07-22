@@ -75,6 +75,11 @@ describe('PdfView', () => {
     contextState.isPdfViewOpen = true;
     render(<PdfView />);
 
+    // Carries the page's level-one heading (it replaces the canvas, whose
+    // h1 is the resume name) so the takeover view isn't heading-less.
+    expect(screen.getByRole('heading', { level: 1 }).textContent).toBe(
+      'PDF preview',
+    );
     // The staged preview frame is present (double-buffered load).
     expect(
       document.querySelector('[data-testid="pdf-frame-staging"]'),

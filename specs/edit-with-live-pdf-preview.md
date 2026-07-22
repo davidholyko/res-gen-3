@@ -225,10 +225,21 @@ everything it hosted: the Exit (✕) close button and the page stepper
 (`PdfViewTopBar` is deleted). The preview now fills the view with no
 chrome above it.
 
-- **Dismissal** is Escape-only — the redundant close button is gone, and
-  the PDF control-bar button still toggles the view off.
+- **Dismissal:** the redundant close button is gone; the PDF control-bar
+  button toggles the view off, and Escape closes the plain preview. Note
+  that in the *editing* sub-mode a focused form field swallows Escape
+  (`use-stop-keydown-propagation.ts` stops keydown reaching the view's
+  document listener, to protect Backspace/Delete), so the control-bar PDF
+  button is the reliable close there. Making Escape close mid-edit is a
+  possible follow-up (it means teaching that shared field listener to let
+  Escape through).
 - **Page re-anchoring is dropped.** With no stepper, the preview always
   opens at page 1 (`PdfPreview`'s default `anchorPage`), so a live
   refresh while editing a later page snaps back to page 1. This trades
   away the mid-edit page anchoring described above; revisit with a
   chrome-free re-anchoring affordance if it proves annoying in practice.
+- **The view carries its own `sr-only` `<h1>` ("PDF preview").** As a
+  full-page takeover it replaces the canvas (whose only h1 is the resume
+  name), so without one the page has no level-one heading (WCAG 1.3.1 /
+  axe `page-has-heading-one`) — the same reason the restructure view has
+  its own h1. Visually hidden to keep the view chrome-free.

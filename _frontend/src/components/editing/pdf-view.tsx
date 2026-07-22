@@ -40,6 +40,13 @@ export default function PdfView() {
       className="flex h-full w-full flex-col bg-white"
       data-testid="pdf-view"
     >
+      {/* While open, this view replaces the canvas (whose only h1 is the
+          resume name), so it must carry the page's level-one heading
+          itself (WCAG 1.3.1 / axe page-has-heading-one) -- the same
+          reason the restructure view has its own h1. Visually hidden
+          because the view is deliberately chrome-free (the old blue top
+          bar was removed); the heading is for assistive tech only. */}
+      <h1 className="sr-only">PDF preview</h1>
       {/* Below a sane minimum the content scrolls horizontally rather
           than letting the panel collapse onto or over the preview
           (specs/edit-with-live-pdf-preview.md, Decisions). */}

@@ -40,29 +40,33 @@ test.describe('accessibility (axe-core, real browser)', () => {
     expect(results.violations).toEqual([]);
   });
 
-  test('with each control panel menu open', async ({ page }) => {
-    for (const menu of ['File', 'View'] as const) {
-      await page.getByText(menu, { exact: true }).click();
-      const results = await new AxeBuilder({ page })
-        // Known, deferred finding (minor severity): BaseMenu clones
-        // `role="menuitem"` onto every child uniformly, including
-        // UploadJsonButton's <label> -- `aria-allowed-role` correctly
-        // flags that a <label> can't natively hold that role. The label
-        // still has clear text content and works with AT in practice;
-        // fixing it properly means reworking that component's label/input
-        // association, not a class-name-level change like the contrast
-        // fixes alongside this one. Tracked, not silently ignored.
-        .disableRules(['aria-allowed-role'])
-        .analyze();
-      expect(results.violations, `${menu} menu open`).toEqual([]);
-      await page.keyboard.press('Escape');
-    }
+  test('with the File menu open', async ({ page }) => {
+    // File is the only control-bar menu now (the View menu was retired in
+    // favour of a top-level "PDF" button).
+    await page.getByText('File', { exact: true }).click();
+    const results = await new AxeBuilder({ page })
+      // Known, deferred finding (minor severity): BaseMenu clones
+      // `role="menuitem"` onto every child uniformly, including
+      // UploadJsonButton's <label> -- `aria-allowed-role` correctly
+      // flags that a <label> can't natively hold that role. The label
+      // still has clear text content and works with AT in practice;
+      // fixing it properly means reworking that component's label/input
+      // association, not a class-name-level change like the contrast
+      // fixes alongside this one. Tracked, not silently ignored.
+      .disableRules(['aria-allowed-role'])
+      .analyze();
+    expect(results.violations).toEqual([]);
+    await page.keyboard.press('Escape');
   });
 
-  test('with the PDF preview modal open', async ({ page }) => {
-    await page.getByText('View', { exact: true }).click();
-    await page.getByText('Open PDF View').click();
-    await expect(page.locator('.ReactModal__Content')).toBeVisible();
+  test('with the PDF preview view open', async ({ page }) => {
+    await page.getByRole('button', { name: 'PDF' }).click();
+    await expect(page.getByTestId('pdf-view')).toBeVisible();
+    // Wait for the real frame so the scan covers the rendered view, not
+    // just the "Generating PDF preview…" placeholder.
+    await expect(
+      page.locator('[data-testid="pdf-frame-visible"]'),
+    ).toBeVisible({ timeout: 10000 });
 
     const results = await new AxeBuilder({ page }).analyze();
     expect(results.violations).toEqual([]);
