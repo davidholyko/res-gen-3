@@ -403,6 +403,43 @@ describe('RestructureView', () => {
     expect(cards[0].textContent).toContain('Ada Lovelace');
   });
 
+  it('collapses the open gaps after a drop, even though the moved card never fires dragend', () => {
+    contextState.layouts = [
+      { layoutId: 'a' as LayoutId, layoutType: 'SINGLE' },
+      { layoutId: 'b' as LayoutId, layoutType: 'SINGLE' },
+    ];
+    contextState.items = [
+      macro('h1', 'HEADER', { header: 'Summary' }),
+      {
+        ...macro('p1', 'PARAGRAPH', { paragraph: 'Other zone' }),
+        layoutId: 'b',
+      },
+    ] as ContentAll[];
+
+    const { getAllByTestId } = render(<RestructureView />);
+    const gaps = () => getAllByTestId('palette-gap');
+
+    // A drag opens the meaningful gaps...
+    fireEvent.dragStart(getAllByTestId('palette-card')[0], {
+      dataTransfer: { setData: vi.fn(), effectAllowed: '' },
+    });
+    expect(gaps().some((g) => g.className.includes('border-cyan-300'))).toBe(
+      true,
+    );
+
+    // ...and a successful cross-zone drop closes them again. No dragEnd is
+    // fired here on purpose: the real browser never fires it on a moved
+    // card (its DOM node was replaced by the re-render), so the drop
+    // itself must end the drag.
+    fireEvent.drop(gaps()[gaps().length - 1], {
+      dataTransfer: {
+        getData: (type: string) => (type === MACRO_DRAG_MIME ? 'h1' : ''),
+      },
+    });
+
+    gaps().forEach((g) => expect(g.className).toContain('h-0.5'));
+  });
+
   it('has no automatically detectable accessibility violations', async () => {
     const { container } = render(<RestructureView />);
     expect((await axe.run(container)).violations).toEqual([]);

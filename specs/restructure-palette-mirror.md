@@ -97,3 +97,15 @@ with every edit on either side.
   beforeId)` covers every path — gap drops pass the card below the gap as
   `beforeId` (exact position, cross-zone retag included), zone drops and
   "Move to…" pass `null` (append) — so exact position cost nothing extra.
+
+## Findings from implementation
+
+- **A successful drop must end the drag itself.** The gaps open while
+  `draggingId` is set and originally closed only on the dragged card's
+  `dragend`. But a drop that *moves* the card re-parents it into another
+  zone group, React replaces its DOM node, and the browser never fires
+  `dragend` on a detached node — so after a cross-zone drop the opened
+  gaps were stuck open (user report, with screenshot). Every drop now
+  routes through one `dropMove` that clears `draggingId` alongside the
+  move; the card's own `dragend` still covers cancelled drags (Escape or
+  a drop outside any target), where nothing moved and the node survives.

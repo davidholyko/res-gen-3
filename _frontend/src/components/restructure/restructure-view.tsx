@@ -2,7 +2,7 @@ import { Fragment, useState } from 'react';
 
 import { useAppContext } from '@/context/app-context';
 import type { ContentId } from '@/types/content-base-item';
-import { deriveZones } from '@/utils/derive-zones';
+import { deriveZones, type Zone } from '@/utils/derive-zones';
 
 import RestructurePaletteCard from './restructure-palette-card';
 import RestructurePaletteGap from './restructure-palette-gap';
@@ -47,6 +47,22 @@ export default function RestructureView() {
   // two-column box added at the bottom of a long resume) are reachable --
   // native drag won't scroll them into view on its own.
   useDragAutoScroll(draggingId !== null);
+
+  // Every drop lands through here so the drag always ends. The card's own
+  // dragend can't be relied on for a successful drop: the move re-parents
+  // the card into another zone group, React replaces its DOM node, and the
+  // browser never fires dragend on a detached node -- without this, the
+  // gaps a drag opened would be stuck open after a cross-zone drop. The
+  // card's own dragend still covers cancelled drags (Escape, dropped
+  // outside any target), where nothing moved and the node survives.
+  const dropMove = (
+    contentId: ContentId,
+    zone: Zone,
+    beforeId: ContentId | null = null,
+  ) => {
+    staging.moveItemTo(contentId, zone, beforeId);
+    setDraggingId(null);
+  };
 
   return (
     <section
@@ -110,7 +126,7 @@ export default function RestructureView() {
               isLast={index === staging.layouts.length - 1}
               onRemoveLayout={staging.removeLayout}
               onMoveLayout={staging.moveLayout}
-              onPlace={staging.moveItemTo}
+              onPlace={dropMove}
               onAddBlock={staging.addBlock}
               onRemoveItem={staging.removeItem}
               onMoveItem={staging.moveItem}
@@ -183,7 +199,7 @@ export default function RestructureView() {
                         item.contentId,
                       )}
                       onDropCard={(draggedId) =>
-                        staging.moveItemTo(draggedId, zone, item.contentId)
+                        dropMove(draggedId, zone, item.contentId)
                       }
                     />
                     <RestructurePaletteCard
@@ -205,9 +221,7 @@ export default function RestructureView() {
                     zoneItems[zoneItems.length - 1]?.contentId,
                     undefined,
                   )}
-                  onDropCard={(draggedId) =>
-                    staging.moveItemTo(draggedId, zone, null)
-                  }
+                  onDropCard={(draggedId) => dropMove(draggedId, zone, null)}
                 />
               </div>
             );
