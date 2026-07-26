@@ -1,5 +1,5 @@
 ---
-status: draft
+status: approved
 ---
 
 # Visual regression testing (Playwright screenshots)
@@ -59,6 +59,11 @@ repo next to the spec (Playwright's default `*-snapshots/` directory).
    resume (guards both panes of the mirror).
 5. **Canvas edit panel** — a block focused, panel docked beside the
    canvas (guards the gutter geometry).
+6. **PDF view shell** — the inline preview open, both preview iframes
+   masked (their pixels are the browser plugin's, not ours); guards the
+   view's own chrome and layout (resolved open question — included from
+   day one, dropped to a follow-up only if it flunks the stability
+   gate).
 
 ### Determinism rules
 
@@ -116,10 +121,21 @@ artifact already contains expected/actual/diff images.
 
 ## Open questions
 
-- Should the PDF view shell be a sixth surface (frame masked, so the
-  chrome around it is still guarded)? Lean yes if masking proves stable,
-  but it's the flakiest candidate — fine to add in a follow-up.
-- Tolerance: is `0.001` right, or does CI's font rasterization need
-  more? Settled empirically by the 3-run stability gate.
-- Is the artifact-download update flow tolerable, or is the
-  auto-update `workflow_dispatch` job worth building immediately?
+All resolved at review (2026-07-26):
+
+- **PDF view shell: included as a sixth surface.** The preview iframes
+  (visible + staging frames) are masked; the shot guards the view's
+  chrome — sr-only heading aside, the layout and (when editing) the
+  docked panel. If it flunks the 3-run stability gate, it gets dropped
+  to a follow-up rather than holding the other five hostage.
+- **Tolerance starts at `0.001`**, settled empirically by the stability
+  gate.
+- **The auto-update `workflow_dispatch` job is built now**, not
+  deferred: a manually triggered workflow reruns the visual spec with
+  `--update-snapshots` and pushes a baseline-refresh commit to the
+  branch it was dispatched on. The manual artifact-download flow remains
+  documented as the fallback (and is how the very first baselines are
+  bootstrapped, since `workflow_dispatch` only works once the workflow
+  file is on the default branch). To support that flow, the e2e workflow
+  uploads `end-to-end/test-results/` (readable `*-actual.png` files)
+  alongside the existing HTML report.
