@@ -44,3 +44,16 @@ jobs:
           name: playwright-report
           path: end-to-end/playwright-report/
           retention-days: 14
+
+      # Readable `<name>-actual.png` files for the manual visual-baseline
+      # update flow (specs/visual-regression-testing.md): on an intended
+      # visual change, download this artifact and commit the actuals as
+      # the new baselines (or use the update-screenshots workflow).
+      - name: Upload test results (screenshot actuals)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: end-to-end/test-results/
+          retention-days: 14
+          if-no-files-found: ignore

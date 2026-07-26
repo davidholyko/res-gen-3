@@ -1,0 +1,52 @@
+name: Update visual baselines
+
+# Manually triggered (Actions tab, or `gh workflow run
+# update-screenshots.yml --ref <branch>`) on a branch whose intentional
+# visual change needs new screenshot baselines
+# (specs/visual-regression-testing.md). Reruns the visual spec with
+# --update-snapshots on the same Linux-Chromium environment the e2e
+# workflow uses, and pushes a baseline-refresh commit back to the branch
+# it was dispatched on. GitHub only exposes workflow_dispatch once this
+# file is on the default branch; until then, use the manual flow
+# documented in end-to-end/tests/visual.spec.ts.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  update-baselines:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: ".nvmrc"
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright browsers
+        run: pnpm --filter @res-gen-3/end-to-end exec playwright install --with-deps chromium
+
+      - name: Regenerate visual baselines
+        run: pnpm --filter @res-gen-3/end-to-end exec playwright test visual --update-snapshots
+        env:
+          CI: true
+
+      - name: Commit and push refreshed baselines
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add end-to-end/tests/*-snapshots
+          if git diff --cached --quiet; then
+            echo "Baselines already match -- nothing to push."
+          else
+            git commit -m "test(e2e): refresh visual regression baselines"
+            git push
+          fi

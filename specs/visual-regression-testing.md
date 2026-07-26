@@ -1,5 +1,5 @@
 ---
-status: approved
+status: in-progress
 ---
 
 # Visual regression testing (Playwright screenshots)
