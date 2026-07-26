@@ -12,7 +12,18 @@ function seedLocalStorage() {
   window.localStorage.setItem(
     'res-gen-data',
     JSON.stringify({
-      items: [{ contentId: 'placeholder' }],
+      // A real placed block: empty layouts are hidden on the canvas now
+      // (specs/continuous-page-canvas.md, Later change), so the layout
+      // must hold content for .layout-single to render.
+      items: [
+        {
+          contentId: 'placeholder',
+          contentType: 'HEADER',
+          content: { header: 'Summary' },
+          layoutId: 'a',
+          layoutType: 'SINGLE',
+        },
+      ],
       layouts: [{ layoutId: 'a', layoutType: 'SINGLE' }],
     }),
   );

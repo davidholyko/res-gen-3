@@ -1,10 +1,14 @@
-import { addSingleLayout, expect, test } from './fixtures';
+import { addBlock, addSingleLayout, expect, test } from './fixtures';
 
 test.describe('localStorage persistence', () => {
   test('reloading the page preserves layouts and edited content', async ({
     page,
   }) => {
+    // Add a layout and a block into it: empty layouts are hidden on the
+    // canvas (specs/continuous-page-canvas.md, Later change), so the
+    // block is what makes the second layout visible to assert on.
     await addSingleLayout(page);
+    await addBlock(page, 'Section heading', 2);
     await expect(page.locator('.layout-single')).toHaveCount(2);
 
     const macro = page.locator('.layout-single [role="group"]').first();

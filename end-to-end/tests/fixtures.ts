@@ -83,23 +83,27 @@ export async function makeResumeMultiPage(page: Page) {
  * Adds a SINGLE-column layout via the restructure view -- the only place
  * layouts are added now that the canvas is display-only
  * (specs/restructure-view.md). Restructure opens as a copy of the resume,
- * so adding one box and applying appends exactly one layout.
+ * so adding one box and applying appends exactly one layout. The new
+ * layout is empty, and empty layouts are hidden on the canvas
+ * (specs/continuous-page-canvas.md, Later change) -- it only becomes
+ * visible once a block lands in it (e.g. via addBlock), so this asserts
+ * the view closed rather than a canvas count.
  */
 export async function addSingleLayout(page: Page) {
-  const before = await page.locator('.layout-single').count();
   await page.getByRole('button', { name: 'Restructure', exact: true }).click();
   await page.getByRole('button', { name: '+ One column' }).click();
   await page.getByRole('button', { name: 'Apply', exact: true }).click();
-  await expect(page.locator('.layout-single')).toHaveCount(before + 1);
+  await expect(page.getByLabel('New structure')).toHaveCount(0);
 }
 
-/** Adds a DOUBLE-column layout via the restructure view. */
+/** Adds a DOUBLE-column layout via the restructure view. Hidden on the
+ * canvas until a block lands in one of its halves, same as
+ * addSingleLayout. */
 export async function addDoubleLayout(page: Page) {
-  const before = await page.locator('.layout-double').count();
   await page.getByRole('button', { name: 'Restructure', exact: true }).click();
   await page.getByRole('button', { name: '+ Two columns' }).click();
   await page.getByRole('button', { name: 'Apply', exact: true }).click();
-  await expect(page.locator('.layout-double')).toHaveCount(before + 1);
+  await expect(page.getByLabel('New structure')).toHaveCount(0);
 }
 
 /**

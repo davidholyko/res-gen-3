@@ -153,3 +153,29 @@ hover alone (WCAG).
   small screens. If the gutter collapses, does the toolbar reflow
   inline or overlay on the page edge? Settle during implementation
   against the existing responsive behavior of app/main.tsx.
+
+## Later change: empty layouts are hidden on the canvas
+
+The "Refinement (empty layouts)" above gave an empty layout (or empty
+half of a DOUBLE) a dashed "section to fill" placeholder so it wouldn't
+read as a blank sliver of page. In practice the opposite failure won
+(user report, with screenshot): an empty two-column layout left over
+from restructuring rendered as two bare dashed rectangles in the middle
+of an otherwise-real resume — reading as a rendering glitch, not an
+affordance, and appearing in the HTML preview where the PDF shows
+nothing.
+
+Reversed: the canvas now hides empty layouts entirely.
+
+- `LayoutManager` skips a SINGLE with no items and a DOUBLE with both
+  halves empty (malformed DOUBLEs still fail loudly — validation runs
+  before the skip). Empty layouts stay visible and manageable in the
+  restructure view, the only surface that can fill or remove them
+  anyway.
+- The empty *half* of a partially filled DOUBLE renders as blank space
+  (no dashed box), matching the PDF's two-column geometry.
+- The empty-state CTA now keys off **content, not layout existence**: a
+  resume whose layouts are all empty renders nothing, so it shows the
+  same "Your resume is empty" card as one with no layouts at all
+  (otherwise it would be a blank page with no way forward). The white
+  page surface likewise waits for visible content.

@@ -1,6 +1,12 @@
 import path from 'node:path';
 
-import { addSingleLayout, clearResume, expect, test } from './fixtures';
+import {
+  addBlock,
+  addSingleLayout,
+  clearResume,
+  expect,
+  test,
+} from './fixtures';
 
 test.describe('control panel', () => {
   test('the File menu opens on click and closes on Escape', async ({
@@ -19,7 +25,13 @@ test.describe('control panel', () => {
   test('layouts are added through the restructure view', async ({ page }) => {
     const before = await page.locator('.layout-single').count();
 
+    // The new layout starts empty, and empty layouts are hidden on the
+    // canvas (specs/continuous-page-canvas.md, Later change) -- it shows
+    // up once a block lands in it.
     await addSingleLayout(page);
+    await expect(page.locator('.layout-single')).toHaveCount(before);
+
+    await addBlock(page, 'Section heading', 2);
     await expect(page.locator('.layout-single')).toHaveCount(before + 1);
   });
 
