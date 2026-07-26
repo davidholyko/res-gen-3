@@ -17,9 +17,13 @@ test.describe('UX improvements', () => {
 
     // The CTA opens the restructure view now (specs/restructure-view.md),
     // where layouts and blocks are built, rather than adding a layout
-    // inline.
+    // inline. Add a block too: the empty-state CTA keys off content, not
+    // layout existence (specs/continuous-page-canvas.md, Later change) --
+    // a still-empty layout would leave the resume "empty".
     await page.getByText('Restructure to build it').click();
     await page.getByRole('button', { name: '+ One column' }).click();
+    await page.getByRole('button', { name: '+ Add block' }).click();
+    await page.getByRole('menuitem', { name: 'Section heading' }).click();
     await page.getByRole('button', { name: 'Apply', exact: true }).click();
 
     await expect(page.locator('.layout-single')).toHaveCount(1);

@@ -52,7 +52,7 @@ describe('LayoutSingle', () => {
     expect(queryByText('Other layout')).toBeNull();
   });
 
-  it('draws a dashed drop-zone box only while empty', () => {
+  it('draws no dashed box, filled or empty', () => {
     seedLocalStorage();
     const { container } = render(
       <AllProviders>
@@ -63,11 +63,13 @@ describe('LayoutSingle', () => {
     );
 
     const [filled, empty] = container.querySelectorAll('.layout-single');
-    // Filled stays borderless so stacked layouts read as one continuous
-    // page (specs/continuous-page-canvas.md); empty shows the dashed
-    // "section to fill" box so it isn't mistaken for a blank page.
+    // Borderless either way so stacked layouts read as one continuous
+    // page (specs/continuous-page-canvas.md). The dashed "section to
+    // fill" placeholder is gone (Later change in the same spec): fully
+    // empty layouts are hidden by LayoutManager, and an empty half of a
+    // DOUBLE is just blank space, like the PDF.
     expect(filled.className).not.toContain('border-dashed');
-    expect(empty.className).toContain('border-dashed');
+    expect(empty.className).not.toContain('border-dashed');
   });
 
   it('renders no add controls (those live in the restructure view now)', () => {
