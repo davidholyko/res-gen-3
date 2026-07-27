@@ -141,10 +141,16 @@ test.describe('visual regression', () => {
 
   test('empty-state CTA', async ({ page }) => {
     await clearResume(page);
+    // clearResume (File > New) leaves the File menu open and raises the
+    // "Resume cleared" undo toast -- neither belongs in an "empty-state
+    // CTA" shot. Close the menu; mask the toast rather than waiting out
+    // its 8s auto-dismiss (undo-toast.tsx), since its presence/exact
+    // wording is incidental to this surface, not what it guards.
+    await page.keyboard.press('Escape');
     await expect(page.getByText('Your resume is empty.')).toBeVisible();
     await ready(page);
     await expect(page).toHaveScreenshot('empty-state.png', {
-      mask: chromeMasks(page),
+      mask: [...chromeMasks(page), page.getByRole('status')],
     });
   });
 
@@ -171,8 +177,14 @@ test.describe('visual regression', () => {
     await expect(page.getByTestId('pdf-view')).toBeVisible();
     // Wait for the real frame so the shot is past the "Generating…"
     // placeholder; the frames themselves are masked -- their pixels are
-    // the browser plugin's, not ours -- so only the view's own chrome is
-    // asserted (specs/visual-regression-testing.md, resolved question).
+    // the browser plugin's, not ours. Verified against the first CI
+    // baseline: the preview fills the whole view (h-full w-full,
+    // pdf-view.tsx), so this mask covers nearly all of it -- the
+    // remaining, meaningful signal is the control bar showing "PDF" as
+    // the active view (nothing else exercises that state). Narrower than
+    // "guards the view's chrome" as originally scoped, but still real
+    // coverage, so it stays rather than being dropped to a follow-up.
+    // (specs/visual-regression-testing.md, resolved question.)
     await expect(
       page.locator('[data-testid="pdf-frame-visible"]'),
     ).toBeVisible({ timeout: 10000 });
