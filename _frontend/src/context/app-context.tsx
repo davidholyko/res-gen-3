@@ -161,11 +161,23 @@ export function AppProvider({ children }: AppProviderProps) {
     // at render time without also touching those call sites. Preserved
     // as-is during the res-gen-2 port; revisit once PR 2's tests can
     // verify a render-time-derivation refactor is safe.
+    //
+    // A DOUBLE's halves are homes too: an item in a two-column layout
+    // carries the half id (layoutLeftId/layoutRightId) as its layoutId,
+    // not the DOUBLE's own id. Matching only layout.layoutId silently
+    // deleted every two-column block on the mount-time run -- in-session
+    // moves survived (layouts identity unchanged), but a reload pruned
+    // them and re-saved the loss (found by the visual suite's seeded
+    // two-column surface; explains resumes whose DOUBLE arrives empty).
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setItems((prevItems) => {
       const filtered = prevItems.filter((item) => {
         return layouts.some((layout) => {
-          return layout.layoutId === item.layoutId;
+          return (
+            layout.layoutId === item.layoutId ||
+            layout.layoutLeftId === item.layoutId ||
+            layout.layoutRightId === item.layoutId
+          );
         });
       });
 

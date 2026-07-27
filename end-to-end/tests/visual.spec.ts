@@ -119,7 +119,9 @@ test.describe('visual regression', () => {
 
   test('canvas: two-column layout, both halves filled', async ({ page }) => {
     await seedResume(page, twoColumnResume(true));
-    await expect(page.getByText('Right Column')).toBeVisible();
+    await expect(
+      page.getByRole('heading', { name: 'Right Column' }),
+    ).toBeVisible();
     await ready(page);
     await expect(page).toHaveScreenshot('canvas-two-column.png', {
       mask: chromeMasks(page),
@@ -128,7 +130,9 @@ test.describe('visual regression', () => {
 
   test('canvas: two-column layout, right half empty', async ({ page }) => {
     await seedResume(page, twoColumnResume(false));
-    await expect(page.getByText('Left Column')).toBeVisible();
+    await expect(
+      page.getByRole('heading', { name: 'Left Column' }),
+    ).toBeVisible();
     await ready(page);
     await expect(page).toHaveScreenshot('canvas-two-column-half.png', {
       mask: chromeMasks(page),
