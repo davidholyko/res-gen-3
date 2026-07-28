@@ -1,5 +1,5 @@
 ---
-status: approved
+status: implemented
 ---
 
 # Visual regression testing (Playwright screenshots)
@@ -107,17 +107,18 @@ artifact already contains expected/actual/diff images.
 
 ## Acceptance criteria
 
-- [ ] `visual.spec.ts` covers the five surfaces above from seeded state,
-      with the masks and determinism rules applied.
-- [ ] Linux-Chromium baselines are committed; the e2e workflow fails on
+- [x] `visual.spec.ts` covers the six surfaces (five plus the resolved
+      PDF-shell addition) from seeded state, with the masks and
+      determinism rules applied.
+- [x] Linux-Chromium baselines are committed; the e2e workflow fails on
       pixel drift beyond tolerance and the report artifact shows the
       diff.
-- [ ] The visual spec is skipped on non-Linux by default; the rest of
+- [x] The visual spec is skipped on non-Linux by default; the rest of
       the e2e suite is unaffected locally.
-- [ ] Stability proven: the visual spec passes 3 consecutive CI runs
-      with no baseline churn before this spec flips to `implemented`.
-- [ ] The baseline-update procedure is documented (README section in
-      `end-to-end/` or comments at the top of the spec file).
+- [x] Stability proven: 3 consecutive green e2e runs on the PR branch
+      (runs 30315590919 and its two reruns) with no baseline churn.
+- [x] The baseline-update procedure is documented in comments at the top
+      of `visual.spec.ts` and in the `update-screenshots.yml` workflow.
 
 ## Open questions
 
@@ -139,3 +140,37 @@ All resolved at review (2026-07-26):
   file is on the default branch). To support that flow, the e2e workflow
   uploads `end-to-end/test-results/` (readable `*-actual.png` files)
   alongside the existing HTML report.
+
+## Findings from implementation
+
+- **The suite caught a real data-loss bug on its first CI run**, before a
+  baseline even existed: `AppProvider`'s mount-time orphan reconcile
+  filtered items against `layout.layoutId` only, so a block living in a
+  DOUBLE's half (whose `layoutId` is the half id, `layoutLeftId`/
+  `layoutRightId`, not the DOUBLE's own id) was silently deleted the
+  first time the app loaded — and the loss immediately re-saved to
+  localStorage. In-session moves were unaffected (layouts identity
+  doesn't change), which is likely why this went unnoticed; a reload
+  after placing a block in a two-column layout lost it outright. This is
+  almost certainly what produced the empty two-column layout reported
+  in `specs/continuous-page-canvas.md`'s "Later change" (hiding empty
+  layouts fixed the *symptom*; this fixes the *cause*). Fixed in
+  `app-context.tsx` with a regression test; the two-column visual
+  baseline is the artifact proving it renders correctly in a real
+  browser.
+- **A visual test can contaminate its own baseline just like the UI it's
+  testing can drift.** The first empty-state actual captured the File
+  menu still open and the "Resume cleared" undo toast mid-flight — both
+  incidental to `clearResume` (File > New), neither intended as part of
+  the "empty-state CTA" surface. Since the toast auto-dismisses after 8s
+  (`undo-toast.tsx`), the contaminated baseline would have flaked on any
+  rerun with different timing. Fixed by closing the menu (Escape) and
+  masking the toast rather than waiting it out.
+- **A masked surface can end up asserting almost nothing.** The PDF-view
+  shell's preview fills the whole view (`h-full w-full`), so masking the
+  iframe (as planned, to exclude the plugin's own pixels) covers nearly
+  the entire shot. The surviving signal is narrow — mainly whether the
+  control bar shows "PDF" as the active view — real but much smaller
+  than "guards the view's chrome" as scoped. Kept (still real,
+  deterministic coverage) rather than dropped, but documented honestly
+  in the test's comments rather than left to be discovered later.

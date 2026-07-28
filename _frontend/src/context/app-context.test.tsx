@@ -63,6 +63,47 @@ describe('useAppContext', () => {
     expect(result.current.layouts).toEqual([LAYOUT]);
   });
 
+  it('keeps blocks living in a DOUBLE layout’s halves across a reload (mount)', () => {
+    // Regression: the mount-time orphan reconcile only matched top-level
+    // layout ids, so an item whose layoutId is a DOUBLE half id
+    // (layoutLeftId/layoutRightId) was silently deleted -- and the loss
+    // re-saved -- the first time the app loaded after placing it.
+    const double: LayoutItem = {
+      layoutId: 'double-1' as LayoutItem['layoutId'],
+      layoutType: LAYOUTS.DOUBLE,
+      layoutLeftId: 'left-1',
+      layoutRightId: 'right-1',
+    };
+    const leftItem = {
+      ...HEADER_ITEM,
+      contentId: 'in-left' as ContentAll['contentId'],
+      layoutId: 'left-1' as LayoutItem['layoutId'],
+      layoutType: LAYOUTS.DOUBLE_LEFT,
+      layoutParentId: 'double-1',
+    } as ContentAll;
+    const rightItem = {
+      ...HEADER_ITEM,
+      contentId: 'in-right' as ContentAll['contentId'],
+      layoutId: 'right-1' as LayoutItem['layoutId'],
+      layoutType: LAYOUTS.DOUBLE_RIGHT,
+      layoutParentId: 'double-1',
+    } as ContentAll;
+    seedLocalStorage([CONTACT_ITEM, leftItem, rightItem], [LAYOUT, double]);
+
+    const { result } = renderAppContext();
+
+    expect(result.current.items.map((i) => i.contentId)).toEqual([
+      'contact-1',
+      'in-left',
+      'in-right',
+    ]);
+
+    // A true orphan (its layout is gone entirely) is still pruned.
+    seedLocalStorage([CONTACT_ITEM, leftItem], [LAYOUT]);
+    const { result: pruned } = renderAppContext();
+    expect(pruned.current.items.map((i) => i.contentId)).toEqual(['contact-1']);
+  });
+
   it('falls back to prepopulated example content when localStorage is empty', () => {
     window.localStorage.clear();
     const { result } = renderAppContext();

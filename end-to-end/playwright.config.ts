@@ -14,6 +14,19 @@ export default defineConfig({
   retries: isCI ? 2 : 0,
   reporter: [['html', { open: 'never' }], ['list']],
 
+  // Screenshot assertion defaults (specs/visual-regression-testing.md):
+  // animations frozen and the caret hidden so shots are deterministic;
+  // a 0.1% pixel tolerance absorbs anti-aliasing wiggle without letting
+  // layout drift through. Baselines are Linux-Chromium, CI-generated
+  // (see visual.spec.ts).
+  expect: {
+    toHaveScreenshot: {
+      maxDiffPixelRatio: 0.001,
+      animations: 'disabled',
+      caret: 'hide',
+    },
+  },
+
   use: {
     baseURL,
     // Tall, not just wide: this app's page grows (adding layouts/content
